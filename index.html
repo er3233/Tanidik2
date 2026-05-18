@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <title>TANIDIK | Premium Nightlife Discovery</title>
+
+  <meta
+    name="description"
+    content="Discover premium nightlife venues, events, favorites, and reviews with TANIDIK."
+  />
+
+  <meta name="theme-color" content="#050505" />
+
+  <link
+    rel="icon"
+    href="./assets/favicon.svg"
+    type="image/svg+xml"
+  />
+
+  <link rel="manifest" href="./manifest.webmanifest" />
+
+  <link rel="apple-touch-icon" href="./assets/icon-192.png" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="TANIDIK" />
+  <meta property="og:title" content="TANIDIK | Premium Nightlife Discovery" />
+  <meta
+    property="og:description"
+    content="Discover premium nightlife venues, events, favorites, and reviews with TANIDIK."
+  />
+  <meta property="og:url" content="https://hilarious-kheer-076854.netlify.app/index.html" />
+  <meta property="og:image" content="https://hilarious-kheer-076854.netlify.app/assets/social-preview.png" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="TANIDIK | Premium Nightlife Discovery" />
+  <meta
+    name="twitter:description"
+    content="Discover premium nightlife venues, events, favorites, and reviews with TANIDIK."
+  />
+  <meta name="twitter:image" content="https://hilarious-kheer-076854.netlify.app/assets/social-preview.png" />
+
+  <link
+    rel="stylesheet"
+    href="./css/style.css"
+  />
+</head>
+
+<body>
+
+  <nav class="navbar">
+    <h1>TANIDIK</h1>
+
+    <button
+      class="nav-toggle"
+      type="button"
+      aria-label="Toggle navigation"
+      aria-expanded="false"
+    >
+      Menu
+    </button>
+
+    <div class="nav-links">
+      <a href="./index.html">Home</a>
+      <a href="./discover.html">Discover</a>
+      <a href="./events.html">Events</a>
+      <a href="./favorites.html">Favorites</a>
+
+      <a
+        href="./auth.html"
+        id="authLink"
+      >
+        Login
+      </a>
+    </div>
+  </nav>
+
+  <main class="hero public-hero">
+    <h2>
+      Premium nightlife discovery
+    </h2>
+
+    <p>
+      Discover venues, events,
+      and people.
+    </p>
+
+    <div class="public-hero-cta">
+      <a
+        href="./discover.html"
+        class="btn"
+      >
+        Explore
+      </a>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+<script src="./js/app.js"></script>
+
+<div id="toast" class="toast"></div>
+
+</body>
+</html>

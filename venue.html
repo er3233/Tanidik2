@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <title>Venue Details | TANIDIK</title>
+
+  <meta
+    name="description"
+    content="View venue details, events, ratings, reviews, and favorites on TANIDIK."
+  />
+
+  <meta name="theme-color" content="#050505" />
+
+  <link
+    rel="icon"
+    href="./assets/favicon.svg"
+    type="image/svg+xml"
+  />
+
+  <link rel="manifest" href="./manifest.webmanifest" />
+
+  <link rel="apple-touch-icon" href="./assets/icon-192.png" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="TANIDIK" />
+  <meta property="og:title" content="Venue Details | TANIDIK" />
+  <meta
+    property="og:description"
+    content="View venue details, events, ratings, reviews, and favorites on TANIDIK."
+  />
+  <meta property="og:url" content="https://hilarious-kheer-076854.netlify.app/venue.html" />
+  <meta property="og:image" content="https://hilarious-kheer-076854.netlify.app/assets/social-preview.png" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Venue Details | TANIDIK" />
+  <meta
+    name="twitter:description"
+    content="View venue details, events, ratings, reviews, and favorites on TANIDIK."
+  />
+  <meta name="twitter:image" content="https://hilarious-kheer-076854.netlify.app/assets/social-preview.png" />
+
+  <link
+    rel="stylesheet"
+    href="./css/style.css"
+  />
+</head>
+
+<body>
+
+  <nav class="navbar">
+
+    <h1>TANIDIK</h1>
+
+    <button
+      class="nav-toggle"
+      type="button"
+      aria-label="Toggle navigation"
+      aria-expanded="false"
+    >
+      Menu
+    </button>
+
+    <div class="nav-links">
+
+      <a href="./index.html">Home</a>
+
+      <a href="./discover.html">Discover</a>
+
+      <a href="./events.html">Events</a>
+
+      <a href="./favorites.html">Favorites</a>
+
+      <a
+        href="./auth.html"
+        id="authLink"
+      >
+        Login
+      </a>
+
+    </div>
+
+  </nav>
+
+  <main class="venue-page public-detail venue-detail-page">
+
+    <img
+      id="venueImage"
+      class="venue-hero-image"
+      alt="Venue image"
+    />
+
+    <div class="venue-details">
+
+      <span class="venue-meta">
+        Venue
+      </span>
+
+      <h1 id="venueName">
+        Loading...
+      </h1>
+
+      <p id="venueCity"></p>
+
+      <p id="venueDescription"></p>
+
+      <div
+        id="venueAverageRating"
+        class="average-rating"
+      >
+        No ratings yet
+      </div>
+
+      <section
+        id="venueLocationSection"
+        class="location-section public-section public-section--location"
+      >
+        <h2 class="section-title">
+          Location
+        </h2>
+
+        <p id="venueAddress"></p>
+
+        <iframe
+          id="venueMap"
+          class="location-map"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+        ></iframe>
+
+        <a
+          id="venueMapsLink"
+          class="secondary-btn"
+          target="_blank"
+          rel="noopener"
+        >
+          Open in Google Maps
+        </a>
+      </section>
+
+      <div class="detail-actions">
+
+        <button
+          id="detailFavoriteBtn"
+          class="btn"
+        >
+          Add to Favorites
+        </button>
+
+        <a
+          href="./discover.html"
+          class="secondary-btn"
+        >
+          Back to Discover
+        </a>
+
+      </div>
+
+      <section class="public-section public-section--reviews">
+        <h2 class="section-title">
+          Reviews
+        </h2>
+
+        <form
+          id="reviewForm"
+          class="review-form"
+        >
+          <select
+            id="reviewRating"
+            class="review-rating-select"
+            required
+          >
+            <option value="">
+              Rating
+            </option>
+            <option value="5">5</option>
+            <option value="4">4</option>
+            <option value="3">3</option>
+            <option value="2">2</option>
+            <option value="1">1</option>
+          </select>
+
+          <textarea
+            id="reviewText"
+            class="review-textarea"
+            maxlength="240"
+            placeholder="Write a short review..."
+            required
+          ></textarea>
+
+          <button
+            type="submit"
+            class="btn"
+          >
+            Submit Review
+          </button>
+        </form>
+
+        <p
+          id="reviewMessage"
+          class="page-message"
+        ></p>
+
+        <div
+          id="venueReviews"
+          class="reviews-list"
+        >
+        </div>
+      </section>
+
+      <section class="public-section public-section--reservations">
+        <h2 class="section-title">
+          Reservations
+        </h2>
+
+        <form
+          id="reservationForm"
+          class="reservation-form"
+        >
+          <input
+            type="date"
+            id="reservationDate"
+            required
+          />
+
+          <input
+            type="time"
+            id="reservationTime"
+            required
+          />
+
+          <input
+            type="number"
+            id="reservationPartySize"
+            min="1"
+            max="20"
+            placeholder="Party size"
+            required
+          />
+
+          <textarea
+            id="reservationNote"
+            placeholder="Optional note"
+          ></textarea>
+
+          <button
+            type="submit"
+            class="btn"
+          >
+            Request Reservation
+          </button>
+        </form>
+
+        <p
+          id="reservationMessage"
+          class="page-message"
+        ></p>
+
+        <div
+          id="userReservations"
+          class="reservation-list"
+        >
+        </div>
+      </section>
+
+      <section class="public-section public-section--events">
+        <h2 class="section-title">
+          Events at this venue
+        </h2>
+
+        <div
+          id="venueEvents"
+          class="venues-grid"
+        >
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+  <script src="./js/app.js"></script>
+
+  <div id="toast" class="toast"></div>
+
+</body>
+</html>

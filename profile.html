@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <title>Profile | TANIDIK</title>
+
+  <meta
+    name="description"
+    content="View your TANIDIK profile, favorites count, reviews count, and account details."
+  />
+
+  <meta name="theme-color" content="#050505" />
+
+  <link
+    rel="icon"
+    href="./assets/favicon.svg"
+    type="image/svg+xml"
+  />
+
+  <link rel="manifest" href="./manifest.webmanifest" />
+
+  <link rel="apple-touch-icon" href="./assets/icon-192.png" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="TANIDIK" />
+  <meta property="og:title" content="Profile | TANIDIK" />
+  <meta
+    property="og:description"
+    content="View your TANIDIK profile, favorites count, reviews count, and account details."
+  />
+  <meta property="og:url" content="https://hilarious-kheer-076854.netlify.app/profile.html" />
+  <meta property="og:image" content="https://hilarious-kheer-076854.netlify.app/assets/social-preview.png" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Profile | TANIDIK" />
+  <meta
+    name="twitter:description"
+    content="View your TANIDIK profile, favorites count, reviews count, and account details."
+  />
+  <meta name="twitter:image" content="https://hilarious-kheer-076854.netlify.app/assets/social-preview.png" />
+
+  <link
+    rel="stylesheet"
+    href="./css/style.css"
+  />
+</head>
+
+<body>
+
+  <div class="profile-dashboard">
+
+    <header class="dashboard-header dashboard-header--profile">
+      <h1>
+        Your Profile
+      </h1>
+    </header>
+
+    <div class="profile-grid">
+
+      <div class="profile-card">
+        <span>Email</span>
+        <strong id="userEmail">
+          Loading...
+        </strong>
+      </div>
+
+      <div class="profile-card">
+        <span>Favorites</span>
+        <strong id="profileFavoritesCount">
+          0
+        </strong>
+      </div>
+
+      <div class="profile-card">
+        <span>Reviews</span>
+        <strong id="profileReviewsCount">
+          0
+        </strong>
+      </div>
+
+      <div class="profile-card">
+        <span>Reservations</span>
+        <strong id="profileReservationsCount">
+          0
+        </strong>
+      </div>
+
+    </div>
+
+    <section class="profile-notifications-section dashboard-section">
+
+      <h2>
+        Notifications
+      </h2>
+
+      <div
+        id="profileNotificationsList"
+        class="notifications-list"
+      >
+      </div>
+
+    </section>
+
+    <section class="profile-business-section dashboard-section dashboard-section--approvals dashboard-section--forms">
+
+      <h2>
+        Business Application
+      </h2>
+
+      <div
+        id="profileBusinessApplications"
+        class="business-list"
+      >
+      </div>
+
+      <form
+        id="businessApplicationForm"
+        class="admin-form"
+      >
+        <input
+          type="text"
+          id="businessApplicationName"
+          placeholder="Business Name"
+          required
+        />
+
+        <input
+          type="tel"
+          id="businessApplicationPhone"
+          placeholder="Phone"
+        />
+
+        <input
+          type="text"
+          id="businessApplicationAddress"
+          placeholder="Address"
+        />
+
+        <textarea
+          id="businessApplicationDescription"
+          placeholder="Tell us about your business"
+          required
+        ></textarea>
+
+        <div class="admin-form-actions">
+          <button
+            type="submit"
+            class="btn"
+          >
+            Apply
+          </button>
+        </div>
+      </form>
+
+    </section>
+
+    <section class="profile-reservations-section dashboard-section dashboard-section--reservations">
+
+      <h2>
+        Recent Reservations
+      </h2>
+
+      <div
+        id="profileReservationsList"
+        class="reservation-list"
+      >
+      </div>
+
+    </section>
+
+    <a
+      id="businessDashboardLink"
+      href="./business.html"
+      class="secondary-btn profile-business-link"
+    >
+      Business Dashboard
+    </a>
+
+    <a
+      href="./messages.html"
+      class="secondary-btn profile-messages-link"
+    >
+      Messages
+    </a>
+
+    <button id="logoutBtn">
+      Logout
+    </button>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+<script src="./js/app.js"></script>
+
+<div id="toast" class="toast"></div>
+
+</body>
+</html>

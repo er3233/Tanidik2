@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <title>Admin Panel | TANIDIK</title>
+
+  <meta
+    name="description"
+    content="Admin tools for managing TANIDIK venues, events, and uploaded images."
+  />
+
+  <meta name="theme-color" content="#050505" />
+
+  <link
+    rel="icon"
+    href="./assets/favicon.svg"
+    type="image/svg+xml"
+  />
+
+  <link rel="manifest" href="./manifest.webmanifest" />
+
+  <link rel="apple-touch-icon" href="./assets/icon-192.png" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="TANIDIK" />
+  <meta property="og:title" content="Admin Panel | TANIDIK" />
+  <meta
+    property="og:description"
+    content="Admin tools for managing TANIDIK venues, events, and uploaded images."
+  />
+  <meta property="og:url" content="https://hilarious-kheer-076854.netlify.app/admin.html" />
+  <meta property="og:image" content="https://hilarious-kheer-076854.netlify.app/assets/social-preview.png" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Admin Panel | TANIDIK" />
+  <meta
+    name="twitter:description"
+    content="Admin tools for managing TANIDIK venues, events, and uploaded images."
+  />
+  <meta name="twitter:image" content="https://hilarious-kheer-076854.netlify.app/assets/social-preview.png" />
+
+  <link
+    rel="stylesheet"
+    href="./css/style.css"
+  />
+</head>
+
+<body>
+
+  <nav class="navbar">
+
+    <h1>TANIDIK</h1>
+
+    <button
+      class="nav-toggle"
+      type="button"
+      aria-label="Toggle navigation"
+      aria-expanded="false"
+    >
+      Menu
+    </button>
+
+    <div class="nav-links">
+
+      <a href="./index.html">Home</a>
+
+      <a href="./discover.html">Discover</a>
+
+      <a href="./events.html">Events</a>
+
+      <a href="./favorites.html">Favorites</a>
+
+      <a
+        href="./auth.html"
+        id="authLink"
+      >
+        Login
+      </a>
+
+    </div>
+
+  </nav>
+
+  <main
+    id="adminPage"
+    class="admin-page"
+  >
+
+    <header class="dashboard-header dashboard-header--admin">
+      <h1>
+        Admin Panel
+      </h1>
+
+      <p class="page-message">
+        Manage venues and events.
+      </p>
+    </header>
+
+    <section class="admin-section dashboard-section dashboard-section--forms">
+
+      <h2>
+        Venues
+      </h2>
+
+      <form
+        id="adminVenueForm"
+        class="admin-form"
+      >
+        <input
+          type="hidden"
+          id="adminVenueId"
+        />
+
+        <input
+          type="text"
+          id="adminVenueName"
+          placeholder="Venue Name"
+          required
+        />
+
+        <input
+          type="text"
+          id="adminVenueCity"
+          placeholder="City"
+          required
+        />
+
+        <input
+          type="text"
+          id="adminVenueImage"
+          placeholder="Image URL"
+        />
+
+        <input
+          type="file"
+          id="adminVenueImageFile"
+          accept="image/*"
+          class="admin-file-input"
+        />
+
+        <input
+          type="text"
+          id="adminVenueAddress"
+          placeholder="Address"
+        />
+
+        <input
+          type="number"
+          id="adminVenueLatitude"
+          placeholder="Latitude"
+          step="any"
+        />
+
+        <input
+          type="number"
+          id="adminVenueLongitude"
+          placeholder="Longitude"
+          step="any"
+        />
+
+        <textarea
+          id="adminVenueDescription"
+          placeholder="Description"
+        ></textarea>
+
+        <div class="admin-form-actions">
+          <button
+            type="submit"
+            class="btn"
+          >
+            Save Venue
+          </button>
+
+          <button
+            type="button"
+            id="adminVenueClearBtn"
+            class="secondary-btn"
+          >
+            Clear
+          </button>
+        </div>
+      </form>
+
+      <div
+        id="adminVenuesList"
+        class="admin-list"
+      >
+      </div>
+
+    </section>
+
+    <section class="admin-section dashboard-section dashboard-section--approvals">
+
+      <h2>
+        Business Applications
+      </h2>
+
+      <div
+        id="adminBusinessApplicationsList"
+        class="admin-list"
+      >
+      </div>
+
+    </section>
+
+    <section class="admin-section dashboard-section dashboard-section--forms">
+
+      <h2>
+        Events
+      </h2>
+
+      <form
+        id="adminEventForm"
+        class="admin-form"
+      >
+        <input
+          type="hidden"
+          id="adminEventId"
+        />
+
+        <input
+          type="number"
+          id="adminEventVenueId"
+          placeholder="Venue ID"
+          required
+        />
+
+        <input
+          type="text"
+          id="adminEventTitle"
+          placeholder="Event Title"
+          required
+        />
+
+        <input
+          type="text"
+          id="adminEventDate"
+          placeholder="Event Date"
+        />
+
+        <input
+          type="text"
+          id="adminEventImage"
+          placeholder="Image URL"
+        />
+
+        <input
+          type="file"
+          id="adminEventImageFile"
+          accept="image/*"
+          class="admin-file-input"
+        />
+
+        <textarea
+          id="adminEventDescription"
+          placeholder="Description"
+        ></textarea>
+
+        <div class="admin-form-actions">
+          <button
+            type="submit"
+            class="btn"
+          >
+            Save Event
+          </button>
+
+          <button
+            type="button"
+            id="adminEventClearBtn"
+            class="secondary-btn"
+          >
+            Clear
+          </button>
+        </div>
+      </form>
+
+      <div
+        id="adminEventsList"
+        class="admin-list"
+      >
+      </div>
+
+    </section>
+
+    <section class="admin-section dashboard-section dashboard-section--reservations">
+
+      <h2>
+        Reservations
+      </h2>
+
+      <div
+        id="adminReservationsList"
+        class="admin-list"
+      >
+      </div>
+
+    </section>
+
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+  <script src="./js/app.js"></script>
+
+  <div id="toast" class="toast"></div>
+
+</body>
+</html>
