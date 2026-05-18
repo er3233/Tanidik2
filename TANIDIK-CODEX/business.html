@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <title>Business Dashboard | TANIDIK</title>
+
+  <meta
+    name="description"
+    content="View your TANIDIK business records, venues, and reservation requests."
+  />
+
+  <meta name="theme-color" content="#050505" />
+
+  <link
+    rel="icon"
+    href="./assets/favicon.svg"
+    type="image/svg+xml"
+  />
+
+  <link rel="manifest" href="./manifest.webmanifest" />
+
+  <link rel="apple-touch-icon" href="./assets/icon-192.png" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="TANIDIK" />
+  <meta property="og:title" content="Business Dashboard | TANIDIK" />
+  <meta
+    property="og:description"
+    content="View your TANIDIK business records, venues, and reservation requests."
+  />
+  <meta property="og:url" content="https://hilarious-kheer-076854.netlify.app/business.html" />
+  <meta property="og:image" content="https://hilarious-kheer-076854.netlify.app/assets/social-preview.png" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Business Dashboard | TANIDIK" />
+  <meta
+    name="twitter:description"
+    content="View your TANIDIK business records, venues, and reservation requests."
+  />
+  <meta name="twitter:image" content="https://hilarious-kheer-076854.netlify.app/assets/social-preview.png" />
+
+  <link
+    rel="stylesheet"
+    href="./css/style.css"
+  />
+</head>
+
+<body>
+
+  <nav class="navbar">
+
+    <h1>TANIDIK</h1>
+
+    <button
+      class="nav-toggle"
+      type="button"
+      aria-label="Toggle navigation"
+      aria-expanded="false"
+    >
+      Menu
+    </button>
+
+    <div class="nav-links">
+
+      <a href="./index.html">Home</a>
+
+      <a href="./discover.html">Discover</a>
+
+      <a href="./events.html">Events</a>
+
+      <a href="./favorites.html">Favorites</a>
+
+      <a
+        href="./auth.html"
+        id="authLink"
+      >
+        Login
+      </a>
+
+    </div>
+
+  </nav>
+
+  <main
+    id="businessPage"
+    class="business-page"
+  >
+
+    <header class="dashboard-header dashboard-header--business">
+      <h1>
+        Business Dashboard
+      </h1>
+
+      <p class="page-message">
+        View your businesses, linked venues, and reservation requests.
+      </p>
+
+      <a
+        href="./messages.html"
+        class="secondary-btn business-messages-link"
+      >
+        Messages
+      </a>
+    </header>
+
+    <section class="business-section dashboard-section dashboard-section--analytics">
+
+      <h2>
+        Analytics
+      </h2>
+
+      <div
+        id="businessAnalyticsGrid"
+        class="business-analytics-grid"
+      >
+      </div>
+
+    </section>
+
+    <section class="business-section dashboard-section">
+
+      <h2>
+        Your Businesses
+      </h2>
+
+      <div
+        id="businessRecordsList"
+        class="business-list"
+      >
+      </div>
+
+    </section>
+
+    <section class="business-section dashboard-section dashboard-section--forms">
+
+      <h2>
+        Your Venues
+      </h2>
+
+      <form
+        id="businessVenueForm"
+        class="admin-form"
+      >
+        <input
+          type="hidden"
+          id="businessVenueId"
+        />
+
+        <select
+          id="businessVenueBusinessId"
+          required
+        >
+          <option value="">Choose Business</option>
+        </select>
+
+        <input
+          type="text"
+          id="businessVenueName"
+          placeholder="Venue Name"
+          required
+        />
+
+        <input
+          type="text"
+          id="businessVenueCity"
+          placeholder="City"
+          required
+        />
+
+        <input
+          type="text"
+          id="businessVenueImage"
+          placeholder="Image URL"
+        />
+
+        <input
+          type="file"
+          id="businessVenueImageFile"
+          accept="image/*"
+          class="admin-file-input"
+        />
+
+        <input
+          type="text"
+          id="businessVenueAddress"
+          placeholder="Address"
+        />
+
+        <input
+          type="number"
+          id="businessVenueLatitude"
+          placeholder="Latitude"
+          step="any"
+        />
+
+        <input
+          type="number"
+          id="businessVenueLongitude"
+          placeholder="Longitude"
+          step="any"
+        />
+
+        <textarea
+          id="businessVenueDescription"
+          placeholder="Description"
+        ></textarea>
+
+        <div class="admin-form-actions">
+          <button
+            type="submit"
+            class="btn"
+          >
+            Save Venue
+          </button>
+
+          <button
+            type="button"
+            id="businessVenueClearBtn"
+            class="secondary-btn"
+          >
+            Clear
+          </button>
+        </div>
+      </form>
+
+      <div
+        id="businessVenuesList"
+        class="business-list"
+      >
+      </div>
+
+    </section>
+
+    <section class="business-section dashboard-section dashboard-section--forms">
+
+      <h2>
+        Your Events
+      </h2>
+
+      <form
+        id="businessEventForm"
+        class="admin-form"
+      >
+        <input
+          type="hidden"
+          id="businessEventId"
+        />
+
+        <select
+          id="businessEventVenueId"
+          required
+        >
+          <option value="">Choose Venue</option>
+        </select>
+
+        <input
+          type="text"
+          id="businessEventTitle"
+          placeholder="Event Title"
+          required
+        />
+
+        <input
+          type="text"
+          id="businessEventDate"
+          placeholder="Event Date"
+        />
+
+        <input
+          type="text"
+          id="businessEventImage"
+          placeholder="Image URL"
+        />
+
+        <input
+          type="file"
+          id="businessEventImageFile"
+          accept="image/*"
+          class="admin-file-input"
+        />
+
+        <textarea
+          id="businessEventDescription"
+          placeholder="Description"
+        ></textarea>
+
+        <div class="admin-form-actions">
+          <button
+            type="submit"
+            class="btn"
+          >
+            Save Event
+          </button>
+
+          <button
+            type="button"
+            id="businessEventClearBtn"
+            class="secondary-btn"
+          >
+            Clear
+          </button>
+        </div>
+      </form>
+
+      <div
+        id="businessEventsList"
+        class="business-list"
+      >
+      </div>
+
+    </section>
+
+    <section class="business-section dashboard-section dashboard-section--reservations">
+
+      <h2>
+        Reservations
+      </h2>
+
+      <div
+        id="businessReservationsList"
+        class="business-list"
+      >
+      </div>
+
+    </section>
+
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+  <script src="./js/app.js"></script>
+
+  <div id="toast" class="toast"></div>
+
+</body>
+</html>

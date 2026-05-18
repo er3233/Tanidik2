@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <title>Login | TANIDIK</title>
+
+  <meta
+    name="description"
+    content="Log in or create your TANIDIK account to save favorites and write reviews."
+  />
+
+  <meta name="theme-color" content="#050505" />
+
+  <link
+    rel="icon"
+    href="./assets/favicon.svg"
+    type="image/svg+xml"
+  />
+
+  <link rel="manifest" href="./manifest.webmanifest" />
+
+  <link rel="apple-touch-icon" href="./assets/icon-192.png" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="TANIDIK" />
+  <meta property="og:title" content="Login | TANIDIK" />
+  <meta
+    property="og:description"
+    content="Log in or create your TANIDIK account to save favorites and write reviews."
+  />
+  <meta property="og:url" content="https://hilarious-kheer-076854.netlify.app/auth.html" />
+  <meta property="og:image" content="https://hilarious-kheer-076854.netlify.app/assets/social-preview.png" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Login | TANIDIK" />
+  <meta
+    name="twitter:description"
+    content="Log in or create your TANIDIK account to save favorites and write reviews."
+  />
+  <meta name="twitter:image" content="https://hilarious-kheer-076854.netlify.app/assets/social-preview.png" />
+
+  <link
+    rel="stylesheet"
+    href="./css/style.css"
+  />
+</head>
+
+<body>
+
+  <div class="auth-container">
+
+    <h1>TANIDIK</h1>
+
+    <input
+      type="email"
+      id="email"
+      placeholder="Email"
+    />
+
+    <input
+      type="password"
+      id="password"
+      placeholder="Password"
+    />
+
+    <button id="loginBtn">
+      Login
+    </button>
+
+    <button id="registerBtn">
+      Register
+    </button>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+  <script src="./js/app.js"></script>
+
+  <div id="toast" class="toast"></div>
+
+</body>
+</html>
