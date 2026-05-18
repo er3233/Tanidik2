@@ -730,6 +730,10 @@ body::before {
   width: fit-content;
 }
 
+.business-messages-link {
+  width: fit-content;
+}
+
 .admin-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
