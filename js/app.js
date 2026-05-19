@@ -54,6 +54,47 @@ function getImage(image) {
   return image || PLACEHOLDER_IMAGE;
 }
 
+async function runSafeInitializer(name, initializer) {
+  try {
+    await initializer();
+  } catch (error) {
+    console.log(`${name} failed`, error);
+  }
+}
+
+function setTextIfPresent(id, value) {
+  const element = document.getElementById(id);
+
+  if (element) {
+    element.innerText = safeText(value);
+  }
+}
+
+function setImageIfPresent(id, image, fallback) {
+  const element = document.getElementById(id);
+
+  if (!element) return;
+
+  element.src = getImage(image);
+  element.addEventListener(
+    "error",
+    () => {
+      element.src = fallback || PLACEHOLDER_IMAGE;
+    },
+    { once: true }
+  );
+}
+
+function renderDetailUnavailable(title, message) {
+  const detail =
+    document.querySelector(".venue-details") ||
+    document.querySelector("main");
+
+  if (detail) {
+    renderEmptyState(detail, title, message);
+  }
+}
+
 function showToast(message) {
   const toast = document.getElementById("toast");
 
@@ -106,10 +147,16 @@ async function createNotification(
   let lastError = null;
 
   for (const payload of payloads) {
-    const { error } = await supabaseClient.rpc(
-      "create_notification",
-      payload
-    );
+    let error = null;
+
+    try {
+      ({ error } = await supabaseClient.rpc(
+        "create_notification",
+        payload
+      ));
+    } catch (rpcError) {
+      error = rpcError;
+    }
 
     if (!error) return;
 
@@ -446,15 +493,21 @@ async function loadEventAttendeeCounts(eventIds) {
     return {};
   }
 
-  const { data, error } =
-    await supabaseClient
+  let data = [];
+  let error = null;
+
+  try {
+    ({ data, error } = await supabaseClient
       .from("event_attendees")
       .select("event_id")
-      .in("event_id", uniqueEventIds);
+      .in("event_id", uniqueEventIds));
+  } catch (requestError) {
+    error = requestError;
+  }
 
   if (error) {
     console.log(error);
-    showToast(error.message);
+    showToast(error.message || "Attendance unavailable");
     return {};
   }
 
@@ -729,8 +782,11 @@ async function loadVenueStats(venueIds) {
     return {};
   }
 
-  const [reviewsResult, favoritesResult] =
-    await Promise.all([
+  let reviewsResult = { data: [], error: null };
+  let favoritesResult = { data: [], error: null };
+
+  try {
+    [reviewsResult, favoritesResult] = await Promise.all([
       supabaseClient
         .from("venue_reviews")
         .select("venue_id, rating")
@@ -740,6 +796,11 @@ async function loadVenueStats(venueIds) {
         .select("venue_id")
         .in("venue_id", uniqueVenueIds),
     ]);
+  } catch (requestError) {
+    console.log(requestError);
+    showToast(requestError.message || "Venue stats unavailable");
+    return buildVenueStats(uniqueVenueIds, [], []);
+  }
 
   if (reviewsResult.error) {
     console.log(reviewsResult.error);
@@ -972,17 +1033,22 @@ async function cancelUserReservation(
 ) {
   if (!confirm("Cancel this reservation?")) return;
 
-  const { error } =
-    await supabaseClient.rpc(
+  let error = null;
+
+  try {
+    ({ error } = await supabaseClient.rpc(
       "cancel_pending_reservation",
       {
         reservation_id: reservationId,
       }
-    );
+    ));
+  } catch (rpcError) {
+    error = rpcError;
+  }
 
   if (error) {
     console.log(error);
-    showToast(error.message);
+    showToast(error.message || "Reservation unavailable");
     return;
   }
 
@@ -1120,86 +1186,140 @@ async function setupReservationForm(venueId) {
   reservationForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    const {
-      data: { session },
-    } = await supabaseClient.auth.getSession();
-
-    if (!session) {
-      showToast("Login required");
+    if (reservationForm.dataset.submitting === "true") {
       return;
     }
 
-    const partySize = Number(
-      document.getElementById("reservationPartySize").value
-    );
+    reservationForm.dataset.submitting = "true";
 
-    if (partySize < 1 || partySize > 20) {
-      showToast("Party size must be between 1 and 20");
-      return;
-    }
+    try {
+      const {
+        data: { session },
+      } = await supabaseClient.auth.getSession();
 
-    const payload = {
-      venue_id: venueId,
-      user_id: session.user.id,
-      reservation_date:
-        document.getElementById("reservationDate").value,
-      reservation_time:
-        document.getElementById("reservationTime").value,
-      party_size: partySize,
-      note:
-        document.getElementById("reservationNote").value.trim(),
-      status: "pending",
-    };
+      if (!session) {
+        showToast("Login required");
+        return;
+      }
 
-    const { error } =
-      await supabaseClient
-        .from("reservations")
-        .insert([payload]);
+      const partySizeInput =
+        document.getElementById("reservationPartySize");
+      const dateInput =
+        document.getElementById("reservationDate");
+      const timeInput =
+        document.getElementById("reservationTime");
+      const noteInput =
+        document.getElementById("reservationNote");
 
-    if (error) {
+      if (!partySizeInput || !dateInput || !timeInput) {
+        showToast("Reservation form unavailable");
+        return;
+      }
+
+      const partySize = Number(partySizeInput.value);
+
+      if (partySize < 1 || partySize > 20) {
+        showToast("Party size must be between 1 and 20");
+        return;
+      }
+
+      const payload = {
+        venue_id: venueId,
+        user_id: session.user.id,
+        reservation_date: dateInput.value,
+        reservation_time: timeInput.value,
+        party_size: partySize,
+        note: noteInput ? noteInput.value.trim() : "",
+        status: "pending",
+      };
+
+      const { error } =
+        await supabaseClient
+          .from("reservations")
+          .insert([payload]);
+
+      if (error) {
+        console.log(error);
+        showToast(error.message);
+        return;
+      }
+
+      showToast("Reservation requested");
+      await notifyBusinessOwnerReservationRequest(venueId);
+      reservationForm.reset();
+      await loadUserReservations(venueId);
+    } catch (error) {
       console.log(error);
-      showToast(error.message);
-      return;
+      showToast(error.message || "Reservation unavailable");
+    } finally {
+      reservationForm.dataset.submitting = "false";
     }
-
-    showToast("Reservation requested");
-    await notifyBusinessOwnerReservationRequest(venueId);
-    reservationForm.reset();
-    await loadUserReservations(venueId);
   });
 }
 
 if (loginBtn) {
   loginBtn.addEventListener("click", async () => {
-    const { error } =
-      await supabaseClient.auth.signInWithPassword({
-        email: email.value,
-        password: password.value,
-      });
+    if (loginBtn.disabled) return;
 
-    if (error) {
-      showToast(error.message);
+    if (!email || !password) {
+      showToast("Login form unavailable");
       return;
     }
 
-    window.location.href = "./index.html";
+    loginBtn.disabled = true;
+
+    try {
+      const { error } =
+        await supabaseClient.auth.signInWithPassword({
+          email: email.value,
+          password: password.value,
+        });
+
+      if (error) {
+        showToast(error.message);
+        return;
+      }
+
+      window.location.href = "./index.html";
+    } catch (error) {
+      console.log(error);
+      showToast(error.message || "Login unavailable");
+    } finally {
+      loginBtn.disabled = false;
+    }
   });
 }
 
 if (registerBtn) {
   registerBtn.addEventListener("click", async () => {
-    const { error } =
-      await supabaseClient.auth.signUp({
-        email: email.value,
-        password: password.value,
-      });
+    if (registerBtn.disabled) return;
 
-    if (error) {
-      showToast(error.message);
+    if (!email || !password) {
+      showToast("Registration form unavailable");
       return;
     }
 
-    showToast("Register successful");
+    registerBtn.disabled = true;
+
+    try {
+      const { error } =
+        await supabaseClient.auth.signUp({
+          email: email.value,
+          password: password.value,
+        });
+
+      if (error) {
+        showToast(error.message);
+        return;
+      }
+
+      showToast("Register successful");
+    } catch (error) {
+      console.log(error);
+      showToast(error.message || "Registration unavailable");
+    } finally {
+      registerBtn.disabled = false;
+    }
   });
 }
 
@@ -2372,39 +2492,43 @@ async function loadVenueDetails() {
 
   const id = params.get("id");
 
-  if (!id) return;
-
-  const { data: venue, error } =
-    await supabaseClient
-      .from("venues")
-      .select("*")
-      .eq("id", id)
-      .single();
-
-  if (error) {
-    console.log(error);
-    showToast(error.message);
+  if (!id) {
+    renderDetailUnavailable(
+      "Venue unavailable",
+      "This venue link is missing an ID."
+    );
     return;
   }
 
-  document.getElementById("venueImage").src =
-    getImage(venue.image);
+  let venue = null;
+  let error = null;
 
-  document
-    .getElementById("venueImage")
-    .setAttribute(
-      "onerror",
-      `this.src='${PLACEHOLDER_IMAGE}'`
+  try {
+    ({ data: venue, error } = await supabaseClient
+      .from("venues")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle());
+  } catch (requestError) {
+    error = requestError;
+  }
+
+  if (error || !venue) {
+    console.log(error);
+    renderDetailUnavailable(
+      "Venue unavailable",
+      "This venue does not exist or cannot be loaded right now."
     );
+    if (error) {
+      showToast(error.message || "Venue unavailable");
+    }
+    return;
+  }
 
-  document.getElementById("venueName").innerText =
-    safeText(venue.name);
-
-  document.getElementById("venueCity").innerText =
-    safeText(venue.city);
-
-  document.getElementById("venueDescription").innerText =
-    safeText(venue.description);
+  setImageIfPresent("venueImage", venue.image);
+  setTextIfPresent("venueName", venue.name);
+  setTextIfPresent("venueCity", venue.city);
+  setTextIfPresent("venueDescription", venue.description);
 
   renderVenueLocation(venue);
 
@@ -2432,17 +2556,33 @@ async function loadVenueDetails() {
   await loadUserReservations(venue.id);
   await setupReservationForm(venue.id);
 
-  const { data: events } =
-    await supabaseClient
+  let events = [];
+  let eventsError = null;
+
+  try {
+    ({ data: events, error: eventsError } = await supabaseClient
       .from("events")
       .select("*")
-      .eq("venue_id", venue.id);
+      .eq("venue_id", venue.id));
+  } catch (requestError) {
+    eventsError = requestError;
+  }
 
   const venueEvents =
     document.getElementById("venueEvents");
 
   if (venueEvents) {
     venueEvents.innerHTML = "";
+
+    if (eventsError) {
+      console.log(eventsError);
+      renderEmptyState(
+        venueEvents,
+        "Events unavailable",
+        "Events for this venue could not be loaded."
+      );
+      return;
+    }
 
     if (!events || events.length === 0) {
       renderEmptyState(
@@ -2479,36 +2619,42 @@ async function loadEventDetails() {
 
   const id = params.get("id");
 
-  if (!id) return;
-
-  const { data: event, error } =
-    await supabaseClient
-      .from("events")
-      .select("*")
-      .eq("id", id)
-      .single();
-
-  if (error) {
-    console.log(error);
-    showToast(error.message);
+  if (!id) {
+    renderDetailUnavailable(
+      "Event unavailable",
+      "This event link is missing an ID."
+    );
     return;
   }
 
-  document.getElementById("eventImage").src =
-    getImage(event.image);
+  let event = null;
+  let error = null;
 
-  document
-    .getElementById("eventImage")
-    .setAttribute(
-      "onerror",
-      `this.src='${PLACEHOLDER_IMAGE}'`
+  try {
+    ({ data: event, error } = await supabaseClient
+      .from("events")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle());
+  } catch (requestError) {
+    error = requestError;
+  }
+
+  if (error || !event) {
+    console.log(error);
+    renderDetailUnavailable(
+      "Event unavailable",
+      "This event does not exist or cannot be loaded right now."
     );
+    if (error) {
+      showToast(error.message || "Event unavailable");
+    }
+    return;
+  }
 
-  document.getElementById("eventTitle").innerText =
-    safeText(event.title);
-
-  document.getElementById("eventDate").innerText =
-    safeText(event.event_date);
+  setImageIfPresent("eventImage", event.image);
+  setTextIfPresent("eventTitle", event.title);
+  setTextIfPresent("eventDate", event.event_date);
 
   const eventDate = document.getElementById("eventDate");
 
@@ -2521,15 +2667,24 @@ async function loadEventDetails() {
 
   await refreshEventAttendance(event.id);
 
-  document.getElementById("eventDescription").innerText =
-    safeText(event.description);
+  setTextIfPresent("eventDescription", event.description);
 
-  const { data: venue } =
-    await supabaseClient
+  let venue = null;
+  let venueError = null;
+
+  try {
+    ({ data: venue, error: venueError } = await supabaseClient
       .from("venues")
       .select("*")
       .eq("id", event.venue_id)
-      .single();
+      .maybeSingle());
+  } catch (requestError) {
+    venueError = requestError;
+  }
+
+  if (venueError) {
+    console.log(venueError);
+  }
 
   const eventVenue =
     document.getElementById("eventVenue");
@@ -2644,14 +2799,19 @@ async function uploadAdminImage(file, folder) {
   const fileName = getSafeFileName(file.name);
   const filePath = `${folder}/${Date.now()}-${fileName}`;
 
-  const { error } =
-    await supabaseClient.storage
+  let error = null;
+
+  try {
+    ({ error } = await supabaseClient.storage
       .from(STORAGE_BUCKET)
-      .upload(filePath, file);
+      .upload(filePath, file));
+  } catch (uploadError) {
+    error = uploadError;
+  }
 
   if (error) {
     console.log(error);
-    showToast(error.message);
+    showToast(error.message || "Image upload failed");
     return "";
   }
 
@@ -4431,16 +4591,23 @@ async function openReservationConversation(reservationId) {
     return;
   }
 
-  const { data, error } = await supabaseClient.rpc(
-    "get_or_create_reservation_conversation",
-    {
-      p_reservation_id: reservationId,
-    }
-  );
+  let data = null;
+  let error = null;
+
+  try {
+    ({ data, error } = await supabaseClient.rpc(
+      "get_or_create_reservation_conversation",
+      {
+        p_reservation_id: reservationId,
+      }
+    ));
+  } catch (rpcError) {
+    error = rpcError;
+  }
 
   if (error) {
     console.log(error);
-    showToast(error.message);
+    showToast(error.message || "Conversation unavailable");
     return;
   }
 
@@ -4662,6 +4829,10 @@ function setupMessageForm(conversationId) {
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
 
+    if (form.dataset.submitting === "true") {
+      return;
+    }
+
     const bodyInput = document.getElementById("messageBody");
     const body = bodyInput ? bodyInput.value.trim() : "";
 
@@ -4670,10 +4841,20 @@ function setupMessageForm(conversationId) {
       return;
     }
 
-    await sendConversationMessage(conversationId, body);
+    form.dataset.submitting = "true";
 
-    if (bodyInput) {
-      bodyInput.value = "";
+    try {
+      const sent =
+        await sendConversationMessage(conversationId, body);
+
+      if (sent && bodyInput) {
+        bodyInput.value = "";
+      }
+    } catch (error) {
+      console.log(error);
+      showToast(error.message || "Message could not be sent");
+    } finally {
+      form.dataset.submitting = "false";
     }
   });
 }
@@ -4706,13 +4887,23 @@ async function notifyMessageRecipient(conversation, senderId) {
 }
 
 async function sendConversationMessage(conversationId, body) {
+  if (!conversationId) {
+    showToast("Choose a conversation");
+    return false;
+  }
+
+  if (!body || !body.trim()) {
+    showToast("Write a message");
+    return false;
+  }
+
   const {
     data: { session },
   } = await supabaseClient.auth.getSession();
 
   if (!session) {
     window.location.href = "./auth.html";
-    return;
+    return false;
   }
 
   const { data: conversation, error: conversationError } =
@@ -4727,7 +4918,7 @@ async function sendConversationMessage(conversationId, body) {
       console.log(conversationError);
     }
     showToast("Conversation unavailable");
-    return;
+    return false;
   }
 
   const { error } =
@@ -4744,12 +4935,13 @@ async function sendConversationMessage(conversationId, body) {
   if (error) {
     console.log(error);
     showToast(error.message);
-    return;
+    return false;
   }
 
   await notifyMessageRecipient(conversation, session.user.id);
   await loadConversation(conversation.id);
   await loadMessageInbox();
+  return true;
 }
 
 async function setupMessagesPage() {
@@ -4879,18 +5071,18 @@ function registerServiceWorker() {
   });
 }
 
-checkUser();
-loadVenues();
-loadFavorites();
-loadEvents();
-loadVenueDetails();
-loadEventDetails();
-initAdminPanel();
-initBusinessDashboard();
-setupMessagesPage();
-setActiveNav();
-setupMobileNav();
-registerServiceWorker();
+runSafeInitializer("checkUser", checkUser);
+runSafeInitializer("loadVenues", loadVenues);
+runSafeInitializer("loadFavorites", loadFavorites);
+runSafeInitializer("loadEvents", loadEvents);
+runSafeInitializer("loadVenueDetails", loadVenueDetails);
+runSafeInitializer("loadEventDetails", loadEventDetails);
+runSafeInitializer("initAdminPanel", initAdminPanel);
+runSafeInitializer("initBusinessDashboard", initBusinessDashboard);
+runSafeInitializer("setupMessagesPage", setupMessagesPage);
+runSafeInitializer("setActiveNav", setActiveNav);
+runSafeInitializer("setupMobileNav", setupMobileNav);
+runSafeInitializer("registerServiceWorker", registerServiceWorker);
 
 window.addFavorite = addFavorite;
 window.removeFavorite = removeFavorite;
