@@ -13,7 +13,7 @@
 
   <meta
     name="description"
-    content="View reservation messages on TANIDIK."
+    content="Discover premium nightlife venues, events, reservations, and business tools with TANIDIK."
   />
 
   <meta name="theme-color" content="#050505" />
@@ -27,6 +27,24 @@
   <link rel="manifest" href="./manifest.webmanifest" />
 
   <link rel="apple-touch-icon" href="./assets/icon-192.png" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="TANIDIK" />
+  <meta property="og:title" content="TANIDIK | Premium Nightlife Discovery" />
+  <meta
+    property="og:description"
+    content="Discover premium nightlife venues, events, reservations, and business tools with TANIDIK."
+  />
+  <meta property="og:url" content="https://tanidik2.vercel.app" />
+  <meta property="og:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="TANIDIK | Premium Nightlife Discovery" />
+  <meta
+    name="twitter:description"
+    content="Discover premium nightlife venues, events, reservations, and business tools with TANIDIK."
+  />
+  <meta name="twitter:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
 
   <link
     rel="stylesheet"
@@ -85,9 +103,25 @@
     <section class="messages-layout">
 
       <aside class="messages-inbox dashboard-section">
-        <h2>
-          Inbox
-        </h2>
+        <div class="messages-panel-header">
+          <div>
+            <span class="messages-kicker">
+              Reservation Inbox
+            </span>
+
+            <h2>
+              Inbox
+            </h2>
+          </div>
+
+          <button
+            id="messagesRefreshBtn"
+            type="button"
+            class="secondary-btn message-refresh-btn"
+          >
+            Refresh
+          </button>
+        </div>
 
         <div
           id="messagesList"
@@ -100,9 +134,22 @@
         id="conversationPanel"
         class="conversation-panel dashboard-section"
       >
-        <h2>
-          Conversation
-        </h2>
+        <div
+          id="conversationHeader"
+          class="conversation-header"
+        >
+          <span class="messages-kicker">
+            Reservation Thread
+          </span>
+
+          <h2>
+            Conversation
+          </h2>
+
+          <p>
+            Choose a reservation conversation from your inbox.
+          </p>
+        </div>
 
         <div
           id="conversationMessages"
