@@ -35,8 +35,8 @@
     property="og:description"
     content="View venue details, events, ratings, reviews, and favorites on TANIDIK."
   />
-  <meta property="og:url" content="https://hilarious-kheer-076854.netlify.app/venue.html" />
-  <meta property="og:image" content="https://hilarious-kheer-076854.netlify.app/assets/social-preview.png" />
+  <meta property="og:url" content="https://tanidik2.vercel.app" />
+  <meta property="og:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Venue Details | TANIDIK" />
@@ -44,7 +44,7 @@
     name="twitter:description"
     content="View venue details, events, ratings, reviews, and favorites on TANIDIK."
   />
-  <meta name="twitter:image" content="https://hilarious-kheer-076854.netlify.app/assets/social-preview.png" />
+  <meta name="twitter:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
 
   <link
     rel="stylesheet"
@@ -215,46 +215,81 @@
       </section>
 
       <section class="public-section public-section--reservations">
-        <h2 class="section-title">
-          Reservations
-        </h2>
+        <div class="reservation-section-header">
+          <div>
+            <span class="reservation-kicker">
+              Table Request
+            </span>
+
+            <h2 class="section-title">
+              Reservations
+            </h2>
+          </div>
+
+          <p>
+            Send a request to the venue. Your status updates will appear here
+            after submission.
+          </p>
+        </div>
 
         <form
           id="reservationForm"
           class="reservation-form"
         >
-          <input
-            type="date"
-            id="reservationDate"
-            required
-          />
+          <label class="reservation-field">
+            <span>Date</span>
 
-          <input
-            type="time"
-            id="reservationTime"
-            required
-          />
+            <input
+              type="date"
+              id="reservationDate"
+              required
+            />
+          </label>
 
-          <input
-            type="number"
-            id="reservationPartySize"
-            min="1"
-            max="20"
-            placeholder="Party size"
-            required
-          />
+          <label class="reservation-field">
+            <span>Arrival</span>
 
-          <textarea
-            id="reservationNote"
-            placeholder="Optional note"
-          ></textarea>
+            <input
+              type="time"
+              id="reservationTime"
+              required
+            />
+          </label>
 
-          <button
-            type="submit"
-            class="btn"
-          >
-            Request Reservation
-          </button>
+          <label class="reservation-field">
+            <span>Guests</span>
+
+            <input
+              type="number"
+              id="reservationPartySize"
+              min="1"
+              max="20"
+              placeholder="2"
+              required
+            />
+          </label>
+
+          <label class="reservation-field reservation-field--note">
+            <span>Optional note</span>
+
+            <textarea
+              id="reservationNote"
+              placeholder="Occasion, seating preference, or arrival details"
+            ></textarea>
+          </label>
+
+          <div class="reservation-submit-row">
+            <button
+              type="submit"
+              class="btn"
+            >
+              Request Reservation
+            </button>
+
+            <span>
+              Pending requests can be cancelled before approval.
+            </span>
+          </div>
         </form>
 
         <p

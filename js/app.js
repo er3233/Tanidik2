@@ -942,19 +942,55 @@ function isPendingReservation(reservation) {
 }
 
 function getReservationTitle(reservation, options = {}) {
-  const venueName =
-    options.showVenue && reservation.venue_name
-      ? `${safeText(reservation.venue_name)} - `
-      : "";
+  if (options.showVenue && reservation.venue_name) {
+    return safeText(reservation.venue_name);
+  }
 
-  return `${venueName}${safeText(
-    reservation.reservation_date
-  )} ${safeText(reservation.reservation_time)}`;
+  return "Reservation request";
+}
+
+function createReservationMeta(label, value) {
+  const item = document.createElement("div");
+  item.className = "reservation-meta-item";
+
+  const labelElement = document.createElement("span");
+  labelElement.textContent = label;
+  item.appendChild(labelElement);
+
+  const valueElement = document.createElement("strong");
+  valueElement.textContent = safeText(value) || "Not set";
+  item.appendChild(valueElement);
+
+  return item;
+}
+
+function createReservationActions() {
+  const actions = document.createElement("div");
+  actions.className = "reservation-actions admin-item-actions";
+
+  return actions;
+}
+
+function bindReservationAction(button, action) {
+  button.addEventListener("click", async () => {
+    if (button.disabled) return;
+
+    button.disabled = true;
+
+    try {
+      await action();
+    } finally {
+      button.disabled = false;
+    }
+  });
 }
 
 function createReservationCard(reservation, options = {}) {
   const card = document.createElement("div");
-  card.className = "reservation-card";
+  card.className =
+    `reservation-card ${getReservationStatusClass(
+      reservation.status
+    )}`;
 
   const header = document.createElement("div");
   header.className = "reservation-card-header";
@@ -967,30 +1003,51 @@ function createReservationCard(reservation, options = {}) {
   header.appendChild(title);
   header.appendChild(createStatusBadge(reservation.status));
 
-  const details = document.createElement("p");
-  details.textContent = `${reservation.party_size} guests`;
+  const meta = document.createElement("div");
+  meta.className = "reservation-meta-grid";
+  meta.appendChild(
+    createReservationMeta(
+      "Date",
+      reservation.reservation_date
+    )
+  );
+  meta.appendChild(
+    createReservationMeta(
+      "Time",
+      reservation.reservation_time
+    )
+  );
+  meta.appendChild(
+    createReservationMeta(
+      "Guests",
+      `${reservation.party_size || 0}`
+    )
+  );
 
   card.appendChild(header);
-  card.appendChild(details);
+  card.appendChild(meta);
 
   if (reservation.note) {
     const note = document.createElement("p");
+    note.className = "reservation-note";
     note.textContent = reservation.note;
     card.appendChild(note);
   }
 
   if (options.allowCancel && isPendingReservation(reservation)) {
+    const actions = createReservationActions();
     const cancelButton = document.createElement("button");
     cancelButton.type = "button";
     cancelButton.className = "reservation-cancel-btn";
     cancelButton.textContent = "Cancel";
-    cancelButton.addEventListener("click", () => {
+    bindReservationAction(cancelButton, () => {
       cancelUserReservation(
         reservation.id,
         options.onCancel
       );
     });
-    card.appendChild(cancelButton);
+    actions.appendChild(cancelButton);
+    card.appendChild(actions);
   }
 
   return card;
@@ -3036,44 +3093,66 @@ function renderAdminReservations(reservations) {
 
   reservations.forEach((reservation) => {
     const item = document.createElement("div");
-    item.className = "admin-item";
+    item.className =
+      `admin-item reservation-management-card ${getReservationStatusClass(
+        reservation.status
+      )}`;
 
     const content = document.createElement("div");
+    content.className = "reservation-management-content";
+
+    const header = document.createElement("div");
+    header.className = "reservation-card-header";
 
     const title = document.createElement("h3");
     title.textContent =
-      `Venue #${safeText(reservation.venue_id)} - ${safeText(
-        reservation.reservation_date
-      )} ${safeText(reservation.reservation_time)}`;
-    content.appendChild(title);
+      `Venue #${safeText(reservation.venue_id)}`;
+    header.appendChild(title);
+    header.appendChild(createStatusBadge(reservation.status));
+    content.appendChild(header);
 
-    const meta = document.createElement("span");
-    meta.className = "venue-meta";
-    meta.textContent =
-      `${reservation.party_size} guests`;
+    const meta = document.createElement("div");
+    meta.className = "reservation-meta-grid";
+    meta.appendChild(
+      createReservationMeta(
+        "Date",
+        reservation.reservation_date
+      )
+    );
+    meta.appendChild(
+      createReservationMeta(
+        "Time",
+        reservation.reservation_time
+      )
+    );
+    meta.appendChild(
+      createReservationMeta(
+        "Guests",
+        `${reservation.party_size || 0}`
+      )
+    );
     content.appendChild(meta);
 
     const user = document.createElement("p");
+    user.className = "reservation-note";
     user.textContent =
       `User: ${safeText(reservation.user_id)}`;
     content.appendChild(user);
 
     if (reservation.note) {
       const note = document.createElement("p");
+      note.className = "reservation-note";
       note.textContent = reservation.note;
       content.appendChild(note);
     }
 
-    content.appendChild(createStatusBadge(reservation.status));
-
-    const actions = document.createElement("div");
-    actions.className = "admin-item-actions";
+    const actions = createReservationActions();
 
     const approveButton = document.createElement("button");
     approveButton.type = "button";
     approveButton.className = "btn";
     approveButton.textContent = "Approve";
-    approveButton.addEventListener("click", () => {
+    bindReservationAction(approveButton, () => {
       updateReservationStatus(reservation.id, "approved");
     });
     actions.appendChild(approveButton);
@@ -3082,7 +3161,7 @@ function renderAdminReservations(reservations) {
     rejectButton.type = "button";
     rejectButton.className = "admin-delete-btn";
     rejectButton.textContent = "Reject";
-    rejectButton.addEventListener("click", () => {
+    bindReservationAction(rejectButton, () => {
       updateReservationStatus(reservation.id, "rejected");
     });
     actions.appendChild(rejectButton);
@@ -4001,43 +4080,60 @@ function renderBusinessReservations(reservations) {
 
   reservations.forEach((reservation) => {
     const item = document.createElement("div");
-    item.className = "admin-item";
+    item.className =
+      `admin-item reservation-management-card ${getReservationStatusClass(
+        reservation.status
+      )}`;
 
     const content = document.createElement("div");
+    content.className = "reservation-management-content";
 
     const header = document.createElement("div");
     header.className = "reservation-card-header";
 
     const title = document.createElement("h3");
     title.textContent =
-      `${getBusinessDashboardVenueName(
-        reservation.venue_id
-      )} - ${safeText(
-        reservation.reservation_date
-      )} ${safeText(reservation.reservation_time)}`;
+      getBusinessDashboardVenueName(reservation.venue_id);
     header.appendChild(title);
     header.appendChild(createStatusBadge(reservation.status));
     content.appendChild(header);
 
-    const details = document.createElement("p");
-    details.textContent =
-      `${reservation.party_size} guests`;
-    content.appendChild(details);
+    const meta = document.createElement("div");
+    meta.className = "reservation-meta-grid";
+    meta.appendChild(
+      createReservationMeta(
+        "Date",
+        reservation.reservation_date
+      )
+    );
+    meta.appendChild(
+      createReservationMeta(
+        "Time",
+        reservation.reservation_time
+      )
+    );
+    meta.appendChild(
+      createReservationMeta(
+        "Guests",
+        `${reservation.party_size || 0}`
+      )
+    );
+    content.appendChild(meta);
 
     if (reservation.note) {
       const note = document.createElement("p");
+      note.className = "reservation-note";
       note.textContent = reservation.note;
       content.appendChild(note);
     }
 
-    const actions = document.createElement("div");
-    actions.className = "admin-item-actions";
+    const actions = createReservationActions();
 
     const approveButton = document.createElement("button");
     approveButton.type = "button";
     approveButton.className = "btn";
     approveButton.textContent = "Approve";
-    approveButton.addEventListener("click", () => {
+    bindReservationAction(approveButton, () => {
       updateBusinessReservationStatus(
         reservation.id,
         "approved"
@@ -4049,7 +4145,7 @@ function renderBusinessReservations(reservations) {
     rejectButton.type = "button";
     rejectButton.className = "admin-delete-btn";
     rejectButton.textContent = "Reject";
-    rejectButton.addEventListener("click", () => {
+    bindReservationAction(rejectButton, () => {
       updateBusinessReservationStatus(
         reservation.id,
         "rejected"
@@ -4061,7 +4157,7 @@ function renderBusinessReservations(reservations) {
     messageButton.type = "button";
     messageButton.className = "secondary-btn";
     messageButton.textContent = "Message User";
-    messageButton.addEventListener("click", () => {
+    bindReservationAction(messageButton, () => {
       openReservationConversation(reservation.id);
     });
     actions.appendChild(messageButton);
