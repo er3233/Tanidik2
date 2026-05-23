@@ -106,28 +106,85 @@
         Loading...
       </h1>
 
-      <p id="eventDate"></p>
-
       <div
-        id="eventAttendance"
-        class="event-attendance"
+        class="event-mobile-actions"
+        aria-label="Event detail sections"
       >
-      </div>
-
-      <p id="eventVenue"></p>
-
-      <p id="eventDescription"></p>
-
-      <div class="detail-actions">
-
-        <a
-          href="./events.html"
-          class="secondary-btn"
+        <button
+          type="button"
+          data-event-panel="rsvp"
         >
-          Back to Events
-        </a>
+          Join / RSVP
+        </button>
 
+        <button
+          type="button"
+          data-event-panel="details"
+        >
+          Details
+        </button>
+
+        <button
+          type="button"
+          data-event-panel="location"
+        >
+          Location
+        </button>
+
+        <button
+          type="button"
+          data-event-panel="venue"
+        >
+          Venue
+        </button>
       </div>
+
+      <section
+        class="event-mobile-panel event-rsvp-panel"
+        data-panel="rsvp"
+      >
+        <div
+          id="eventAttendance"
+          class="event-attendance"
+        >
+        </div>
+      </section>
+
+      <section
+        class="event-mobile-panel event-details-panel is-open"
+        data-panel="details"
+      >
+        <p id="eventDate"></p>
+
+        <p id="eventDescription"></p>
+      </section>
+
+      <section
+        class="event-mobile-panel event-location-panel"
+        data-panel="location"
+      >
+        <p id="eventLocation">
+          Location details are connected to the venue.
+        </p>
+      </section>
+
+      <section
+        class="event-mobile-panel event-venue-panel"
+        data-panel="venue"
+      >
+        <p id="eventVenue"></p>
+
+        <div class="detail-actions">
+
+          <a
+            href="./events.html"
+            class="secondary-btn"
+          >
+            Back to Events
+          </a>
+
+        </div>
+      </section>
 
     </div>
 
