@@ -4429,24 +4429,54 @@ function getReservationTimeLabel(time) {
   return `${displayHour}:${minuteValue} ${period}`;
 }
 
+function isApprovedScheduleReservation(reservation) {
+  const normalizedStatus = String(
+    reservation.status || ""
+  ).trim().toLowerCase();
+  const isApprovedReservation = [
+    "approved",
+    "approve",
+    "accepted",
+    "confirmed",
+    "onaylandı",
+    "onaylandi",
+  ].includes(normalizedStatus);
+
+  return isApprovedReservation;
+}
+
+function getScheduleReservationDate(reservation) {
+  return (
+    reservation.reservation_date ||
+    reservation.date ||
+    reservation.booking_date
+  );
+}
+
+function getScheduleReservationTime(reservation) {
+  return (
+    reservation.reservation_time ||
+    reservation.time ||
+    reservation.booking_time
+  );
+}
+
 function buildBusinessReservationSchedule(reservations) {
   const weekDates = getWeekDates();
   const weekKeys = weekDates.map((date) =>
     normalizeReservationDate(date)
   );
   const approvedReservations = (reservations || []).filter(
-    (reservation) =>
-      getReservationStatusValue(reservation.status) ===
-      "approved"
+    isApprovedScheduleReservation
   );
   const grouped = new Map();
 
   approvedReservations.forEach((reservation) => {
     const date = normalizeReservationDate(
-      reservation.reservation_date
+      getScheduleReservationDate(reservation)
     );
     const time = normalizeReservationTime(
-      reservation.reservation_time
+      getScheduleReservationTime(reservation)
     );
 
     if (!date || !time || !weekKeys.includes(date)) return;
@@ -4506,8 +4536,7 @@ function renderBusinessReservationSchedule(reservations) {
   if (schedule.slots.length === 0) {
     renderEmptyState(
       container,
-      "No approved reservations this week",
-      "Approved bookings will appear here by day and time."
+      "No approved reservations this week yet."
     );
     return;
   }
