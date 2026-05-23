@@ -94,13 +94,23 @@
   >
 
     <header class="dashboard-header dashboard-header--business">
-      <h1>
-        Business Dashboard
-      </h1>
+      <div class="business-hero-mark" aria-hidden="true">
+        B
+      </div>
 
-      <p class="page-message">
-        View your businesses, linked venues, and reservation requests.
-      </p>
+      <div class="business-hero-copy">
+        <span class="dashboard-kicker">
+          Owner Console
+        </span>
+
+        <h1>
+          Business Dashboard
+        </h1>
+
+        <p class="page-message">
+          View your businesses, linked venues, and reservation requests.
+        </p>
+      </div>
 
       <a
         href="./messages.html"
@@ -354,6 +364,36 @@
     </section>
 
   </main>
+
+  <nav
+    class="mobile-bottom-nav"
+    aria-label="Primary mobile navigation"
+  >
+    <a href="./index.html" data-nav-page="index.html">
+      <span aria-hidden="true">⌂</span>
+      Home
+    </a>
+
+    <a href="./discover.html" data-nav-page="discover.html">
+      <span aria-hidden="true">⌕</span>
+      Discover
+    </a>
+
+    <a href="./events.html" data-nav-page="events.html">
+      <span aria-hidden="true">◇</span>
+      Events
+    </a>
+
+    <a href="./favorites.html" data-nav-page="favorites.html">
+      <span aria-hidden="true">♡</span>
+      Favorites
+    </a>
+
+    <a href="./profile.html" data-nav-page="profile.html">
+      <span aria-hidden="true">◉</span>
+      Profile
+    </a>
+  </nav>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 

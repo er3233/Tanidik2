@@ -54,20 +54,71 @@
 
 <body>
 
+  <nav class="navbar">
+
+    <h1>TANIDIK</h1>
+
+    <button
+      class="nav-toggle"
+      type="button"
+      aria-label="Toggle navigation"
+      aria-expanded="false"
+    >
+      Menu
+    </button>
+
+    <div class="nav-links">
+
+      <a href="./index.html">Home</a>
+
+      <a href="./discover.html">Discover</a>
+
+      <a href="./events.html">Events</a>
+
+      <a href="./favorites.html">Favorites</a>
+
+      <a
+        href="./auth.html"
+        id="authLink"
+      >
+        Login
+      </a>
+
+    </div>
+
+  </nav>
+
   <div class="profile-dashboard">
 
-    <header class="dashboard-header dashboard-header--profile">
-      <h1>
-        Your Profile
-      </h1>
+    <header class="dashboard-header dashboard-header--profile profile-hero-card">
+      <div class="profile-avatar" aria-hidden="true">
+        T
+      </div>
+
+      <div class="profile-hero-copy">
+        <span class="dashboard-kicker">
+          Member Profile
+        </span>
+
+        <h1>
+          Your Profile
+        </h1>
+
+        <p>
+          <span>Signed in as</span>
+          <strong id="userEmail">
+            Loading...
+          </strong>
+        </p>
+      </div>
     </header>
 
     <div class="profile-grid">
 
       <div class="profile-card">
-        <span>Email</span>
-        <strong id="userEmail">
-          Loading...
+        <span>Account</span>
+        <strong>
+          Active
         </strong>
       </div>
 
@@ -180,26 +231,64 @@
 
     </section>
 
-    <a
-      id="businessDashboardLink"
-      href="./business.html"
-      class="secondary-btn profile-business-link"
-    >
-      Business Dashboard
-    </a>
+    <section class="profile-actions-section dashboard-section">
+      <h2>
+        Quick Actions
+      </h2>
 
-    <a
-      href="./messages.html"
-      class="secondary-btn profile-messages-link"
-    >
-      Messages
-    </a>
+      <div class="profile-action-grid">
+        <a
+          id="businessDashboardLink"
+          href="./business.html"
+          class="secondary-btn profile-business-link"
+        >
+          Business Dashboard
+        </a>
 
-    <button id="logoutBtn">
-      Logout
-    </button>
+        <a
+          href="./messages.html"
+          class="secondary-btn profile-messages-link"
+        >
+          Messages
+        </a>
+
+        <button id="logoutBtn">
+          Logout
+        </button>
+      </div>
+    </section>
 
   </div>
+
+  <nav
+    class="mobile-bottom-nav"
+    aria-label="Primary mobile navigation"
+  >
+    <a href="./index.html" data-nav-page="index.html">
+      <span aria-hidden="true">⌂</span>
+      Home
+    </a>
+
+    <a href="./discover.html" data-nav-page="discover.html">
+      <span aria-hidden="true">⌕</span>
+      Discover
+    </a>
+
+    <a href="./events.html" data-nav-page="events.html">
+      <span aria-hidden="true">◇</span>
+      Events
+    </a>
+
+    <a href="./favorites.html" data-nav-page="favorites.html">
+      <span aria-hidden="true">♡</span>
+      Favorites
+    </a>
+
+    <a href="./profile.html" data-nav-page="profile.html">
+      <span aria-hidden="true">◉</span>
+      Profile
+    </a>
+  </nav>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 

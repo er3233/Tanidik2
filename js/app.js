@@ -5626,15 +5626,22 @@ async function initBusinessDashboard() {
 
 function setActiveNav() {
   const currentPage =
-    window.location.pathname.split("/").pop();
+    window.location.pathname.split("/").pop() ||
+    "index.html";
 
   const navLinks =
-    document.querySelectorAll(".nav-links a");
+    document.querySelectorAll(
+      ".nav-links a, .mobile-bottom-nav a"
+    );
 
   navLinks.forEach((link) => {
     const href = link.getAttribute("href");
+    const navPage = link.dataset.navPage;
 
-    if (href === `./${currentPage}`) {
+    if (
+      href === `./${currentPage}` ||
+      navPage === currentPage
+    ) {
       link.classList.add("active");
     }
   });
