@@ -13,6 +13,20 @@ const PLACEHOLDER_IMAGE =
 
 const STORAGE_BUCKET = "tanidik-images";
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const VENUE_CATEGORIES = [
+  ["night_club", "Night Club"],
+  ["bar", "Bar"],
+  ["restaurant", "Restaurant"],
+  ["cafe", "Cafe"],
+  ["beach", "Beach"],
+  ["hotel", "Hotel"],
+  ["live_music", "Live Music"],
+  ["event_venue", "Event Venue"],
+  ["sports_fitness", "Sports / Fitness"],
+  ["wellness", "Wellness"],
+  ["other", "Other"],
+];
+const DEFAULT_VENUE_CATEGORY = "other";
 
 const email = document.getElementById("email");
 const password = document.getElementById("password");
@@ -48,6 +62,31 @@ function getBusinessStatus(business) {
 
 function safeText(value) {
   return value || "";
+}
+
+function getVenueCategoryValue(venue) {
+  const category = safeText(venue && venue.category)
+    .toLowerCase()
+    .trim();
+
+  return VENUE_CATEGORIES.some(([value]) => value === category)
+    ? category
+    : DEFAULT_VENUE_CATEGORY;
+}
+
+function getVenueCategoryLabel(venue) {
+  const category = getVenueCategoryValue(venue);
+  const match = VENUE_CATEGORIES.find(
+    ([value]) => value === category
+  );
+
+  return match ? match[1] : "Other";
+}
+
+function getVenueMetaLabel(venue) {
+  return [safeText(venue.city), getVenueCategoryLabel(venue)]
+    .filter(Boolean)
+    .join(" / ");
 }
 
 function getImage(image) {
@@ -326,7 +365,7 @@ function createVenueCard(venue, options = {}) {
 
   const meta = document.createElement("span");
   meta.className = "venue-meta";
-  meta.textContent = safeText(venue.city);
+  meta.textContent = getVenueMetaLabel(venue);
   content.appendChild(meta);
 
   if (options.stats) {
@@ -2209,6 +2248,7 @@ async function loadVenues() {
 
   renderVenues(allVenues);
   renderCityFilters(allVenues);
+  renderCategoryFilters();
   setupVenueSearch();
 }
 
@@ -2273,6 +2313,32 @@ function renderCityFilters(venues) {
   });
 }
 
+function renderCategoryFilters() {
+  const categoryFilters =
+    document.getElementById("categoryFilters");
+
+  if (!categoryFilters) return;
+
+  const categories = [["All", "All"], ...VENUE_CATEGORIES];
+  categoryFilters.innerHTML = "";
+
+  categories.forEach(([value, label]) => {
+    const button = document.createElement("button");
+    button.className = "category-filter-btn";
+    button.dataset.category = value;
+    button.textContent = label;
+    button.addEventListener("click", () => {
+      filterByCategory(value);
+    });
+
+    if ((window.selectedCategory || "All") === value) {
+      button.classList.add("active-filter");
+    }
+
+    categoryFilters.appendChild(button);
+  });
+}
+
 function setupVenueSearch() {
   const venueSearchInput =
     document.getElementById("venueSearchInput");
@@ -2303,6 +2369,25 @@ function filterByCity(city) {
   applyVenueFilters();
 }
 
+function filterByCategory(category) {
+  const categoryFilters =
+    document.querySelectorAll(".category-filter-btn");
+
+  categoryFilters.forEach((button) => {
+    button.classList.remove("active-filter");
+  });
+
+  categoryFilters.forEach((button) => {
+    if (button.dataset.category === category) {
+      button.classList.add("active-filter");
+    }
+  });
+
+  window.selectedCategory = category;
+
+  applyVenueFilters();
+}
+
 function applyVenueFilters() {
   const searchInput =
     document.getElementById("venueSearchInput");
@@ -2313,6 +2398,8 @@ function applyVenueFilters() {
 
   const selectedCity =
     window.selectedCity || "All";
+  const selectedCategory =
+    window.selectedCategory || "All";
 
   let filtered = [...allVenues];
 
@@ -2322,17 +2409,27 @@ function applyVenueFilters() {
     );
   }
 
+  if (selectedCategory !== "All") {
+    filtered = filtered.filter(
+      (venue) =>
+        getVenueCategoryValue(venue) === selectedCategory
+    );
+  }
+
   if (searchValue) {
     filtered = filtered.filter((venue) => {
       const name = safeText(venue.name).toLowerCase();
       const city = safeText(venue.city).toLowerCase();
       const description =
         safeText(venue.description).toLowerCase();
+      const category =
+        getVenueCategoryLabel(venue).toLowerCase();
 
       return (
         name.includes(searchValue) ||
         city.includes(searchValue) ||
-        description.includes(searchValue)
+        description.includes(searchValue) ||
+        category.includes(searchValue)
       );
     });
   }
@@ -2619,6 +2716,7 @@ async function loadVenueDetails() {
   setImageIfPresent("venueImage", venue.image);
   setTextIfPresent("venueName", venue.name);
   setTextIfPresent("venueCity", venue.city);
+  setTextIfPresent("venueCategory", getVenueCategoryLabel(venue));
   setTextIfPresent("venueDescription", venue.description);
 
   renderVenueLocation(venue);
@@ -2916,6 +3014,7 @@ function clearAdminVenueForm() {
   setAdminValue("adminVenueId", "");
   setAdminValue("adminVenueName", "");
   setAdminValue("adminVenueCity", "");
+  setAdminValue("adminVenueCategory", DEFAULT_VENUE_CATEGORY);
   setAdminValue("adminVenueImage", "");
   clearAdminFile("adminVenueImageFile");
   setAdminValue("adminVenueAddress", "");
@@ -2987,7 +3086,7 @@ function renderAdminVenues(venues) {
     const meta = document.createElement("span");
     meta.className = "venue-meta";
     meta.textContent =
-      `#${venue.id} ${safeText(venue.city)}`;
+      `#${venue.id} ${getVenueMetaLabel(venue)}`;
     content.appendChild(meta);
 
     const description = document.createElement("p");
@@ -3002,6 +3101,10 @@ function renderAdminVenues(venues) {
           setAdminValue("adminVenueId", venue.id);
           setAdminValue("adminVenueName", venue.name);
           setAdminValue("adminVenueCity", venue.city);
+          setAdminValue(
+            "adminVenueCategory",
+            getVenueCategoryValue(venue)
+          );
           setAdminValue("adminVenueImage", venue.image);
           setAdminValue(
             "adminVenueAddress",
@@ -3431,6 +3534,9 @@ async function saveAdminVenue(event) {
   const payload = {
     name: getAdminValue("adminVenueName"),
     city: getAdminValue("adminVenueCity"),
+    category: getVenueCategoryValue({
+      category: getAdminValue("adminVenueCategory"),
+    }),
     image: uploadedImage || getAdminValue("adminVenueImage"),
     address: getAdminValue("adminVenueAddress"),
     latitude: hasLatitude ? Number(latitudeValue) : null,
@@ -3912,6 +4018,10 @@ function clearBusinessVenueForm() {
   setAdminValue("businessVenueBusinessId", "");
   setAdminValue("businessVenueName", "");
   setAdminValue("businessVenueCity", "");
+  setAdminValue(
+    "businessVenueCategory",
+    DEFAULT_VENUE_CATEGORY
+  );
   setAdminValue("businessVenueImage", "");
   clearAdminFile("businessVenueImageFile");
   setAdminValue("businessVenueAddress", "");
@@ -3961,7 +4071,7 @@ function renderBusinessVenues(venues) {
     const meta = document.createElement("span");
     meta.className = "venue-meta";
     meta.textContent =
-      `#${venue.id} ${safeText(venue.city)}`;
+      `#${venue.id} ${getVenueMetaLabel(venue)}`;
     content.appendChild(meta);
 
     if (venue.description) {
@@ -3981,6 +4091,10 @@ function renderBusinessVenues(venues) {
           );
           setAdminValue("businessVenueName", venue.name);
           setAdminValue("businessVenueCity", venue.city);
+          setAdminValue(
+            "businessVenueCategory",
+            getVenueCategoryValue(venue)
+          );
           setAdminValue("businessVenueImage", venue.image);
           setAdminValue(
             "businessVenueAddress",
@@ -4451,6 +4565,9 @@ async function saveBusinessVenue(event) {
     business_id: businessId,
     name: getAdminValue("businessVenueName"),
     city: getAdminValue("businessVenueCity"),
+    category: getVenueCategoryValue({
+      category: getAdminValue("businessVenueCategory"),
+    }),
     image:
       uploadedImage || getAdminValue("businessVenueImage"),
     address: getAdminValue("businessVenueAddress"),

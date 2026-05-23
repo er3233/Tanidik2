@@ -638,6 +638,7 @@ body::after {
 .favorite-remove-btn:focus-visible,
 .reservation-cancel-btn:focus-visible,
 .city-filter-btn:focus-visible,
+.category-filter-btn:focus-visible,
 .nav-toggle:focus-visible,
 .nav-links a:focus-visible {
   outline: 2px solid rgba(240, 192, 96, 0.72);
@@ -1378,7 +1379,8 @@ body::after {
 .secondary-btn:active,
 .favorite-remove-btn:active,
 .reservation-cancel-btn:active,
-.city-filter-btn:active {
+.city-filter-btn:active,
+.category-filter-btn:active {
   transform: translateY(1px) scale(0.98);
 }
 
@@ -1577,13 +1579,15 @@ body::after {
   color: var(--fog);
 }
 
-.city-filters {
+.city-filters,
+.category-filters {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
 }
 
-.city-filter-btn {
+.city-filter-btn,
+.category-filter-btn {
   padding: 8px 16px;
   border-radius: 100px;
   border: 1px solid var(--glass-b);
@@ -1604,7 +1608,9 @@ body::after {
 }
 
 .city-filter-btn:hover,
-.city-filter-btn.active-filter {
+.city-filter-btn.active-filter,
+.category-filter-btn:hover,
+.category-filter-btn.active-filter {
   color: var(--gold);
   background: var(--gold-deep);
   border-color: var(--gold-rim);
@@ -2534,6 +2540,7 @@ body::after {
 }
 
 #venueCity,
+#venueCategory,
 #eventDate,
 #eventVenue {
   display: inline-block;
@@ -2971,6 +2978,7 @@ body::after {
   .favorite-remove-btn:active,
   .reservation-cancel-btn:active,
   .city-filter-btn:active,
+  .category-filter-btn:active,
   .nav-links a:active,
   .nav-toggle:active {
     transform: scale(0.98);
