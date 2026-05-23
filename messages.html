@@ -13,7 +13,7 @@
 
   <meta
     name="description"
-    content="Discover premium nightlife venues, events, reservations, and business tools with TANIDIK."
+    content="Reservation messaging inbox for guests and businesses on TANIDIK."
   />
 
   <meta name="theme-color" content="#050505" />
@@ -30,21 +30,21 @@
 
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="TANIDIK" />
-  <meta property="og:title" content="TANIDIK | Premium Nightlife Discovery" />
+  <meta property="og:title" content="Messages | TANIDIK" />
   <meta
     property="og:description"
-    content="Discover premium nightlife venues, events, reservations, and business tools with TANIDIK."
+    content="Reservation messaging inbox for guests and businesses on TANIDIK."
   />
-  <meta property="og:url" content="https://tanidik2.vercel.app" />
-  <meta property="og:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
+  <meta property="og:url" content="https://hilarious-kheer-076854.netlify.app/messages.html" />
+  <meta property="og:image" content="https://hilarious-kheer-076854.netlify.app/assets/social-preview.png" />
 
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="TANIDIK | Premium Nightlife Discovery" />
+  <meta name="twitter:title" content="Messages | TANIDIK" />
   <meta
     name="twitter:description"
-    content="Discover premium nightlife venues, events, reservations, and business tools with TANIDIK."
+    content="Reservation messaging inbox for guests and businesses on TANIDIK."
   />
-  <meta name="twitter:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
+  <meta name="twitter:image" content="https://hilarious-kheer-076854.netlify.app/assets/social-preview.png" />
 
   <link
     rel="stylesheet"
@@ -52,9 +52,9 @@
   />
 </head>
 
-<body>
+<body class="messages-body">
 
-  <nav class="navbar">
+  <nav class="navbar messages-navbar">
 
     <h1>TANIDIK</h1>
 
@@ -100,9 +100,9 @@
       </p>
     </header>
 
-    <section class="messages-layout">
+    <section class="messages-layout messages-shell" aria-label="Messaging">
 
-      <aside class="messages-inbox dashboard-section">
+      <aside class="messages-inbox dashboard-section messages-glass-panel">
         <div class="messages-panel-header">
           <div>
             <span class="messages-kicker">
@@ -132,7 +132,7 @@
 
       <section
         id="conversationPanel"
-        class="conversation-panel dashboard-section"
+        class="conversation-panel dashboard-section messages-glass-panel messages-thread-panel"
       >
         <div
           id="conversationHeader"
@@ -180,17 +180,6 @@
     </section>
 
   </main>
-
-  <nav
-    class="mobile-bottom-nav"
-    aria-label="Primary mobile navigation"
-  >
-    <a href="./discover.html" data-nav-page="discover.html"><span aria-hidden="true">D</span>Discover</a>
-    <a href="./events.html" data-nav-page="events.html"><span aria-hidden="true">E</span>Events</a>
-    <a href="./profile.html" data-nav-page="profile.html"><span aria-hidden="true">R</span>Profile</a>
-    <a href="./messages.html" data-nav-page="messages.html"><span aria-hidden="true">M</span>Messages</a>
-    <a href="./business.html" data-nav-page="business.html"><span aria-hidden="true">B</span>Business</a>
-  </nav>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 

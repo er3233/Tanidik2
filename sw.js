@@ -1,4 +1,4 @@
-const CACHE_NAME = "tanidik-static-v3";
+const CACHE_NAME = "tanidik-static-v2";
 
 const CACHE_FIRST_ASSETS = [
   "/assets/favicon.svg",
@@ -27,11 +27,7 @@ self.addEventListener("activate", (event) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(
-          keys
-            .filter((key) => key !== CACHE_NAME)
-            .map((key) => caches.delete(key))
-        )
+        Promise.all(keys.map((key) => caches.delete(key)))
       )
       .then(() => self.clients.claim())
   );

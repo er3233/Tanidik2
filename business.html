@@ -13,7 +13,7 @@
 
   <meta
     name="description"
-    content="Discover premium nightlife venues, events, reservations, and business tools with TANIDIK."
+    content="View your TANIDIK business records, venues, and reservation requests."
   />
 
   <meta name="theme-color" content="#050505" />
@@ -30,21 +30,21 @@
 
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="TANIDIK" />
-  <meta property="og:title" content="TANIDIK | Premium Nightlife Discovery" />
+  <meta property="og:title" content="Business Dashboard | TANIDIK" />
   <meta
     property="og:description"
-    content="Discover premium nightlife venues, events, reservations, and business tools with TANIDIK."
+    content="View your TANIDIK business records, venues, and reservation requests."
   />
-  <meta property="og:url" content="https://tanidik2.vercel.app" />
-  <meta property="og:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
+  <meta property="og:url" content="https://hilarious-kheer-076854.netlify.app/business.html" />
+  <meta property="og:image" content="https://hilarious-kheer-076854.netlify.app/assets/social-preview.png" />
 
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="TANIDIK | Premium Nightlife Discovery" />
+  <meta name="twitter:title" content="Business Dashboard | TANIDIK" />
   <meta
     name="twitter:description"
-    content="Discover premium nightlife venues, events, reservations, and business tools with TANIDIK."
+    content="View your TANIDIK business records, venues, and reservation requests."
   />
-  <meta name="twitter:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
+  <meta name="twitter:image" content="https://hilarious-kheer-076854.netlify.app/assets/social-preview.png" />
 
   <link
     rel="stylesheet"
@@ -52,9 +52,9 @@
   />
 </head>
 
-<body>
+<body class="business-body">
 
-  <nav class="navbar">
+  <nav class="navbar business-navbar">
 
     <h1>TANIDIK</h1>
 
@@ -90,27 +90,17 @@
 
   <main
     id="businessPage"
-    class="business-page"
+    class="business-page business-dashboard"
   >
 
-    <header class="dashboard-header dashboard-header--business">
-      <div class="business-hero-mark" aria-hidden="true">
-        B
-      </div>
+    <header class="dashboard-header dashboard-header--business business-dashboard-hero">
+      <h1>
+        Business Dashboard
+      </h1>
 
-      <div class="business-hero-copy">
-        <span class="dashboard-kicker">
-          Owner Console
-        </span>
-
-        <h1>
-          Business Dashboard
-        </h1>
-
-        <p class="page-message">
-          View your businesses, linked venues, and reservation requests.
-        </p>
-      </div>
+      <p class="page-message">
+        View your businesses, linked venues, and reservation requests.
+      </p>
 
       <a
         href="./messages.html"
@@ -120,54 +110,7 @@
       </a>
     </header>
 
-    <div
-      class="business-mobile-actions"
-      aria-label="Business dashboard sections"
-    >
-      <button
-        type="button"
-        data-business-panel="reservations"
-      >
-        Reservations
-      </button>
-
-      <button
-        type="button"
-        data-business-panel="calendar"
-      >
-        Calendar
-      </button>
-
-      <button
-        type="button"
-        data-business-panel="venues"
-      >
-        Venues
-      </button>
-
-      <button
-        type="button"
-        data-business-panel="events"
-      >
-        Events
-      </button>
-
-      <button
-        type="button"
-        data-business-panel="analytics"
-      >
-        Analytics
-      </button>
-
-      <a href="./messages.html">
-        Messages
-      </a>
-    </div>
-
-    <section
-      class="business-section dashboard-section dashboard-section--analytics business-mobile-panel"
-      data-panel="analytics"
-    >
+    <section class="business-section dashboard-section dashboard-section--analytics business-glass-panel">
 
       <h2>
         Analytics
@@ -181,7 +124,7 @@
 
     </section>
 
-    <section class="business-section dashboard-section">
+    <section class="business-section dashboard-section business-glass-panel">
 
       <h2>
         Your Businesses
@@ -195,10 +138,7 @@
 
     </section>
 
-    <section
-      class="business-section dashboard-section dashboard-section--forms business-mobile-panel"
-      data-panel="venues"
-    >
+    <section class="business-section dashboard-section dashboard-section--forms business-glass-panel">
 
       <h2>
         Your Venues
@@ -206,7 +146,7 @@
 
       <form
         id="businessVenueForm"
-        class="admin-form"
+        class="admin-form business-form-card"
       >
         <input
           type="hidden"
@@ -236,9 +176,7 @@
 
         <select
           id="businessVenueCategory"
-          required
         >
-          <option value="other">Other</option>
           <option value="night_club">Night Club</option>
           <option value="bar">Bar</option>
           <option value="restaurant">Restaurant</option>
@@ -249,6 +187,7 @@
           <option value="event_venue">Event Venue</option>
           <option value="sports_fitness">Sports / Fitness</option>
           <option value="wellness">Wellness</option>
+          <option value="other" selected>Other</option>
         </select>
 
         <input
@@ -315,10 +254,7 @@
 
     </section>
 
-    <section
-      class="business-section dashboard-section dashboard-section--forms business-mobile-panel"
-      data-panel="events"
-    >
+    <section class="business-section dashboard-section dashboard-section--forms business-glass-panel">
 
       <h2>
         Your Events
@@ -326,7 +262,7 @@
 
       <form
         id="businessEventForm"
-        class="admin-form"
+        class="admin-form business-form-card"
       >
         <input
           type="hidden"
@@ -397,96 +333,39 @@
 
     </section>
 
-    <section
-      class="business-section dashboard-section dashboard-section--reservation-schedule business-mobile-panel"
-      data-panel="calendar"
-    >
+    <section class="business-section dashboard-section dashboard-section--reservations business-glass-panel business-reservations-panel">
 
-      <h2>
-        Reservation Calendar
-      </h2>
-
-      <p class="reservation-dashboard-copy">
-        Approved bookings grouped by day, time, and venue for the next seven
-        days.
-      </p>
-
-      <div
-        id="businessReservationSchedule"
-        class="business-reservation-schedule"
-      >
-        <div class="empty-state">
-          <h2>
-            No approved reservations this week yet.
-          </h2>
+      <div class="reservations-header-row">
+        <h2>Reservations</h2>
+        
+        <div class="reservations-filter-bar" id="reservationsFilterBar">
+          <button type="button" class="filter-tab active" data-filter="today">
+            <span class="tab-dot"></span>Today
+          </button>
+          <button type="button" class="filter-tab" data-filter="upcoming">
+            <span class="tab-dot"></span>Upcoming
+          </button>
+          <button type="button" class="filter-tab" data-filter="pending">
+            <span class="tab-dot"></span>Pending
+          </button>
+          <button type="button" class="filter-tab" data-filter="approved">
+            <span class="tab-dot"></span>Approved
+          </button>
+          <button type="button" class="filter-tab" data-filter="rejected">
+            <span class="tab-dot"></span>Rejected
+          </button>
         </div>
       </div>
 
-    </section>
-
-    <section
-      class="business-section dashboard-section dashboard-section--reservations business-mobile-panel is-open"
-      data-panel="reservations"
-    >
-
-      <h2>
-        Reservations
-      </h2>
-
-      <p class="reservation-dashboard-copy">
-        Review requests, update statuses, and open guest conversations from a
-        single reservation queue.
-      </p>
-
       <div
         id="businessReservationsList"
-        class="business-list"
+        class="business-list reservations-manager-list"
       >
       </div>
 
     </section>
 
   </main>
-
-  <nav
-    class="mobile-bottom-nav"
-    aria-label="Primary mobile navigation"
-  >
-    <a href="./index.html" data-nav-page="index.html">
-      <span aria-hidden="true">⌂</span>
-      Home
-    </a>
-
-    <a href="./discover.html" data-nav-page="discover.html">
-      <span aria-hidden="true">⌕</span>
-      Discover
-    </a>
-
-    <a href="./events.html" data-nav-page="events.html">
-      <span aria-hidden="true">◇</span>
-      Events
-    </a>
-
-    <a href="./favorites.html" data-nav-page="favorites.html">
-      <span aria-hidden="true">♡</span>
-      Favorites
-    </a>
-
-    <a href="./profile.html" data-nav-page="profile.html">
-      <span aria-hidden="true">◉</span>
-      Profile
-    </a>
-
-    <a href="./messages.html" data-nav-page="messages.html">
-      <span aria-hidden="true">M</span>
-      Messages
-    </a>
-
-    <a href="./business.html" data-nav-page="business.html">
-      <span aria-hidden="true">B</span>
-      Business
-    </a>
-  </nav>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 

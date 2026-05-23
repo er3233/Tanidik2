@@ -35,8 +35,8 @@
     property="og:description"
     content="View venue details, events, ratings, reviews, and favorites on TANIDIK."
   />
-  <meta property="og:url" content="https://tanidik2.vercel.app" />
-  <meta property="og:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
+  <meta property="og:url" content="https://hilarious-kheer-076854.netlify.app/venue.html" />
+  <meta property="og:image" content="https://hilarious-kheer-076854.netlify.app/assets/social-preview.png" />
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Venue Details | TANIDIK" />
@@ -44,7 +44,7 @@
     name="twitter:description"
     content="View venue details, events, ratings, reviews, and favorites on TANIDIK."
   />
-  <meta name="twitter:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
+  <meta name="twitter:image" content="https://hilarious-kheer-076854.netlify.app/assets/social-preview.png" />
 
   <link
     rel="stylesheet"
@@ -52,9 +52,9 @@
   />
 </head>
 
-<body>
+<body class="venue-body">
 
-  <nav class="navbar">
+  <nav class="navbar venue-navbar">
 
     <h1>TANIDIK</h1>
 
@@ -90,13 +90,15 @@
 
   <main class="venue-page public-detail venue-detail-page">
 
-    <img
-      id="venueImage"
-      class="venue-hero-image"
-      alt="Venue image"
-    />
+    <div class="venue-hero-shell venue-gallery">
+      <img
+        id="venueImage"
+        class="venue-hero-image"
+        alt="Venue image"
+      />
+    </div>
 
-    <div class="venue-details">
+    <div class="venue-details venue-details-panel">
 
       <span class="venue-meta">
         Venue
@@ -108,26 +110,23 @@
 
       <p id="venueCity"></p>
 
-      <p id="venueCategory"></p>
+      <p
+        id="venueCategory"
+        class="venue-category-detail"
+      ></p>
 
-      <section
-        class="venue-mobile-panel venue-details-panel is-open"
-        data-panel="details"
+      <p id="venueDescription"></p>
+
+      <div
+        id="venueAverageRating"
+        class="average-rating"
       >
-        <p id="venueDescription"></p>
-
-        <div
-          id="venueAverageRating"
-          class="average-rating"
-        >
-          No ratings yet
-        </div>
-      </section>
+        No ratings yet
+      </div>
 
       <section
         id="venueLocationSection"
-        class="location-section public-section public-section--location venue-mobile-panel"
-        data-panel="location"
+        class="location-section public-section public-section--location"
       >
         <h2 class="section-title">
           Location
@@ -135,12 +134,14 @@
 
         <p id="venueAddress"></p>
 
-        <iframe
-          id="venueMap"
-          class="location-map"
-          loading="lazy"
-          referrerpolicy="no-referrer-when-downgrade"
-        ></iframe>
+        <div class="venue-map-frame">
+          <iframe
+            id="venueMap"
+            class="location-map"
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+          ></iframe>
+        </div>
 
         <a
           id="venueMapsLink"
@@ -170,50 +171,7 @@
 
       </div>
 
-      <div
-        class="venue-mobile-actions"
-        aria-label="Venue actions"
-      >
-        <button
-          type="button"
-          data-open-panel="reservation"
-        >
-          Make Reservation
-        </button>
-
-        <button
-          type="button"
-          data-open-panel="reviews"
-        >
-          Reviews
-        </button>
-
-        <button
-          type="button"
-          data-open-panel="location"
-        >
-          Location
-        </button>
-
-        <button
-          type="button"
-          data-open-panel="events"
-        >
-          Events
-        </button>
-
-        <button
-          type="button"
-          data-open-panel="details"
-        >
-          Details
-        </button>
-      </div>
-
-      <section
-        class="public-section public-section--reviews venue-mobile-panel"
-        data-panel="reviews"
-      >
+      <section class="public-section public-section--reviews">
         <h2 class="section-title">
           Reviews
         </h2>
@@ -265,86 +223,56 @@
         </div>
       </section>
 
-      <section
-        class="public-section public-section--reservations venue-mobile-panel"
-        data-panel="reservation"
-      >
-        <div class="reservation-section-header">
-          <div>
-            <span class="reservation-kicker">
-              Table Request
-            </span>
+      <section class="public-section public-section--reservations">
+        <h2 class="section-title">
+          Reservations
+        </h2>
 
-            <h2 class="section-title">
-              Reservations
-            </h2>
+        <span class="reservation-section-label">🗓 Request a Table</span>
+
+        <div class="reservation-form-card">
+          <div class="reservation-form-header">
+            <span>Reservation Details</span>
           </div>
 
-          <p>
-            Send a request to the venue. Your status updates will appear here
-            after submission.
-          </p>
-        </div>
-
-        <form
-          id="reservationForm"
-          class="reservation-form"
-        >
-          <label class="reservation-field">
-            <span>Date</span>
-
+          <form
+            id="reservationForm"
+            class="reservation-form"
+          >
             <input
               type="date"
               id="reservationDate"
               required
             />
-          </label>
-
-          <label class="reservation-field">
-            <span>Time</span>
 
             <input
               type="time"
               id="reservationTime"
               required
             />
-          </label>
-
-          <label class="reservation-field">
-            <span>Guest count</span>
 
             <input
               type="number"
               id="reservationPartySize"
               min="1"
               max="20"
-              placeholder="2"
+              placeholder="Party size"
               required
             />
-          </label>
-
-          <label class="reservation-field reservation-field--note">
-            <span>Optional request</span>
 
             <textarea
               id="reservationNote"
-              placeholder="Occasion, seating preference, or arrival details"
+              placeholder="Optional note"
             ></textarea>
-          </label>
 
-          <div class="reservation-submit-row">
             <button
               type="submit"
               class="btn"
             >
               Request Reservation
             </button>
-
-            <span>
-              Pending requests can be cancelled before approval.
-            </span>
-          </div>
-        </form>
+          </form>
+        </div>
 
         <p
           id="reservationMessage"
@@ -358,10 +286,7 @@
         </div>
       </section>
 
-      <section
-        class="public-section public-section--events venue-mobile-panel"
-        data-panel="events"
-      >
+      <section class="public-section public-section--events">
         <h2 class="section-title">
           Events at this venue
         </h2>
@@ -376,17 +301,6 @@
     </div>
 
   </main>
-
-  <nav
-    class="mobile-bottom-nav"
-    aria-label="Primary mobile navigation"
-  >
-    <a href="./discover.html" data-nav-page="discover.html"><span aria-hidden="true">D</span>Discover</a>
-    <a href="./events.html" data-nav-page="events.html"><span aria-hidden="true">E</span>Events</a>
-    <a href="./profile.html" data-nav-page="profile.html"><span aria-hidden="true">R</span>Profile</a>
-    <a href="./messages.html" data-nav-page="messages.html"><span aria-hidden="true">M</span>Messages</a>
-    <a href="./business.html" data-nav-page="business.html"><span aria-hidden="true">B</span>Business</a>
-  </nav>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
