@@ -522,6 +522,11 @@ function renderDetailUnavailable(title, message) {
 
 function showToast(message) {
   const toast = document.getElementById("toast");
+  const authMessage = document.getElementById("authMessage");
+
+  if (authMessage) {
+    authMessage.textContent = safeText(message);
+  }
 
   if (!toast) {
     alert(message);
@@ -7378,6 +7383,201 @@ async function hydrateDirectConversationProfiles(conversations) {
   });
 }
 
+function createUserSearchStatus(message) {
+  const status = document.createElement("p");
+  status.className = "user-search-status";
+  status.textContent = message;
+
+  return status;
+}
+
+function normalizeDirectMessageUser(row) {
+  if (!row) return null;
+
+  const id = safeText(row.user_id || row.id);
+
+  if (!id || !isValidUuid(id)) return null;
+
+  return {
+    id,
+    name: getProfileDisplayName(row),
+    username: safeText(row.username),
+    email: getProfileEmail(row),
+    avatar: getProfileAvatar(row),
+  };
+}
+
+function dedupeDirectMessageUsers(rows, sessionUserId) {
+  const usersById = new Map();
+
+  (rows || []).forEach((row) => {
+    const user = normalizeDirectMessageUser(row);
+
+    if (!user || String(user.id) === String(sessionUserId)) return;
+
+    if (!usersById.has(String(user.id))) {
+      usersById.set(String(user.id), user);
+    }
+  });
+
+  return [...usersById.values()];
+}
+
+async function searchUsersForDirectMessage(query) {
+  const searchTerm = safeText(query).trim();
+
+  if (searchTerm.length < 2) return [];
+
+  const session = await getSafeSession();
+  const sessionUserId = session && session.user ? session.user.id : "";
+  const escapedTerm = searchTerm.replace(/[%_]/g, "\\$&");
+  const searchPattern = `%${escapedTerm}%`;
+  const searchFilters = [
+    `full_name.ilike.${searchPattern}`,
+    `username.ilike.${searchPattern}`,
+    `email.ilike.${searchPattern}`,
+  ];
+  const fallbackFilters = [
+    `full_name.ilike.${searchPattern}`,
+    `username.ilike.${searchPattern}`,
+  ];
+
+  try {
+    const { data, error } = await supabaseClient
+      .from("profiles")
+      .select("*")
+      .or(searchFilters.join(","))
+      .limit(12);
+
+    if (!error) {
+      return dedupeDirectMessageUsers(data || [], sessionUserId);
+    }
+
+    console.warn("User email search unavailable.", error);
+  } catch (error) {
+    console.warn("User email search unavailable.", error);
+  }
+
+  try {
+    const { data, error } = await supabaseClient
+      .from("profiles")
+      .select("*")
+      .or(fallbackFilters.join(","))
+      .limit(12);
+
+    if (error) {
+      console.warn("User search unavailable.", error);
+      throw error;
+    }
+
+    return dedupeDirectMessageUsers(data || [], sessionUserId);
+  } catch (error) {
+    console.warn("User search unavailable.", error);
+    throw error;
+  }
+}
+
+function renderUserSearchResults(users) {
+  const results = document.getElementById("userSearchResults");
+
+  if (!results) return;
+
+  results.innerHTML = "";
+
+  if (!users || users.length === 0) {
+    results.appendChild(createUserSearchStatus("No users found."));
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+
+  users.forEach((user) => {
+    const card = document.createElement("div");
+    card.className = "user-search-result";
+
+    const avatar = document.createElement("div");
+    avatar.className = "user-search-avatar";
+
+    if (user.avatar) {
+      const image = document.createElement("img");
+      image.src = getImage(user.avatar);
+      image.alt = user.name;
+      image.loading = "lazy";
+      image.addEventListener(
+        "error",
+        () => {
+          image.remove();
+          avatar.textContent = user.name.charAt(0).toUpperCase() || "U";
+        },
+        { once: true }
+      );
+      avatar.appendChild(image);
+    } else {
+      avatar.textContent = user.name.charAt(0).toUpperCase() || "U";
+    }
+
+    const content = document.createElement("div");
+    content.className = "user-search-copy";
+
+    const name = document.createElement("strong");
+    name.textContent = user.name;
+    content.appendChild(name);
+
+    const meta = document.createElement("span");
+    meta.textContent = user.username
+      ? `@${user.username}`
+      : user.email || "TANIDIK member";
+    content.appendChild(meta);
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "secondary-btn user-search-message-btn";
+    button.textContent = "Message";
+    button.addEventListener("click", () =>
+      startDirectMessageFromSearch(user.id)
+    );
+
+    card.appendChild(avatar);
+    card.appendChild(content);
+    card.appendChild(button);
+    fragment.appendChild(card);
+  });
+
+  results.appendChild(fragment);
+}
+
+async function startDirectMessageFromSearch(userId) {
+  if (!userId || !isValidUuid(userId)) {
+    showToast("Could not start conversation. Please try again.");
+    return;
+  }
+
+  const buttons = [
+    ...document.querySelectorAll(".user-search-message-btn"),
+  ];
+
+  buttons.forEach((button) => {
+    button.disabled = true;
+  });
+
+  try {
+    const opened = await openDirectConversation(userId);
+
+    if (!opened) {
+      showToast("Could not start conversation. Please try again.");
+      buttons.forEach((button) => {
+        button.disabled = false;
+      });
+    }
+  } catch (error) {
+    console.warn("Direct conversation could not be opened.", error);
+    showToast("Could not start conversation. Please try again.");
+    buttons.forEach((button) => {
+      button.disabled = false;
+    });
+  }
+}
+
 async function getOrCreateDirectConversation(targetUserId) {
   if (!targetUserId || !isValidUuid(targetUserId)) {
     showToast("User not found");
@@ -8472,6 +8672,74 @@ function setupMessagesRefreshButton() {
   refreshButton.addEventListener("click", refreshMessagesPage);
 }
 
+function setupUserSearchForMessages() {
+  const button = document.getElementById("newMessageBtn");
+  const panel = document.getElementById("userSearchPanel");
+  const input = document.getElementById("userSearchInput");
+  const results = document.getElementById("userSearchResults");
+
+  if (!button || !panel || !input || !results) return;
+
+  if (button.dataset.bound === "true") return;
+
+  button.dataset.bound = "true";
+
+  let searchTimer = null;
+  let searchRequestId = 0;
+
+  const setPanelOpen = (isOpen) => {
+    panel.hidden = !isOpen;
+    button.setAttribute("aria-expanded", String(isOpen));
+
+    if (isOpen) {
+      input.focus();
+    }
+  };
+
+  button.addEventListener("click", () => {
+    setPanelOpen(panel.hidden);
+  });
+
+  input.addEventListener("input", () => {
+    const query = input.value.trim();
+    searchRequestId += 1;
+    const requestId = searchRequestId;
+
+    if (searchTimer) {
+      clearTimeout(searchTimer);
+    }
+
+    if (query.length < 2) {
+      results.innerHTML = "";
+      results.appendChild(
+        createUserSearchStatus("Type at least 2 characters.")
+      );
+      return;
+    }
+
+    results.innerHTML = "";
+    results.appendChild(createUserSearchStatus("Searching..."));
+
+    searchTimer = setTimeout(async () => {
+      try {
+        const users = await searchUsersForDirectMessage(query);
+
+        if (requestId !== searchRequestId) return;
+
+        renderUserSearchResults(users);
+      } catch (error) {
+        if (requestId !== searchRequestId) return;
+
+        console.warn("Could not search users.", error);
+        results.innerHTML = "";
+        results.appendChild(
+          createUserSearchStatus("Could not search users.")
+        );
+      }
+    }, 250);
+  });
+}
+
 async function setupMessagesPage() {
   const messagesList = document.getElementById("messagesList");
   const conversationPanel =
@@ -8489,6 +8757,7 @@ async function setupMessagesPage() {
   }
 
   setupMessagesRefreshButton();
+  setupUserSearchForMessages();
   await checkMessageAttachmentsTable();
   messageUnreadCountsByConversationId =
     await loadMessageUnreadCounts(session.user.id);

@@ -52,33 +52,107 @@
   />
 </head>
 
-<body>
+<body class="auth-page">
 
-  <div class="auth-container">
+  <main class="auth-container">
 
-    <h1>TANIDIK</h1>
+    <section class="auth-hero" aria-label="TANIDIK login">
+      <span class="auth-kicker">
+        Premium Nightlife
+      </span>
 
-    <input
-      type="email"
-      id="email"
-      placeholder="Email"
-    />
+      <h1>
+        TANIDIK
+      </h1>
 
-    <input
-      type="password"
-      id="password"
-      placeholder="Password"
-    />
+      <p>
+        Discover places, book experiences, and connect with businesses.
+      </p>
+    </section>
 
-    <button id="loginBtn">
-      Login
-    </button>
+    <section class="auth-stage" aria-label="Account access">
+      <div class="auth-tentacles" aria-hidden="true">
+        <span class="auth-tentacle auth-tentacle--left auth-tentacle--one"></span>
+        <span class="auth-tentacle auth-tentacle--left auth-tentacle--two"></span>
+        <span class="auth-tentacle auth-tentacle--left auth-tentacle--three"></span>
+        <span class="auth-tentacle auth-tentacle--left auth-tentacle--four"></span>
+        <span class="auth-tentacle auth-tentacle--right auth-tentacle--five"></span>
+        <span class="auth-tentacle auth-tentacle--right auth-tentacle--six"></span>
+        <span class="auth-tentacle auth-tentacle--right auth-tentacle--seven"></span>
+        <span class="auth-tentacle auth-tentacle--right auth-tentacle--eight"></span>
+      </div>
 
-    <button id="registerBtn">
-      Register
-    </button>
+      <div class="auth-card">
+        <div class="auth-tab-header" aria-label="Login or sign up">
+          <span class="auth-tab auth-tab--active">
+            Login
+          </span>
 
-  </div>
+          <span class="auth-tab">
+            Sign Up
+          </span>
+        </div>
+
+        <div class="auth-card-header">
+          <h2>
+            Welcome
+          </h2>
+
+          <p>
+            Login or create your account to continue.
+          </p>
+        </div>
+
+        <div class="auth-fields">
+          <label for="email">
+            Email
+          </label>
+
+          <input
+            type="email"
+            id="email"
+            placeholder="you@example.com"
+            autocomplete="email"
+            inputmode="email"
+          />
+
+          <label for="password">
+            Password
+          </label>
+
+          <input
+            type="password"
+            id="password"
+            placeholder="Enter your password"
+            autocomplete="current-password"
+          />
+        </div>
+
+        <p
+          id="authMessage"
+          class="auth-message"
+          role="status"
+          aria-live="polite"
+        >
+        </p>
+
+        <div class="auth-actions" aria-label="Login or register">
+          <button id="loginBtn" type="button">
+            Login
+          </button>
+
+          <button id="registerBtn" type="button">
+            Register
+          </button>
+        </div>
+
+        <p class="auth-helper">
+          Private access for reservations, venues, and business messages.
+        </p>
+      </div>
+    </section>
+
+  </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 

@@ -114,13 +114,44 @@
             </h2>
           </div>
 
-          <button
-            id="messagesRefreshBtn"
-            type="button"
-            class="secondary-btn message-refresh-btn"
+          <div class="messages-header-actions">
+            <button
+              id="newMessageBtn"
+              type="button"
+              class="btn new-message-btn"
+              aria-expanded="false"
+              aria-controls="userSearchPanel"
+            >
+              New Message
+            </button>
+
+            <button
+              id="messagesRefreshBtn"
+              type="button"
+              class="secondary-btn message-refresh-btn"
+            >
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <div
+          id="userSearchPanel"
+          class="user-search-panel"
+          hidden
+        >
+          <input
+            id="userSearchInput"
+            type="search"
+            placeholder="Search users..."
+            autocomplete="off"
+          />
+
+          <div
+            id="userSearchResults"
+            class="user-search-results"
           >
-            Refresh
-          </button>
+          </div>
         </div>
 
         <div
