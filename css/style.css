@@ -2693,6 +2693,83 @@ p.reservation-note {
   gap: 14px;
 }
 
+#businessReservationSchedule {
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+#businessReservationSchedule .empty-state {
+  min-width: 0;
+}
+
+#businessReservationSchedule .reservation-schedule-table {
+  display: grid;
+  grid-template-columns:
+    minmax(92px, 0.72fr)
+    repeat(7, minmax(150px, 1fr));
+  min-width: 1120px;
+  border: 1px solid rgba(255,255,255,0.075);
+  border-radius: 22px;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.052), rgba(255,255,255,0.024)),
+    rgba(0,0,0,0.16);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+#businessReservationSchedule .reservation-schedule-cell {
+  min-height: 82px;
+  padding: 12px;
+  border-right: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: rgba(0,0,0,0.08);
+}
+
+#businessReservationSchedule .reservation-schedule-cell:nth-child(8n) {
+  border-right: 0;
+}
+
+#businessReservationSchedule .reservation-schedule-head,
+#businessReservationSchedule .reservation-schedule-time {
+  min-height: 56px;
+  background: rgba(240,192,96,0.055);
+  color: var(--gold);
+  font-family: var(--fm);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+#businessReservationSchedule .reservation-schedule-time {
+  color: var(--gold2);
+  background: rgba(0,0,0,0.22);
+}
+
+#businessReservationSchedule .reservation-schedule-item {
+  padding: 10px;
+  border: 1px solid rgba(240,192,96,0.16);
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, rgba(240,192,96,0.1), rgba(255,255,255,0.035));
+  color: var(--plat);
+  font-size: 12px;
+  line-height: 1.45;
+  box-shadow: 0 12px 24px rgba(0,0,0,0.16);
+}
+
+#businessReservationSchedule .reservation-schedule-item + .reservation-schedule-item {
+  margin-top: 8px;
+}
+
+#businessReservationSchedule .reservation-schedule-empty {
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  color: rgba(155,163,178,0.38);
+  font-family: var(--fm);
+}
+
 .status-badge {
   flex: 0 0 auto;
   padding: 7px 12px;
@@ -3256,6 +3333,27 @@ p.reservation-note {
   .reservation-status-filter {
     width: 100%;
     padding-inline: 8px;
+  }
+
+  #businessReservationSchedule {
+    margin-inline: -2px;
+    padding-bottom: 10px;
+  }
+
+  #businessReservationSchedule .reservation-schedule-table {
+    min-width: 980px;
+    border-radius: 18px;
+  }
+
+  #businessReservationSchedule .reservation-schedule-cell {
+    min-height: 76px;
+    padding: 10px;
+  }
+
+  #businessReservationSchedule .reservation-schedule-head,
+  #businessReservationSchedule .reservation-schedule-time {
+    min-height: 52px;
+    font-size: 9px;
   }
 
   .reservation-meta-grid {

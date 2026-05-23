@@ -4370,6 +4370,219 @@ function renderBusinessReservations(reservations) {
   list.appendChild(fragment);
 }
 
+function getWeekDates() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(today);
+    date.setDate(today.getDate() + index);
+    return date;
+  });
+}
+
+function normalizeReservationDate(value) {
+  if (!value) return "";
+
+  const date =
+    value instanceof Date
+      ? new Date(value)
+      : new Date(`${value}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) return "";
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function normalizeReservationTime(value) {
+  const time = safeText(value).trim();
+
+  if (!time) return "";
+
+  const match = time.match(/^(\d{1,2}):?(\d{2})?/);
+
+  if (!match) return time;
+
+  const hour = Math.min(Math.max(Number(match[1]), 0), 23);
+  const minute = match[2] ? Number(match[2]) : 0;
+
+  return `${String(hour).padStart(2, "0")}:${String(
+    Number.isNaN(minute) ? 0 : minute
+  ).padStart(2, "0")}`;
+}
+
+function getReservationTimeLabel(time) {
+  if (!time) return "Time not set";
+
+  const [hourValue, minuteValue = "00"] = time.split(":");
+  const hour = Number(hourValue);
+
+  if (Number.isNaN(hour)) return time;
+
+  const period = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour % 12 || 12;
+
+  return `${displayHour}:${minuteValue} ${period}`;
+}
+
+function buildBusinessReservationSchedule(reservations) {
+  const weekDates = getWeekDates();
+  const weekKeys = weekDates.map((date) =>
+    normalizeReservationDate(date)
+  );
+  const approvedReservations = (reservations || []).filter(
+    (reservation) =>
+      getReservationStatusValue(reservation.status) ===
+      "approved"
+  );
+  const grouped = new Map();
+
+  approvedReservations.forEach((reservation) => {
+    const date = normalizeReservationDate(
+      reservation.reservation_date
+    );
+    const time = normalizeReservationTime(
+      reservation.reservation_time
+    );
+
+    if (!date || !time || !weekKeys.includes(date)) return;
+
+    const venueName = getBusinessDashboardVenueName(
+      reservation.venue_id
+    );
+    const key = [
+      date,
+      time,
+      safeText(reservation.venue_id),
+    ].join("|");
+    const existing =
+      grouped.get(key) || {
+        date,
+        time,
+        venueName,
+        reservationCount: 0,
+        guestCount: 0,
+      };
+
+    existing.reservationCount += 1;
+    existing.guestCount += Number(reservation.party_size) || 0;
+    grouped.set(key, existing);
+  });
+
+  const entries = [...grouped.values()].sort((a, b) => {
+    if (a.time !== b.time) return a.time.localeCompare(b.time);
+    return a.venueName.localeCompare(b.venueName);
+  });
+  const slots = [...new Set(entries.map((entry) => entry.time))];
+
+  return {
+    weekDates,
+    weekKeys,
+    slots,
+    entriesByDateTime: entries.reduce((items, entry) => {
+      const key = `${entry.date}|${entry.time}`;
+      items[key] = items[key] || [];
+      items[key].push(entry);
+      return items;
+    }, {}),
+  };
+}
+
+function renderBusinessReservationSchedule(reservations) {
+  const container =
+    document.getElementById("businessReservationSchedule");
+
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  const schedule =
+    buildBusinessReservationSchedule(reservations || []);
+
+  if (schedule.slots.length === 0) {
+    renderEmptyState(
+      container,
+      "No approved reservations this week",
+      "Approved bookings will appear here by day and time."
+    );
+    return;
+  }
+
+  const table = document.createElement("div");
+  table.className = "reservation-schedule-table";
+  table.style.setProperty(
+    "--schedule-columns",
+    `${schedule.weekDates.length + 1}`
+  );
+
+  const emptyCorner = document.createElement("div");
+  emptyCorner.className =
+    "reservation-schedule-cell reservation-schedule-head";
+  emptyCorner.textContent = "Time";
+  table.appendChild(emptyCorner);
+
+  schedule.weekDates.forEach((date) => {
+    const header = document.createElement("div");
+    header.className =
+      "reservation-schedule-cell reservation-schedule-head";
+    header.textContent = date.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
+    table.appendChild(header);
+  });
+
+  schedule.slots.forEach((slot) => {
+    const timeCell = document.createElement("div");
+    timeCell.className =
+      "reservation-schedule-cell reservation-schedule-time";
+    timeCell.textContent = getReservationTimeLabel(slot);
+    table.appendChild(timeCell);
+
+    schedule.weekKeys.forEach((dateKey) => {
+      const cell = document.createElement("div");
+      cell.className = "reservation-schedule-cell";
+      const entries =
+        schedule.entriesByDateTime[`${dateKey}|${slot}`] || [];
+
+      if (entries.length === 0) {
+        const dash = document.createElement("span");
+        dash.className = "reservation-schedule-empty";
+        dash.textContent = "-";
+        cell.appendChild(dash);
+      } else {
+        entries.forEach((entry) => {
+          const item = document.createElement("div");
+          item.className = "reservation-schedule-item";
+          const reservationLabel =
+            entry.reservationCount === 1
+              ? "reservation"
+              : "reservations";
+          const guestLabel =
+            entry.guestCount === 1 ? "guest" : "guests";
+          item.textContent =
+            `${getReservationTimeLabel(entry.time)} - ` +
+            `${entry.venueName} - ${entry.reservationCount} ` +
+            reservationLabel +
+            (entry.guestCount
+              ? ` / ${entry.guestCount} ${guestLabel}`
+              : "");
+          cell.appendChild(item);
+        });
+      }
+
+      table.appendChild(cell);
+    });
+  });
+
+  container.appendChild(table);
+}
+
 function createBusinessReservationCard(reservation) {
   const item = document.createElement("div");
   item.className =
@@ -4651,6 +4864,7 @@ async function refreshBusinessDashboard() {
     renderBusinessVenues([]);
     renderBusinessEvents([]);
     renderBusinessReservations([]);
+    renderBusinessReservationSchedule([]);
     return;
   }
 
@@ -4664,6 +4878,9 @@ async function refreshBusinessDashboard() {
   businessDashboardState.reservations =
     await loadBusinessReservations();
   renderBusinessReservations(
+    businessDashboardState.reservations
+  );
+  renderBusinessReservationSchedule(
     businessDashboardState.reservations
   );
 
