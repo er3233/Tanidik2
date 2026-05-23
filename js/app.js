@@ -4439,6 +4439,7 @@ function isApprovedScheduleReservation(reservation) {
     "accepted",
     "confirmed",
     "onaylandı",
+    "onaylandı",
     "onaylandi",
   ].includes(normalizedStatus);
 
@@ -4461,65 +4462,185 @@ function getScheduleReservationTime(reservation) {
   );
 }
 
+function getScheduleTimeSlots() {
+  return [
+    ...Array.from({ length: 14 }, (_, index) => index + 10),
+    0,
+    1,
+    2,
+    3,
+  ].map((hour) => `${String(hour).padStart(2, "0")}:00`);
+}
+
+function getScheduleHourSlot(time) {
+  const normalizedTime = normalizeReservationTime(time);
+
+  if (!normalizedTime) return "";
+
+  const [hourValue] = normalizedTime.split(":");
+  const hour = Number(hourValue);
+
+  if (Number.isNaN(hour)) return "";
+
+  return `${String(hour).padStart(2, "0")}:00`;
+}
+
+function getRelatedReservationRecord(record, key) {
+  const value = record && record[key];
+
+  if (Array.isArray(value)) {
+    return value.length ? value[0] : null;
+  }
+
+  return value || null;
+}
+
+function getScheduleCustomerName(reservation) {
+  const profiles = getRelatedReservationRecord(
+    reservation,
+    "profiles"
+  );
+  const profile = getRelatedReservationRecord(
+    reservation,
+    "profile"
+  );
+
+  return (
+    safeText(reservation.user_name) ||
+    safeText(reservation.customer_name) ||
+    safeText(reservation.guest_name) ||
+    safeText(profiles && profiles.full_name) ||
+    safeText(profile && profile.full_name) ||
+    safeText(reservation["profiles.full_name"]) ||
+    safeText(reservation["profile.full_name"]) ||
+    safeText(reservation.user_email) ||
+    safeText(reservation.email) ||
+    "Guest"
+  );
+}
+
+function getScheduleVenueName(reservation) {
+  const venues = getRelatedReservationRecord(
+    reservation,
+    "venues"
+  );
+  const venue = getRelatedReservationRecord(
+    reservation,
+    "venue"
+  );
+
+  return (
+    safeText(reservation.venue_name) ||
+    safeText(venues && venues.name) ||
+    safeText(venue && venue.name) ||
+    safeText(reservation["venues.name"]) ||
+    safeText(reservation["venue.name"]) ||
+    safeText(reservation.business_name) ||
+    safeText(getBusinessDashboardVenueName(reservation.venue_id)) ||
+    "Venue"
+  );
+}
+
 function buildBusinessReservationSchedule(reservations) {
   const weekDates = getWeekDates();
   const weekKeys = weekDates.map((date) =>
     normalizeReservationDate(date)
   );
+  const slots = getScheduleTimeSlots();
   const approvedReservations = (reservations || []).filter(
     isApprovedScheduleReservation
   );
-  const grouped = new Map();
+  const entriesByDateTime = {};
 
   approvedReservations.forEach((reservation) => {
     const date = normalizeReservationDate(
       getScheduleReservationDate(reservation)
     );
-    const time = normalizeReservationTime(
+    const time = getScheduleHourSlot(
       getScheduleReservationTime(reservation)
     );
 
-    if (!date || !time || !weekKeys.includes(date)) return;
+    if (
+      !date ||
+      !time ||
+      !weekKeys.includes(date) ||
+      !slots.includes(time)
+    ) {
+      return;
+    }
 
-    const venueName = getBusinessDashboardVenueName(
-      reservation.venue_id
-    );
-    const key = [
+    const key = `${date}|${time}`;
+    entriesByDateTime[key] = entriesByDateTime[key] || [];
+    entriesByDateTime[key].push({
       date,
       time,
-      safeText(reservation.venue_id),
-    ].join("|");
-    const existing =
-      grouped.get(key) || {
-        date,
-        time,
-        venueName,
-        reservationCount: 0,
-        guestCount: 0,
-      };
-
-    existing.reservationCount += 1;
-    existing.guestCount += Number(reservation.party_size) || 0;
-    grouped.set(key, existing);
+      customerName: getScheduleCustomerName(reservation),
+      venueName: getScheduleVenueName(reservation),
+      partySize: Number(reservation.party_size) || 0,
+    });
   });
-
-  const entries = [...grouped.values()].sort((a, b) => {
-    if (a.time !== b.time) return a.time.localeCompare(b.time);
-    return a.venueName.localeCompare(b.venueName);
-  });
-  const slots = [...new Set(entries.map((entry) => entry.time))];
 
   return {
     weekDates,
     weekKeys,
     slots,
-    entriesByDateTime: entries.reduce((items, entry) => {
-      const key = `${entry.date}|${entry.time}`;
-      items[key] = items[key] || [];
-      items[key].push(entry);
-      return items;
-    }, {}),
+    entriesByDateTime,
   };
+}
+
+function createReservationScheduleBadge() {
+  return createStatusBadge("approved");
+}
+
+function createReservationScheduleBooking(entries) {
+  const item = document.createElement("div");
+  item.className = "reservation-schedule-item";
+
+  if (entries.length === 1) {
+    const booking = entries[0];
+    const name = document.createElement("strong");
+    name.textContent = booking.customerName;
+    item.appendChild(name);
+
+    const venue = document.createElement("span");
+    venue.textContent = booking.venueName;
+    item.appendChild(venue);
+
+    const party = document.createElement("span");
+    party.textContent = `${booking.partySize || 0} guests`;
+    item.appendChild(party);
+
+    item.appendChild(createReservationScheduleBadge());
+    return item;
+  }
+
+  const totalGuests = entries.reduce(
+    (sum, entry) => sum + (Number(entry.partySize) || 0),
+    0
+  );
+  const heading = document.createElement("strong");
+  heading.textContent = `${entries.length} bookings`;
+  item.appendChild(heading);
+
+  const guests = document.createElement("span");
+  guests.textContent = `${totalGuests} guests`;
+  item.appendChild(guests);
+
+  const names = document.createElement("span");
+  names.textContent = entries
+    .map((entry) => entry.customerName)
+    .filter(Boolean)
+    .join(", ");
+  item.appendChild(names);
+
+  const venues = document.createElement("span");
+  venues.textContent = [
+    ...new Set(entries.map((entry) => entry.venueName)),
+  ].join(", ");
+  item.appendChild(venues);
+
+  item.appendChild(createReservationScheduleBadge());
+  return item;
 }
 
 function renderBusinessReservationSchedule(reservations) {
@@ -4532,14 +4653,6 @@ function renderBusinessReservationSchedule(reservations) {
 
   const schedule =
     buildBusinessReservationSchedule(reservations || []);
-
-  if (schedule.slots.length === 0) {
-    renderEmptyState(
-      container,
-      "No approved reservations this week yet."
-    );
-    return;
-  }
 
   const table = document.createElement("div");
   table.className = "reservation-schedule-table";
@@ -4575,34 +4688,20 @@ function renderBusinessReservationSchedule(reservations) {
 
     schedule.weekKeys.forEach((dateKey) => {
       const cell = document.createElement("div");
-      cell.className = "reservation-schedule-cell";
       const entries =
         schedule.entriesByDateTime[`${dateKey}|${slot}`] || [];
 
       if (entries.length === 0) {
-        const dash = document.createElement("span");
-        dash.className = "reservation-schedule-empty";
-        dash.textContent = "-";
-        cell.appendChild(dash);
+        cell.className =
+          "reservation-schedule-cell reservation-schedule-available";
+        const available = document.createElement("span");
+        available.className = "reservation-schedule-empty";
+        available.textContent = "Available";
+        cell.appendChild(available);
       } else {
-        entries.forEach((entry) => {
-          const item = document.createElement("div");
-          item.className = "reservation-schedule-item";
-          const reservationLabel =
-            entry.reservationCount === 1
-              ? "reservation"
-              : "reservations";
-          const guestLabel =
-            entry.guestCount === 1 ? "guest" : "guests";
-          item.textContent =
-            `${getReservationTimeLabel(entry.time)} - ` +
-            `${entry.venueName} - ${entry.reservationCount} ` +
-            reservationLabel +
-            (entry.guestCount
-              ? ` / ${entry.guestCount} ${guestLabel}`
-              : "");
-          cell.appendChild(item);
-        });
+        cell.className =
+          "reservation-schedule-cell reservation-schedule-occupied";
+        cell.appendChild(createReservationScheduleBooking(entries));
       }
 
       table.appendChild(cell);

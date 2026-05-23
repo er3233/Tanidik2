@@ -2719,7 +2719,7 @@ p.reservation-note {
 }
 
 #businessReservationSchedule .reservation-schedule-cell {
-  min-height: 82px;
+  min-height: 96px;
   padding: 12px;
   border-right: 1px solid rgba(255,255,255,0.06);
   border-bottom: 1px solid rgba(255,255,255,0.06);
@@ -2746,7 +2746,19 @@ p.reservation-note {
   background: rgba(0,0,0,0.22);
 }
 
+#businessReservationSchedule .reservation-schedule-available {
+  background: rgba(255,255,255,0.018);
+}
+
+#businessReservationSchedule .reservation-schedule-occupied {
+  background:
+    linear-gradient(135deg, rgba(240,192,96,0.075), transparent 46%),
+    rgba(0,0,0,0.12);
+}
+
 #businessReservationSchedule .reservation-schedule-item {
+  display: grid;
+  gap: 7px;
   padding: 10px;
   border: 1px solid rgba(240,192,96,0.16);
   border-radius: 14px;
@@ -2758,6 +2770,22 @@ p.reservation-note {
   box-shadow: 0 12px 24px rgba(0,0,0,0.16);
 }
 
+#businessReservationSchedule .reservation-schedule-item strong {
+  color: white;
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+#businessReservationSchedule .reservation-schedule-item span {
+  color: var(--silver);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+#businessReservationSchedule .reservation-schedule-item .status-badge {
+  margin-top: 2px;
+}
+
 #businessReservationSchedule .reservation-schedule-item + .reservation-schedule-item {
   margin-top: 8px;
 }
@@ -2766,8 +2794,11 @@ p.reservation-note {
   display: grid;
   place-items: center;
   min-height: 44px;
-  color: rgba(155,163,178,0.38);
+  color: rgba(155,163,178,0.46);
   font-family: var(--fm);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .status-badge {
