@@ -113,39 +113,135 @@
       </div>
     </header>
 
-    <div class="profile-grid">
+    <div
+      class="profile-mobile-actions"
+      aria-label="Profile dashboard sections"
+    >
+      <button
+        type="button"
+        data-profile-panel="reservations"
+      >
+        My Reservations
+      </button>
 
-      <div class="profile-card">
-        <span>Account</span>
-        <strong>
-          Active
-        </strong>
-      </div>
+      <button
+        type="button"
+        data-profile-panel="favorites"
+      >
+        Favorites
+      </button>
 
-      <div class="profile-card">
-        <span>Favorites</span>
-        <strong id="profileFavoritesCount">
-          0
-        </strong>
-      </div>
+      <button
+        type="button"
+        data-profile-panel="reviews"
+      >
+        My Reviews
+      </button>
 
-      <div class="profile-card">
-        <span>Reviews</span>
-        <strong id="profileReviewsCount">
-          0
-        </strong>
-      </div>
+      <button
+        type="button"
+        data-profile-panel="notifications"
+      >
+        Notifications
+      </button>
 
-      <div class="profile-card">
-        <span>Reservations</span>
-        <strong id="profileReservationsCount">
-          0
-        </strong>
-      </div>
+      <button
+        type="button"
+        data-profile-panel="business"
+      >
+        Business
+      </button>
 
+      <button
+        type="button"
+        data-profile-panel="settings"
+      >
+        Settings / Profile Info
+      </button>
     </div>
 
-    <section class="profile-notifications-section dashboard-section">
+    <section
+      class="profile-mobile-panel profile-info-panel"
+      data-panel="settings"
+    >
+      <div class="profile-grid">
+
+        <div class="profile-card">
+          <span>Account</span>
+          <strong>
+            Active
+          </strong>
+        </div>
+
+        <div class="profile-card">
+          <span>Favorites</span>
+          <strong id="profileFavoritesCount">
+            0
+          </strong>
+        </div>
+
+        <div class="profile-card">
+          <span>Reviews</span>
+          <strong id="profileReviewsCount">
+            0
+          </strong>
+        </div>
+
+        <div class="profile-card">
+          <span>Reservations</span>
+          <strong id="profileReservationsCount">
+            0
+          </strong>
+        </div>
+
+      </div>
+    </section>
+
+    <section
+      class="profile-mobile-panel profile-favorites-section dashboard-section"
+      data-panel="favorites"
+    >
+      <h2>
+        Favorites
+      </h2>
+
+      <p class="reservation-dashboard-copy">
+        Open your saved venues and manage your favorite places.
+      </p>
+
+      <a
+        href="./favorites.html"
+        class="secondary-btn"
+      >
+        View Favorites
+      </a>
+    </section>
+
+    <section
+      class="profile-mobile-panel profile-reviews-section dashboard-section"
+      data-panel="reviews"
+    >
+      <h2>
+        My Reviews
+      </h2>
+
+      <p class="reservation-dashboard-copy">
+        Your review count is tracked here. Open venue pages to add or update
+        reviews.
+      </p>
+
+      <a
+        href="./discover.html"
+        class="secondary-btn"
+      >
+        Discover Venues
+      </a>
+    </section>
+
+    <section
+      class="profile-notifications-section dashboard-section profile-mobile-panel"
+      data-panel="notifications"
+    >
 
       <h2>
         Notifications
@@ -159,7 +255,10 @@
 
     </section>
 
-    <section class="profile-business-section dashboard-section dashboard-section--approvals dashboard-section--forms">
+    <section
+      class="profile-business-section dashboard-section dashboard-section--approvals dashboard-section--forms profile-mobile-panel"
+      data-panel="business"
+    >
 
       <h2>
         Business Application
@@ -212,7 +311,10 @@
 
     </section>
 
-    <section class="profile-reservations-section dashboard-section dashboard-section--reservations">
+    <section
+      class="profile-reservations-section dashboard-section dashboard-section--reservations profile-mobile-panel is-open"
+      data-panel="reservations"
+    >
 
       <h2>
         Recent Reservations
@@ -231,7 +333,10 @@
 
     </section>
 
-    <section class="profile-actions-section dashboard-section">
+    <section
+      class="profile-actions-section dashboard-section profile-mobile-panel"
+      data-panel="settings"
+    >
       <h2>
         Quick Actions
       </h2>
@@ -287,6 +392,16 @@
     <a href="./profile.html" data-nav-page="profile.html">
       <span aria-hidden="true">◉</span>
       Profile
+    </a>
+
+    <a href="./messages.html" data-nav-page="messages.html">
+      <span aria-hidden="true">M</span>
+      Messages
+    </a>
+
+    <a href="./business.html" data-nav-page="business.html">
+      <span aria-hidden="true">B</span>
+      Business
     </a>
   </nav>
 

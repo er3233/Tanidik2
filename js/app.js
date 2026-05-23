@@ -204,7 +204,7 @@ async function createNotification(
   message = "",
   linkUrl = ""
 ) {
-  if (!userId) return;
+  if (!userId) return false;
 
   const payloads = [
     {
@@ -244,14 +244,16 @@ async function createNotification(
       error = rpcError;
     }
 
-    if (!error) return;
+    if (!error) return true;
 
     lastError = error;
   }
 
   if (lastError) {
-    console.log(lastError);
+    console.warn(lastError);
   }
+
+  return false;
 }
 
 function showMessage(message) {
@@ -1239,25 +1241,47 @@ function getReservationNotificationTitle(status) {
     : "Reservation rejected";
 }
 
+function getReservationOwnerId(reservation) {
+  return (
+    reservation &&
+    (reservation.user_id ||
+      reservation.customer_id ||
+      reservation.profile_id)
+  );
+}
+
+function getReservationNotificationMessage(status) {
+  return status === "approved"
+    ? "Your reservation has been approved."
+    : "Your reservation was rejected.";
+}
+
 async function notifyUserReservationStatus(
   reservation,
   status
 ) {
-  if (!reservation || !reservation.user_id) return;
+  const userId = getReservationOwnerId(reservation);
+
+  if (!reservation || !userId) return;
 
   const title = getReservationNotificationTitle(status);
-  const message =
-    `Your reservation for ${safeText(
-      reservation.reservation_date
-    )} ${safeText(reservation.reservation_time)} was ${status}.`;
+  const message = getReservationNotificationMessage(status);
 
-  await createNotification(
-    reservation.user_id,
-    `reservation_${status}`,
-    title,
-    message,
-    `./venue.html?id=${reservation.venue_id}`
-  );
+  try {
+    const created = await createNotification(
+      userId,
+      `reservation_${status}`,
+      title,
+      message,
+      `./venue.html?id=${reservation.venue_id}`
+    );
+
+    if (!created) {
+      console.warn("Reservation status notification was not created.");
+    }
+  } catch (error) {
+    console.warn(error);
+  }
 }
 
 async function notifyBusinessOwnerReservationRequest(venueId) {
@@ -1601,9 +1625,69 @@ async function checkUser() {
 
     userEmail.innerText = session.user.email;
     ensureBusinessApplicationSection();
+    setupProfileMobilePanels();
     setupBusinessApplicationForm(session.user.id);
     await loadProfileStats(session.user.id);
   }
+}
+
+function setupProfileMobilePanels() {
+  const buttons =
+    document.querySelectorAll("[data-profile-panel]");
+  const panels =
+    document.querySelectorAll(".profile-mobile-panel");
+
+  if (!buttons.length || !panels.length) return;
+
+  buttons.forEach((button) => {
+    const panelName = button.dataset.profilePanel;
+    const matchingPanels =
+      document.querySelectorAll(
+        `.profile-mobile-panel[data-panel="${panelName}"]`
+      );
+    const isOpen = [...matchingPanels].some((panel) =>
+      panel.classList.contains("is-open")
+    );
+
+    button.classList.toggle("is-active", isOpen);
+    button.setAttribute(
+      "aria-expanded",
+      isOpen ? "true" : "false"
+    );
+  });
+
+  buttons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const panelName = button.dataset.profilePanel;
+      const matchingPanels =
+        document.querySelectorAll(
+          `.profile-mobile-panel[data-panel="${panelName}"]`
+        );
+
+      if (!matchingPanels.length) return;
+
+      const shouldOpen = ![...matchingPanels].some((panel) =>
+        panel.classList.contains("is-open")
+      );
+
+      panels.forEach((panel) => {
+        panel.classList.remove("is-open");
+      });
+
+      buttons.forEach((item) => {
+        item.classList.remove("is-active");
+        item.setAttribute("aria-expanded", "false");
+      });
+
+      if (shouldOpen) {
+        matchingPanels.forEach((panel) => {
+          panel.classList.add("is-open");
+        });
+        button.classList.add("is-active");
+        button.setAttribute("aria-expanded", "true");
+      }
+    });
+  });
 }
 
 function ensureBusinessApplicationSection() {
@@ -1621,7 +1705,9 @@ function ensureBusinessApplicationSection() {
   if (!profileDashboard) return;
 
   const section = document.createElement("section");
-  section.className = "profile-business-section";
+  section.className =
+    "profile-business-section dashboard-section dashboard-section--approvals dashboard-section--forms profile-mobile-panel";
+  section.dataset.panel = "business";
 
   const heading = document.createElement("h2");
   heading.textContent = "Business Application";
@@ -2707,11 +2793,65 @@ function openEvent(id) {
   window.location.href = `./event.html?id=${id}`;
 }
 
+function setupVenueMobilePanels() {
+  const actions =
+    document.querySelectorAll("[data-open-panel]");
+  const panels =
+    document.querySelectorAll(".venue-mobile-panel");
+
+  if (!actions.length || !panels.length) return;
+
+  actions.forEach((button) => {
+    const panelName = button.dataset.openPanel;
+    const panel = document.querySelector(
+      `.venue-mobile-panel[data-panel="${panelName}"]`
+    );
+
+    if (panel && panel.classList.contains("is-open")) {
+      button.classList.add("is-active");
+      button.setAttribute("aria-expanded", "true");
+    } else {
+      button.setAttribute("aria-expanded", "false");
+    }
+  });
+
+  actions.forEach((button) => {
+    button.addEventListener("click", () => {
+      const panelName = button.dataset.openPanel;
+      const panel = document.querySelector(
+        `.venue-mobile-panel[data-panel="${panelName}"]`
+      );
+
+      if (!panel) return;
+
+      const shouldOpen =
+        !panel.classList.contains("is-open");
+
+      panels.forEach((item) => {
+        item.classList.remove("is-open");
+      });
+
+      actions.forEach((item) => {
+        item.classList.remove("is-active");
+        item.setAttribute("aria-expanded", "false");
+      });
+
+      if (shouldOpen) {
+        panel.classList.add("is-open");
+        button.classList.add("is-active");
+        button.setAttribute("aria-expanded", "true");
+      }
+    });
+  });
+}
+
 async function loadVenueDetails() {
   const venueName =
     document.getElementById("venueName");
 
   if (!venueName) return;
+
+  setupVenueMobilePanels();
 
   const params = new URLSearchParams(
     window.location.search
@@ -5225,7 +5365,7 @@ async function updateBusinessReservationStatus(id, status) {
   }
 
   showToast(`Reservation ${status}`);
-  await notifyUserReservationStatus(reservation, status);
+  notifyUserReservationStatus(reservation, status);
   await refreshBusinessDashboard();
 }
 
@@ -6099,6 +6239,58 @@ function setupBusinessForms() {
   }
 }
 
+function setupBusinessMobilePanels() {
+  const buttons =
+    document.querySelectorAll("[data-business-panel]");
+  const panels =
+    document.querySelectorAll(".business-mobile-panel");
+
+  if (!buttons.length || !panels.length) return;
+
+  buttons.forEach((button) => {
+    const panelName = button.dataset.businessPanel;
+    const panel = document.querySelector(
+      `.business-mobile-panel[data-panel="${panelName}"]`
+    );
+
+    if (panel && panel.classList.contains("is-open")) {
+      button.classList.add("is-active");
+      button.setAttribute("aria-expanded", "true");
+    } else {
+      button.setAttribute("aria-expanded", "false");
+    }
+  });
+
+  buttons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const panelName = button.dataset.businessPanel;
+      const panel = document.querySelector(
+        `.business-mobile-panel[data-panel="${panelName}"]`
+      );
+
+      if (!panel) return;
+
+      const shouldOpen =
+        !panel.classList.contains("is-open");
+
+      panels.forEach((item) => {
+        item.classList.remove("is-open");
+      });
+
+      buttons.forEach((item) => {
+        item.classList.remove("is-active");
+        item.setAttribute("aria-expanded", "false");
+      });
+
+      if (shouldOpen) {
+        panel.classList.add("is-open");
+        button.classList.add("is-active");
+        button.setAttribute("aria-expanded", "true");
+      }
+    });
+  });
+}
+
 async function initBusinessDashboard() {
   const businessPage =
     document.getElementById("businessPage");
@@ -6116,6 +6308,7 @@ async function initBusinessDashboard() {
   }
 
   businessDashboardState.session = session;
+  setupBusinessMobilePanels();
   setupBusinessForms();
   await refreshBusinessDashboard();
 }

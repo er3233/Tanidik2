@@ -110,18 +110,24 @@
 
       <p id="venueCategory"></p>
 
-      <p id="venueDescription"></p>
-
-      <div
-        id="venueAverageRating"
-        class="average-rating"
+      <section
+        class="venue-mobile-panel venue-details-panel is-open"
+        data-panel="details"
       >
-        No ratings yet
-      </div>
+        <p id="venueDescription"></p>
+
+        <div
+          id="venueAverageRating"
+          class="average-rating"
+        >
+          No ratings yet
+        </div>
+      </section>
 
       <section
         id="venueLocationSection"
-        class="location-section public-section public-section--location"
+        class="location-section public-section public-section--location venue-mobile-panel"
+        data-panel="location"
       >
         <h2 class="section-title">
           Location
@@ -164,7 +170,50 @@
 
       </div>
 
-      <section class="public-section public-section--reviews">
+      <div
+        class="venue-mobile-actions"
+        aria-label="Venue actions"
+      >
+        <button
+          type="button"
+          data-open-panel="reservation"
+        >
+          Make Reservation
+        </button>
+
+        <button
+          type="button"
+          data-open-panel="reviews"
+        >
+          Reviews
+        </button>
+
+        <button
+          type="button"
+          data-open-panel="location"
+        >
+          Location
+        </button>
+
+        <button
+          type="button"
+          data-open-panel="events"
+        >
+          Events
+        </button>
+
+        <button
+          type="button"
+          data-open-panel="details"
+        >
+          Details
+        </button>
+      </div>
+
+      <section
+        class="public-section public-section--reviews venue-mobile-panel"
+        data-panel="reviews"
+      >
         <h2 class="section-title">
           Reviews
         </h2>
@@ -216,7 +265,10 @@
         </div>
       </section>
 
-      <section class="public-section public-section--reservations">
+      <section
+        class="public-section public-section--reservations venue-mobile-panel"
+        data-panel="reservation"
+      >
         <div class="reservation-section-header">
           <div>
             <span class="reservation-kicker">
@@ -306,7 +358,10 @@
         </div>
       </section>
 
-      <section class="public-section public-section--events">
+      <section
+        class="public-section public-section--events venue-mobile-panel"
+        data-panel="events"
+      >
         <h2 class="section-title">
           Events at this venue
         </h2>
@@ -321,6 +376,17 @@
     </div>
 
   </main>
+
+  <nav
+    class="mobile-bottom-nav"
+    aria-label="Primary mobile navigation"
+  >
+    <a href="./discover.html" data-nav-page="discover.html"><span aria-hidden="true">D</span>Discover</a>
+    <a href="./events.html" data-nav-page="events.html"><span aria-hidden="true">E</span>Events</a>
+    <a href="./profile.html" data-nav-page="profile.html"><span aria-hidden="true">R</span>Profile</a>
+    <a href="./messages.html" data-nav-page="messages.html"><span aria-hidden="true">M</span>Messages</a>
+    <a href="./business.html" data-nav-page="business.html"><span aria-hidden="true">B</span>Business</a>
+  </nav>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
