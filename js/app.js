@@ -998,25 +998,36 @@ async function setupVenueReviewForm(venueId) {
 }
 
 function getReservationStatusClass(status) {
-  return `status-${safeText(status)
-    .toLowerCase()
-    .trim() || "pending"}`;
+  return `status-${getReservationStatusValue(status)}`;
+}
+
+function getReservationStatusValue(status) {
+  const value =
+    safeText(status).toLowerCase().trim() || "pending";
+
+  return ["pending", "approved", "rejected", "cancelled"]
+    .includes(value)
+    ? value
+    : "pending";
+}
+
+function getReservationStatusLabel(status) {
+  const value = getReservationStatusValue(status);
+
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function createStatusBadge(status) {
   const badge = document.createElement("span");
   badge.className =
     `status-badge ${getReservationStatusClass(status)}`;
-  badge.textContent = safeText(status) || "pending";
+  badge.textContent = getReservationStatusLabel(status);
 
   return badge;
 }
 
 function isPendingReservation(reservation) {
-  return (
-    safeText(reservation.status).toLowerCase().trim() ===
-      "pending" || !reservation.status
-  );
+  return getReservationStatusValue(reservation.status) === "pending";
 }
 
 function getReservationTitle(reservation, options = {}) {
@@ -1040,6 +1051,37 @@ function createReservationMeta(label, value) {
   item.appendChild(valueElement);
 
   return item;
+}
+
+function getReservationGuestLabel(reservation) {
+  return (
+    safeText(reservation.customer_name) ||
+    safeText(reservation.guest_name) ||
+    safeText(reservation.full_name) ||
+    safeText(reservation.name) ||
+    safeText(reservation.customer_email) ||
+    safeText(reservation.guest_email) ||
+    safeText(reservation.user_email) ||
+    safeText(reservation.email) ||
+    (reservation.user_id
+      ? `Guest #${String(reservation.user_id).slice(0, 8)}`
+      : "Guest")
+  );
+}
+
+function createReservationNote(noteText) {
+  const note = document.createElement("div");
+  note.className = "reservation-note";
+
+  const label = document.createElement("span");
+  label.textContent = "Request";
+  note.appendChild(label);
+
+  const text = document.createElement("p");
+  text.textContent = safeText(noteText);
+  note.appendChild(text);
+
+  return note;
 }
 
 function createReservationActions() {
@@ -1106,10 +1148,7 @@ function createReservationCard(reservation, options = {}) {
   card.appendChild(meta);
 
   if (reservation.note) {
-    const note = document.createElement("p");
-    note.className = "reservation-note";
-    note.textContent = reservation.note;
-    card.appendChild(note);
+    card.appendChild(createReservationNote(reservation.note));
   }
 
   if (options.allowCancel && isPendingReservation(reservation)) {
@@ -4215,58 +4254,171 @@ function renderBusinessReservations(reservations) {
   }
 
   const fragment = document.createDocumentFragment();
-
-  reservations.forEach((reservation) => {
-    const item = document.createElement("div");
-    item.className =
-      `admin-item reservation-management-card ${getReservationStatusClass(
-        reservation.status
-      )}`;
-
-    const content = document.createElement("div");
-    content.className = "reservation-management-content";
-
-    const header = document.createElement("div");
-    header.className = "reservation-card-header";
-
-    const title = document.createElement("h3");
-    title.textContent =
-      getBusinessDashboardVenueName(reservation.venue_id);
-    header.appendChild(title);
-    header.appendChild(createStatusBadge(reservation.status));
-    content.appendChild(header);
-
-    const meta = document.createElement("div");
-    meta.className = "reservation-meta-grid";
-    meta.appendChild(
-      createReservationMeta(
-        "Date",
-        reservation.reservation_date
-      )
+  const statuses = [
+    ["all", "All"],
+    ["pending", "Pending"],
+    ["approved", "Approved"],
+    ["rejected", "Rejected"],
+    ["cancelled", "Cancelled"],
+  ];
+  const activeStatus =
+    window.businessReservationStatusFilter || "all";
+  const counts = reservations.reduce((items, reservation) => {
+    const status = getReservationStatusValue(
+      reservation.status
     );
-    meta.appendChild(
-      createReservationMeta(
-        "Time",
-        reservation.reservation_time
-      )
-    );
-    meta.appendChild(
-      createReservationMeta(
-        "Guests",
-        `${reservation.party_size || 0}`
-      )
-    );
-    content.appendChild(meta);
+    items.all += 1;
+    items[status] = (items[status] || 0) + 1;
+    return items;
+  }, {
+    all: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    cancelled: 0,
+  });
 
-    if (reservation.note) {
-      const note = document.createElement("p");
-      note.className = "reservation-note";
-      note.textContent = reservation.note;
-      content.appendChild(note);
+  const filters = document.createElement("div");
+  filters.className = "reservation-status-filters";
+
+  statuses.forEach(([value, label]) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className =
+      value === activeStatus
+        ? "reservation-status-filter active-filter"
+        : "reservation-status-filter";
+    button.textContent = `${label} ${counts[value] || 0}`;
+    button.addEventListener("click", () => {
+      window.businessReservationStatusFilter = value;
+      renderBusinessReservations(
+        businessDashboardState.reservations
+      );
+    });
+    filters.appendChild(button);
+  });
+
+  list.appendChild(filters);
+
+  const visibleReservations =
+    activeStatus === "all"
+      ? reservations
+      : reservations.filter(
+          (reservation) =>
+            getReservationStatusValue(reservation.status) ===
+            activeStatus
+        );
+
+  if (visibleReservations.length === 0) {
+    renderEmptyState(
+      list,
+      `No ${getReservationStatusLabel(activeStatus)} reservations`,
+      "New booking activity will appear here when it matches this status."
+    );
+    list.prepend(filters);
+    return;
+  }
+
+  const groupedStatuses =
+    activeStatus === "all"
+      ? statuses.filter(([value]) => value !== "all")
+      : statuses.filter(([value]) => value === activeStatus);
+
+  groupedStatuses.forEach(([statusValue, statusLabel]) => {
+    const groupReservations = visibleReservations.filter(
+      (reservation) =>
+        getReservationStatusValue(reservation.status) ===
+        statusValue
+    );
+
+    if (activeStatus === "all" && groupReservations.length === 0) {
+      return;
     }
 
-    const actions = createReservationActions();
+    const group = document.createElement("section");
+    group.className =
+      `reservation-inbox-group ${getReservationStatusClass(
+        statusValue
+      )}`;
 
+    const groupHeader = document.createElement("div");
+    groupHeader.className = "reservation-inbox-group-header";
+
+    const heading = document.createElement("h3");
+    heading.textContent = statusLabel;
+    groupHeader.appendChild(heading);
+
+    const count = document.createElement("span");
+    count.textContent = `${groupReservations.length}`;
+    groupHeader.appendChild(count);
+
+    group.appendChild(groupHeader);
+
+    const groupList = document.createElement("div");
+    groupList.className = "reservation-inbox-list";
+
+    groupReservations.forEach((reservation) => {
+      groupList.appendChild(
+        createBusinessReservationCard(reservation)
+      );
+    });
+
+    group.appendChild(groupList);
+    fragment.appendChild(group);
+  });
+
+  list.appendChild(fragment);
+}
+
+function createBusinessReservationCard(reservation) {
+  const item = document.createElement("div");
+  item.className =
+    `admin-item reservation-management-card ${getReservationStatusClass(
+      reservation.status
+    )}`;
+
+  const content = document.createElement("div");
+  content.className = "reservation-management-content";
+
+  const header = document.createElement("div");
+  header.className = "reservation-card-header";
+
+  const title = document.createElement("h3");
+  title.textContent =
+    getBusinessDashboardVenueName(reservation.venue_id);
+  header.appendChild(title);
+  header.appendChild(createStatusBadge(reservation.status));
+  content.appendChild(header);
+
+  const meta = document.createElement("div");
+  meta.className = "reservation-meta-grid";
+  meta.appendChild(
+    createReservationMeta(
+      "Guest",
+      getReservationGuestLabel(reservation)
+    )
+  );
+  meta.appendChild(
+    createReservationMeta("Date", reservation.reservation_date)
+  );
+  meta.appendChild(
+    createReservationMeta("Time", reservation.reservation_time)
+  );
+  meta.appendChild(
+    createReservationMeta(
+      "Party",
+      `${reservation.party_size || 0}`
+    )
+  );
+  content.appendChild(meta);
+
+  if (reservation.note) {
+    content.appendChild(createReservationNote(reservation.note));
+  }
+
+  const actions = createReservationActions();
+
+  if (isPendingReservation(reservation)) {
     const approveButton = document.createElement("button");
     approveButton.type = "button";
     approveButton.className = "btn";
@@ -4290,22 +4442,21 @@ function renderBusinessReservations(reservations) {
       );
     });
     actions.appendChild(rejectButton);
+  }
 
-    const messageButton = document.createElement("button");
-    messageButton.type = "button";
-    messageButton.className = "secondary-btn";
-    messageButton.textContent = "Message User";
-    bindReservationAction(messageButton, () => {
-      openReservationConversation(reservation.id);
-    });
-    actions.appendChild(messageButton);
-
-    item.appendChild(content);
-    item.appendChild(actions);
-    fragment.appendChild(item);
+  const messageButton = document.createElement("button");
+  messageButton.type = "button";
+  messageButton.className = "secondary-btn";
+  messageButton.textContent = "Message User";
+  bindReservationAction(messageButton, () => {
+    openReservationConversation(reservation.id);
   });
+  actions.appendChild(messageButton);
 
-  list.appendChild(fragment);
+  item.appendChild(content);
+  item.appendChild(actions);
+
+  return item;
 }
 
 async function loadBusinessBusinesses(session) {
