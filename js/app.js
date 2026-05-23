@@ -1847,7 +1847,10 @@ function formatNotificationDate(value) {
     return "";
   }
 
-  return date.toLocaleDateString();
+  return date.toLocaleString([], {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
 }
 
 function renderProfileNotifications(notifications) {
@@ -1861,7 +1864,7 @@ function renderProfileNotifications(notifications) {
   if (!notifications || notifications.length === 0) {
     renderEmptyState(
       list,
-      "No notifications yet",
+      "No notifications yet.",
       "Reservation and business updates will appear here."
     );
     return;
@@ -1871,22 +1874,43 @@ function renderProfileNotifications(notifications) {
 
   notifications.forEach((notification) => {
     const item = document.createElement("div");
-    item.className = notification.is_read
-      ? "profile-card notification-card"
-      : "profile-card notification-card unread";
+    const normalizedTitle = String(notification.title || "")
+      .trim()
+      .toLowerCase();
+    const notificationClasses = [
+      "profile-card",
+      "notification-card",
+    ];
+
+    if (!notification.is_read) {
+      notificationClasses.push("unread");
+    }
+
+    if (normalizedTitle.includes("reservation approved")) {
+      notificationClasses.push("notification-card--success");
+    }
+
+    if (normalizedTitle.includes("reservation rejected")) {
+      notificationClasses.push("notification-card--danger");
+    }
+
+    item.className = notificationClasses.join(" ");
 
     const status = document.createElement("span");
+    status.className = "notification-status";
     status.textContent = notification.is_read
       ? "Read"
       : "Unread";
     item.appendChild(status);
 
     const title = document.createElement("strong");
+    title.className = "notification-title";
     title.textContent = safeText(notification.title);
     item.appendChild(title);
 
     if (notification.message) {
       const message = document.createElement("p");
+      message.className = "notification-message";
       message.textContent = notification.message;
       item.appendChild(message);
     }
@@ -1897,6 +1921,7 @@ function renderProfileNotifications(notifications) {
 
     if (date) {
       const dateElement = document.createElement("p");
+      dateElement.className = "notification-date";
       dateElement.textContent = date;
       item.appendChild(dateElement);
     }
@@ -2850,6 +2875,58 @@ function setupVenueMobilePanels() {
   });
 }
 
+function setupEventMobilePanels() {
+  const actions =
+    document.querySelectorAll("[data-event-panel]");
+  const panels =
+    document.querySelectorAll(".event-mobile-panel");
+
+  if (!actions.length || !panels.length) return;
+
+  actions.forEach((button) => {
+    const panelName = button.dataset.eventPanel;
+    const panel = document.querySelector(
+      `.event-mobile-panel[data-panel="${panelName}"]`
+    );
+
+    if (panel && panel.classList.contains("is-open")) {
+      button.classList.add("is-active");
+      button.setAttribute("aria-expanded", "true");
+    } else {
+      button.setAttribute("aria-expanded", "false");
+    }
+  });
+
+  actions.forEach((button) => {
+    button.addEventListener("click", () => {
+      const panelName = button.dataset.eventPanel;
+      const panel = document.querySelector(
+        `.event-mobile-panel[data-panel="${panelName}"]`
+      );
+
+      if (!panel) return;
+
+      const shouldOpen =
+        !panel.classList.contains("is-open");
+
+      panels.forEach((item) => {
+        item.classList.remove("is-open");
+      });
+
+      actions.forEach((item) => {
+        item.classList.remove("is-active");
+        item.setAttribute("aria-expanded", "false");
+      });
+
+      if (shouldOpen) {
+        panel.classList.add("is-open");
+        button.classList.add("is-active");
+        button.setAttribute("aria-expanded", "true");
+      }
+    });
+  });
+}
+
 async function loadVenueDetails() {
   const venueName =
     document.getElementById("venueName");
@@ -2986,6 +3063,8 @@ async function loadEventDetails() {
 
   if (!eventTitle) return;
 
+  setupEventMobilePanels();
+
   const params = new URLSearchParams(
     window.location.search
   );
@@ -3064,6 +3143,17 @@ async function loadEventDetails() {
 
   if (eventVenue && venue) {
     eventVenue.innerText = safeText(venue.name);
+  }
+
+  const eventLocation =
+    document.getElementById("eventLocation");
+
+  if (eventLocation && venue) {
+    eventLocation.innerText =
+      safeText(venue.city) ||
+      safeText(venue.address) ||
+      safeText(venue.name) ||
+      "Location details are connected to the venue.";
   }
 }
 

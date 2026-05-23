@@ -954,6 +954,103 @@ body::after {
   margin-top: 16px;
 }
 
+.profile-notifications-section .notifications-list {
+  gap: 12px;
+}
+
+.profile-notifications-section .notification-card {
+  position: relative;
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  overflow: hidden;
+  border-radius: 18px;
+  border-color: rgba(255,255,255,0.1);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
+  box-shadow: 0 18px 44px rgba(0,0,0,0.3);
+}
+
+.profile-notifications-section .notification-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: rgba(250,204,21,0.45);
+  opacity: 0.62;
+}
+
+.profile-notifications-section .notification-card.unread {
+  border-color: rgba(250,204,21,0.38);
+  background:
+    linear-gradient(135deg, rgba(250,204,21,0.11), transparent 42%),
+    linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.035));
+  box-shadow:
+    0 20px 52px rgba(0,0,0,0.34),
+    0 0 0 1px rgba(250,204,21,0.08) inset;
+}
+
+.profile-notifications-section .notification-card--success {
+  border-color: rgba(34,197,94,0.28);
+}
+
+.profile-notifications-section .notification-card--success::before {
+  background: #22c55e;
+}
+
+.profile-notifications-section .notification-card--danger {
+  border-color: rgba(239,68,68,0.3);
+}
+
+.profile-notifications-section .notification-card--danger::before {
+  background: #ef4444;
+}
+
+.profile-notifications-section .notification-status {
+  width: fit-content;
+  padding: 5px 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 999px;
+  color: var(--text-muted);
+  background: rgba(255,255,255,0.045);
+  font-family: var(--fu);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.profile-notifications-section .notification-card.unread .notification-status {
+  color: var(--gold);
+  border-color: rgba(250,204,21,0.32);
+  background: rgba(250,204,21,0.1);
+}
+
+.profile-notifications-section .notification-title {
+  color: var(--text);
+  font-size: clamp(1rem, 4vw, 1.12rem);
+  line-height: 1.25;
+}
+
+.profile-notifications-section .notification-message,
+.profile-notifications-section .notification-date {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.profile-notifications-section .notification-date {
+  font-size: 0.84rem;
+  color: rgba(255,255,255,0.58);
+}
+
+.profile-notifications-section .notification-actions {
+  margin-top: 4px;
+}
+
+.profile-notifications-section .notification-actions .secondary-btn {
+  min-height: 42px;
+}
+
 .admin-page,
 .business-page,
 .messages-page {
@@ -1419,6 +1516,78 @@ body::after {
 
 .message-form button {
   align-self: start;
+}
+
+.messages-page .message-thread {
+  position: relative;
+  overflow: hidden;
+}
+
+.messages-page .message-thread::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: rgba(240,192,96,0.38);
+  opacity: 0;
+}
+
+.messages-page .message-thread.active::before,
+.messages-page .message-thread.unread::before {
+  opacity: 1;
+}
+
+.messages-page .message-thread.active {
+  border-color: rgba(240,192,96,0.42);
+  box-shadow:
+    0 18px 48px rgba(0,0,0,0.28),
+    0 0 0 1px rgba(240,192,96,0.08) inset;
+}
+
+.messages-page .message-thread-preview {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.messages-page .conversation-panel {
+  overflow: hidden;
+}
+
+.messages-page .conversation-messages {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(240,192,96,0.34) rgba(255,255,255,0.05);
+}
+
+.messages-page .message-bubble {
+  border-color: rgba(255,255,255,0.1);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.04));
+}
+
+.messages-page .message-bubble--own {
+  border-color: rgba(240,192,96,0.28);
+  background:
+    linear-gradient(135deg, rgba(240,192,96,0.16), rgba(240,192,96,0.075));
+}
+
+.messages-page .message-bubble span {
+  color: rgba(255,255,255,0.48);
+  font-size: 11px;
+}
+
+.messages-page .message-form {
+  background:
+    linear-gradient(180deg, rgba(15,15,18,0.88), rgba(15,15,18,0.96));
+}
+
+.messages-page .empty-state {
+  border-radius: 22px;
+  border-color: rgba(240,192,96,0.13);
+  background:
+    linear-gradient(135deg, rgba(240,192,96,0.065), transparent 44%),
+    linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.025));
 }
 
 .profile-business-link {
@@ -2491,6 +2660,25 @@ body::after {
   font-size: 13px;
 }
 
+.venue-detail-page .public-section--reservations .reservation-form {
+  border-radius: 24px;
+}
+
+.venue-detail-page .public-section--reservations .reservation-field {
+  gap: 10px;
+}
+
+.venue-detail-page .public-section--reservations .reservation-form input,
+.venue-detail-page .public-section--reservations .reservation-form textarea {
+  font-size: 16px;
+}
+
+.venue-detail-page .public-section--reservations .reservation-submit-row .btn {
+  min-height: 54px;
+  border-radius: 999px;
+  font-weight: 900;
+}
+
 .reservation-card,
 .reservation-management-card {
   position: relative;
@@ -2825,6 +3013,10 @@ p.reservation-note {
   text-transform: uppercase;
 }
 
+.reservation-calendar-helper {
+  display: none;
+}
+
 .status-badge {
   flex: 0 0 auto;
   padding: 7px 12px;
@@ -2877,6 +3069,145 @@ p.reservation-note {
   background:
     linear-gradient(135deg, rgba(240,192,96,0.05), transparent 40%),
     linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
+}
+
+.business-page .dashboard-section--reservations #businessReservationsList {
+  gap: 14px;
+}
+
+.business-page .dashboard-section--reservations .reservation-status-filters {
+  margin-bottom: 4px;
+}
+
+.business-page .dashboard-section--reservations .reservation-inbox-group {
+  display: grid;
+  gap: 12px;
+}
+
+.business-page .dashboard-section--reservations .reservation-inbox-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 2px;
+}
+
+.business-page .dashboard-section--reservations .reservation-inbox-group-header h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.business-page .dashboard-section--reservations .reservation-inbox-group-header span {
+  display: grid;
+  min-width: 30px;
+  min-height: 30px;
+  place-items: center;
+  border: 1px solid rgba(240,192,96,0.18);
+  border-radius: 999px;
+  color: var(--gold);
+  background: rgba(240,192,96,0.08);
+  font-family: var(--fu);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.business-page .dashboard-section--reservations .reservation-inbox-list {
+  display: grid;
+  gap: 12px;
+}
+
+.business-page .dashboard-section--reservations .reservation-management-card {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: stretch;
+  border-radius: 24px;
+  border-color: rgba(255,255,255,0.1);
+  background:
+    linear-gradient(135deg, rgba(240,192,96,0.045), transparent 42%),
+    linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
+}
+
+.business-page .dashboard-section--reservations .reservation-management-card.status-pending {
+  border-color: rgba(250,204,21,0.28);
+  background:
+    linear-gradient(135deg, rgba(250,204,21,0.1), transparent 44%),
+    linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.035));
+}
+
+.business-page .dashboard-section--reservations .reservation-card-header {
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.business-page .dashboard-section--reservations .reservation-card-header h3 {
+  margin: 0;
+  font-size: clamp(1.06rem, 4vw, 1.22rem);
+  line-height: 1.2;
+}
+
+.business-page .dashboard-section--reservations .status-badge {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.business-page .dashboard-section--reservations .reservation-meta-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.business-page .dashboard-section--reservations .reservation-meta-item {
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.07);
+  background: rgba(0,0,0,0.18);
+}
+
+.business-page .dashboard-section--reservations .reservation-note {
+  margin-top: 14px;
+  border-color: rgba(240,192,96,0.14);
+  background:
+    linear-gradient(135deg, rgba(240,192,96,0.07), transparent 46%),
+    rgba(0,0,0,0.16);
+}
+
+.business-page .dashboard-section--reservations .reservation-actions {
+  display: grid;
+  min-width: 156px;
+  gap: 10px;
+  align-content: center;
+}
+
+.business-page .dashboard-section--reservations .reservation-management-card.status-pending .reservation-actions {
+  min-width: 188px;
+}
+
+.business-page .dashboard-section--reservations .reservation-actions button,
+.business-page .dashboard-section--reservations .reservation-actions a {
+  min-height: 42px;
+  padding-inline: 18px;
+}
+
+.business-page .dashboard-section--reservations .reservation-management-card.status-pending .reservation-actions .btn {
+  min-height: 48px;
+  box-shadow: 0 14px 32px rgba(250,204,21,0.16);
+}
+
+.business-page .dashboard-section--reservations .reservation-management-card:not(.status-pending) .reservation-actions {
+  opacity: 0.82;
+}
+
+.business-page .dashboard-section--reservations .reservation-management-card:not(.status-pending) .reservation-actions .secondary-btn {
+  padding: 11px 16px;
+}
+
+.business-page .dashboard-section--reservations .empty-state {
+  border-radius: 22px;
+  border-color: rgba(240,192,96,0.14);
+  background:
+    linear-gradient(135deg, rgba(240,192,96,0.07), transparent 42%),
+    linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.025));
 }
 
 .profile-reservations-section .reservation-card.status-approved {
@@ -3035,6 +3366,38 @@ p.reservation-note {
   border: 1px solid rgba(250,204,21,0.14);
   border-radius: 22px;
   background: rgba(250,204,21,0.055);
+}
+
+.event-mobile-actions {
+  display: none;
+}
+
+.event-mobile-panel {
+  margin-bottom: 18px;
+}
+
+.event-detail-page .event-mobile-panel {
+  padding: 18px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.022));
+}
+
+.event-detail-page .event-rsvp-panel {
+  border-color: rgba(240,192,96,0.22);
+  background:
+    linear-gradient(135deg, rgba(240,192,96,0.11), transparent 44%),
+    linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.026));
+}
+
+.event-detail-page .event-rsvp-panel .event-attendance {
+  margin: 0;
+}
+
+.event-detail-page .event-rsvp-panel .event-attendance .btn,
+.event-detail-page .event-rsvp-panel .event-attendance .secondary-btn {
+  min-height: 48px;
 }
 
 .venue-details p {
@@ -3298,7 +3661,71 @@ p.reservation-note {
   }
 
   .discover-page .discover-controls {
-    padding: 18px;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding: 14px;
+    border-radius: 22px;
+  }
+
+  .discover-page .public-page-header {
+    margin-bottom: 12px;
+  }
+
+  .discover-page .public-page-header h1 {
+    margin-bottom: 0;
+    font-size: clamp(1.75rem, 8vw, 2.25rem);
+  }
+
+  .discover-page .search-input {
+    min-height: 58px;
+    padding: 16px 18px;
+    border-radius: 18px;
+    font-size: 16px;
+    box-shadow:
+      0 16px 38px rgba(0,0,0,0.22),
+      0 0 34px rgba(240,192,96,0.08),
+      inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+
+  .discover-page .city-filters,
+  .discover-page .category-filters {
+    flex-wrap: nowrap;
+    gap: 8px;
+    margin-inline: -14px;
+    padding: 0 14px 4px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .discover-page .city-filters::-webkit-scrollbar,
+  .discover-page .category-filters::-webkit-scrollbar {
+    display: none;
+  }
+
+  .discover-page .city-filter-btn,
+  .discover-page .category-filter-btn {
+    flex: 0 0 auto;
+    min-height: 36px;
+    max-width: 78vw;
+    padding: 8px 13px;
+    border-radius: 999px;
+    white-space: nowrap;
+    font-size: 8px;
+    letter-spacing: 0.08em;
+  }
+
+  .discover-page .city-filter-btn.active-filter,
+  .discover-page .category-filter-btn.active-filter {
+    color: var(--gold);
+    border-color: rgba(240,192,96,0.48);
+    background:
+      linear-gradient(135deg, rgba(240,192,96,0.16), rgba(255,255,255,0.04));
+    box-shadow:
+      0 10px 24px rgba(0,0,0,0.18),
+      0 0 0 1px rgba(240,192,96,0.08) inset;
   }
 
   .dashboard-header {
@@ -3625,7 +4052,15 @@ p.reservation-note {
     margin: 18px 0 20px;
   }
 
-  .venue-mobile-actions button {
+  .event-mobile-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin: 18px 0 20px;
+  }
+
+  .venue-mobile-actions button,
+  .event-mobile-actions button {
     min-height: 58px;
     padding: 14px;
     border: 1px solid rgba(240,192,96,0.16);
@@ -3649,7 +4084,9 @@ p.reservation-note {
   }
 
   .venue-mobile-actions button:hover,
-  .venue-mobile-actions button.is-active {
+  .venue-mobile-actions button.is-active,
+  .event-mobile-actions button:hover,
+  .event-mobile-actions button.is-active {
     color: var(--gold);
     border-color: var(--gold-rim);
     background:
@@ -3659,8 +4096,15 @@ p.reservation-note {
       0 0 20px rgba(240,192,96,0.08);
   }
 
-  .venue-mobile-actions button:active {
+  .venue-mobile-actions button:active,
+  .event-mobile-actions button:active {
     transform: scale(0.98);
+  }
+
+  .event-mobile-actions button:first-child {
+    border-color: rgba(240,192,96,0.28);
+    background:
+      linear-gradient(135deg, rgba(240,192,96,0.14), rgba(255,255,255,0.04));
   }
 
   .venue-detail-page .venue-mobile-panel {
@@ -3668,7 +4112,17 @@ p.reservation-note {
     margin-bottom: 16px;
   }
 
+  .event-detail-page .event-mobile-panel {
+    display: none;
+    margin-bottom: 16px;
+  }
+
   .venue-detail-page .venue-mobile-panel.is-open {
+    display: block;
+    animation: venue-panel-open 220ms var(--ease-premium);
+  }
+
+  .event-detail-page .event-mobile-panel.is-open {
     display: block;
     animation: venue-panel-open 220ms var(--ease-premium);
   }
@@ -3691,6 +4145,23 @@ p.reservation-note {
   .venue-detail-page .location-section {
     padding: 18px;
     border-radius: 22px;
+  }
+
+  .event-detail-page .event-mobile-panel {
+    padding: 16px;
+    border-radius: 22px;
+  }
+
+  .event-detail-page .event-rsvp-panel .event-attendance {
+    display: grid;
+    gap: 12px;
+  }
+
+  .event-detail-page .event-rsvp-panel .event-attendance .btn,
+  .event-detail-page .event-rsvp-panel .event-attendance .secondary-btn {
+    width: 100%;
+    min-height: 52px;
+    text-align: center;
   }
 
   .venue-detail-page .detail-actions,
@@ -3717,6 +4188,33 @@ p.reservation-note {
     gap: 13px;
   }
 
+  .venue-detail-page .public-section--reservations .reservation-form {
+    gap: 12px;
+    padding: 14px;
+    border-radius: 22px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03)),
+      rgba(0,0,0,0.24);
+  }
+
+  .venue-detail-page .public-section--reservations .reservation-field {
+    width: 100%;
+    padding: 13px;
+    border-radius: 18px;
+    background: rgba(0,0,0,0.2);
+  }
+
+  .venue-detail-page .public-section--reservations .reservation-form input,
+  .venue-detail-page .public-section--reservations .reservation-form textarea {
+    min-height: 52px;
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  .venue-detail-page .public-section--reservations .reservation-form textarea {
+    min-height: 104px;
+  }
+
   .reservation-section-header {
     grid-template-columns: 1fr;
     gap: 12px;
@@ -3739,6 +4237,23 @@ p.reservation-note {
     text-align: left;
   }
 
+  .venue-detail-page .public-section--reservations .reservation-submit-row {
+    gap: 10px;
+    padding-top: 2px;
+  }
+
+  .venue-detail-page .public-section--reservations .reservation-submit-row .btn {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .venue-detail-page .public-section--reservations .reservation-submit-row span {
+    padding: 0 2px;
+    color: rgba(255,255,255,0.64);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
   .reservation-status-filters {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3752,23 +4267,89 @@ p.reservation-note {
 
   #businessReservationSchedule {
     margin-inline: -2px;
-    padding-bottom: 10px;
+    padding: 0 0 12px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(240,192,96,0.42) rgba(255,255,255,0.06);
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .reservation-calendar-helper {
+    display: block;
+    margin: -8px 0 14px;
+    color: rgba(255,255,255,0.58);
+    font-size: 12px;
+    line-height: 1.5;
   }
 
   #businessReservationSchedule .reservation-schedule-table {
-    min-width: 980px;
+    min-width: 940px;
     border-radius: 18px;
+    grid-template-columns:
+      minmax(76px, 76px)
+      repeat(7, minmax(122px, 1fr));
   }
 
   #businessReservationSchedule .reservation-schedule-cell {
-    min-height: 76px;
-    padding: 10px;
+    min-height: 74px;
+    padding: 9px;
+  }
+
+  #businessReservationSchedule .reservation-schedule-time {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    display: grid;
+    align-items: center;
+    border-right-color: rgba(240,192,96,0.18);
+    background:
+      linear-gradient(180deg, rgba(18,18,20,0.98), rgba(10,10,12,0.98));
+    box-shadow: 8px 0 18px rgba(0,0,0,0.24);
   }
 
   #businessReservationSchedule .reservation-schedule-head,
   #businessReservationSchedule .reservation-schedule-time {
     min-height: 52px;
     font-size: 9px;
+  }
+
+  #businessReservationSchedule .reservation-schedule-head {
+    background: rgba(240,192,96,0.075);
+  }
+
+  #businessReservationSchedule .reservation-schedule-available {
+    background: rgba(255,255,255,0.012);
+  }
+
+  #businessReservationSchedule .reservation-schedule-empty {
+    min-height: 36px;
+    color: rgba(155,163,178,0.32);
+    font-size: 9px;
+  }
+
+  #businessReservationSchedule .reservation-schedule-occupied {
+    background:
+      linear-gradient(135deg, rgba(34,197,94,0.12), transparent 44%),
+      linear-gradient(180deg, rgba(250,204,21,0.06), rgba(255,255,255,0.025));
+  }
+
+  #businessReservationSchedule .reservation-schedule-item {
+    padding: 9px;
+    border-color: rgba(34,197,94,0.28);
+    background:
+      linear-gradient(135deg, rgba(34,197,94,0.12), rgba(240,192,96,0.06));
+    box-shadow:
+      0 12px 24px rgba(0,0,0,0.2),
+      0 0 0 1px rgba(34,197,94,0.05) inset;
+  }
+
+  #businessReservationSchedule .reservation-schedule-item strong {
+    font-size: 12px;
+  }
+
+  #businessReservationSchedule .reservation-schedule-item span {
+    font-size: 10px;
   }
 
   .reservation-meta-grid {
@@ -3807,10 +4388,67 @@ p.reservation-note {
     justify-content: stretch;
   }
 
+  .business-page .dashboard-section--reservations .reservation-management-card {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    padding: 16px;
+    border-radius: 22px;
+  }
+
+  .business-page .dashboard-section--reservations .reservation-management-content {
+    min-width: 0;
+  }
+
+  .business-page .dashboard-section--reservations .reservation-card-header {
+    grid-template-columns: 1fr;
+  }
+
+  .business-page .dashboard-section--reservations .status-badge {
+    width: fit-content;
+  }
+
+  .business-page .dashboard-section--reservations .reservation-meta-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+  }
+
+  .business-page .dashboard-section--reservations .reservation-meta-item {
+    padding: 11px;
+  }
+
+  .business-page .dashboard-section--reservations .reservation-actions,
+  .business-page .dashboard-section--reservations .reservation-management-card.status-pending .reservation-actions {
+    min-width: 0;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+  }
+
+  .business-page .dashboard-section--reservations .reservation-actions button,
+  .business-page .dashboard-section--reservations .reservation-actions a {
+    width: 100%;
+    text-align: center;
+  }
+
+  .business-page .dashboard-section--reservations .reservation-management-card.status-pending .reservation-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .business-page .dashboard-section--reservations .reservation-management-card.status-pending .reservation-actions .secondary-btn {
+    grid-column: 1 / -1;
+  }
+
+  .business-page .dashboard-section--reservations .reservation-management-card:not(.status-pending) .reservation-actions {
+    opacity: 0.72;
+  }
+
   .reservation-actions,
   .reservation-management-card .reservation-actions {
     display: grid;
     grid-template-columns: 1fr;
+  }
+
+  .business-page .dashboard-section--reservations .reservation-management-card.status-pending .reservation-actions {
+    grid-template-columns: 1fr 1fr;
   }
 
   .reservation-actions button,
@@ -3830,11 +4468,13 @@ p.reservation-note {
 
   .messages-layout {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
 
   .messages-panel-header {
     align-items: stretch;
     flex-direction: column;
+    gap: 12px;
   }
 
   .message-refresh-btn {
@@ -3845,23 +4485,93 @@ p.reservation-note {
   .messages-inbox,
   .conversation-panel {
     min-height: auto;
+    padding: 16px;
+    border-radius: 22px;
+  }
+
+  .messages-page .messages-list {
+    gap: 10px;
+  }
+
+  .messages-page .message-thread {
+    gap: 8px;
+    padding: 15px;
+    border-radius: 18px;
+  }
+
+  .messages-page .message-thread strong {
+    font-size: 15px;
+  }
+
+  .messages-page .message-thread-meta,
+  .messages-page .message-thread-preview {
+    font-size: 12px;
+  }
+
+  .messages-page .conversation-header {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+  }
+
+  .messages-page .conversation-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .messages-page .conversation-header p {
+    font-size: 13px;
+    line-height: 1.5;
   }
 
   .conversation-messages {
-    max-height: 460px;
+    min-height: 300px;
+    max-height: 52vh;
+    padding: 6px 2px 14px;
+    gap: 10px;
   }
 
   .message-form {
+    position: sticky;
+    bottom: calc(82px + env(safe-area-inset-bottom));
+    z-index: 5;
     grid-template-columns: 1fr;
     min-width: 0;
+    margin: 10px -4px -4px;
+    padding: 12px 4px 4px;
+    border-top-color: rgba(240,192,96,0.12);
+  }
+
+  .messages-page .message-form textarea {
+    min-height: 54px;
+    max-height: 132px;
+    padding: 14px;
+    border-radius: 16px;
+    font-size: 16px;
   }
 
   .message-form button {
     width: 100%;
+    min-height: 48px;
   }
 
   .message-bubble {
-    max-width: 94%;
+    max-width: 92%;
+    padding: 12px 14px;
+    border-radius: 18px 18px 18px 6px;
+  }
+
+  .messages-page .message-bubble--own {
+    border-radius: 18px 18px 6px 18px;
+  }
+
+  .messages-page .message-bubble p {
+    margin-bottom: 6px;
+    line-height: 1.5;
+  }
+
+  .messages-page .message-sender-label {
+    margin-bottom: 6px;
+    font-size: 8px;
+    letter-spacing: 0.1em;
   }
 
   .business-analytics-card strong {
