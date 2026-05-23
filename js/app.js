@@ -195,6 +195,23 @@ function setupVenueMenuToggle() {
   });
 }
 
+function setupVenueStoreToggle() {
+  const toggle = document.getElementById("venueStoreToggle");
+  const panel = document.getElementById("venueStore");
+
+  if (!toggle || !panel || toggle.dataset.bound === "true") {
+    return;
+  }
+
+  toggle.dataset.bound = "true";
+  toggle.addEventListener("click", () => {
+    const isOpen = !panel.hidden;
+    panel.hidden = isOpen;
+    toggle.classList.toggle("is-active", !isOpen);
+    toggle.setAttribute("aria-expanded", String(!isOpen));
+  });
+}
+
 function formatMenuPrice(item) {
   if (item.price === null || item.price === undefined || item.price === "") {
     return "";
@@ -207,6 +224,153 @@ function formatMenuPrice(item) {
   }
 
   return `${amount.toFixed(2)} ${safeText(item.currency) || "TRY"}`;
+}
+
+function createVenueProductCard(product) {
+  const card = document.createElement("article");
+  card.className = "venue-menu-item venue-product-card";
+
+  if (product.image_url) {
+    card.classList.add("venue-menu-item--with-image");
+    const image = document.createElement("img");
+    image.src = getImage(product.image_url);
+    image.alt = safeText(product.name);
+    image.loading = "lazy";
+    card.appendChild(image);
+  }
+
+  const content = document.createElement("div");
+  const header = document.createElement("div");
+  header.className = "venue-menu-item-header";
+
+  const title = document.createElement("h4");
+  title.textContent = safeText(product.name);
+  header.appendChild(title);
+
+  const price = formatMenuPrice(product);
+
+  if (price) {
+    const priceElement = document.createElement("strong");
+    priceElement.textContent = price;
+    header.appendChild(priceElement);
+  }
+
+  content.appendChild(header);
+
+  if (product.description) {
+    const description = document.createElement("p");
+    description.textContent = safeText(product.description);
+    content.appendChild(description);
+  }
+
+  if (
+    product.stock_quantity !== null &&
+    product.stock_quantity !== undefined &&
+    product.stock_quantity !== ""
+  ) {
+    const stock = document.createElement("span");
+    stock.className = "venue-product-stock";
+    stock.textContent = `${product.stock_quantity} in stock`;
+    content.appendChild(stock);
+  }
+
+  card.appendChild(content);
+  return card;
+}
+
+function renderVenueStore(productData) {
+  const panel = document.getElementById("venueStore");
+
+  if (!panel) return;
+
+  panel.innerHTML = "";
+
+  const categories = productData.categories || [];
+  const products = productData.products || [];
+
+  if (categories.length === 0 && products.length === 0) {
+    renderEmptyState(panel, "No products yet.", "Products will appear here when available.");
+    return;
+  }
+
+  categories.forEach((category) => {
+    const group = document.createElement("section");
+    group.className = "venue-menu-group venue-product-group";
+
+    const title = document.createElement("h3");
+    title.textContent = safeText(category.name);
+    group.appendChild(title);
+
+    const groupProducts = products.filter(
+      (product) => String(product.category_id || "") === String(category.id)
+    );
+
+    if (groupProducts.length === 0) {
+      renderEmptyState(group, "No products yet.");
+    } else {
+      groupProducts.forEach((product) => {
+        group.appendChild(createVenueProductCard(product));
+      });
+    }
+
+    panel.appendChild(group);
+  });
+
+  const uncategorized = products.filter((product) => !product.category_id);
+
+  if (uncategorized.length > 0) {
+    const group = document.createElement("section");
+    group.className = "venue-menu-group venue-product-group";
+
+    const title = document.createElement("h3");
+    title.textContent = "Store";
+    group.appendChild(title);
+
+    uncategorized.forEach((product) => {
+      group.appendChild(createVenueProductCard(product));
+    });
+
+    panel.appendChild(group);
+  }
+}
+
+async function loadVenueProducts(venueId) {
+  if (!venueId) return { categories: [], products: [] };
+
+  try {
+    const [categoriesResult, productsResult] = await Promise.all([
+      supabaseClient
+        .from("venue_product_categories")
+        .select("*")
+        .eq("venue_id", venueId)
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true }),
+      supabaseClient
+        .from("venue_products")
+        .select("*")
+        .eq("venue_id", venueId)
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true }),
+    ]);
+
+    if (categoriesResult.error || productsResult.error) {
+      console.warn(
+        "Venue products could not be loaded.",
+        categoriesResult.error || productsResult.error
+      );
+      return { categories: [], products: [] };
+    }
+
+    return {
+      categories: categoriesResult.data || [],
+      products: productsResult.data || [],
+    };
+  } catch (error) {
+    console.warn("Venue products could not be loaded.", error);
+    return { categories: [], products: [] };
+  }
 }
 
 function createVenueMenuItem(item) {
@@ -1037,6 +1201,15 @@ function renderVenueReviews(reviews) {
 
     card.appendChild(header);
     card.appendChild(text);
+
+    if (review.user_id) {
+      const profileLink = createUserProfileLink(review.user_id);
+
+      if (profileLink) {
+        card.appendChild(profileLink);
+      }
+    }
+
     fragment.appendChild(card);
   });
 
@@ -1381,8 +1554,22 @@ function createReservationCard(reservation, options = {}) {
     card.appendChild(createReservationNote(reservation.note));
   }
 
-  if (options.allowCancel && isPendingReservation(reservation)) {
+  if (reservation.user_id) {
     const actions = createReservationActions();
+    const profileLink = createUserProfileLink(
+      reservation.user_id
+    );
+
+    if (profileLink) {
+      actions.appendChild(profileLink);
+      card.appendChild(actions);
+    }
+  }
+
+  if (options.allowCancel && isPendingReservation(reservation)) {
+    const actions =
+      card.querySelector(".reservation-actions") ||
+      createReservationActions();
     const cancelButton = document.createElement("button");
     cancelButton.type = "button";
     cancelButton.className = "reservation-cancel-btn";
@@ -1394,7 +1581,10 @@ function createReservationCard(reservation, options = {}) {
       );
     });
     actions.appendChild(cancelButton);
-    card.appendChild(actions);
+
+    if (!actions.parentElement) {
+      card.appendChild(actions);
+    }
   }
 
   return card;
@@ -3157,6 +3347,7 @@ async function loadVenueDetails() {
 
   setupVenueMobilePanels();
   setupVenueMenuToggle();
+  setupVenueStoreToggle();
 
   const params = new URLSearchParams(
     window.location.search
@@ -3205,6 +3396,7 @@ async function loadVenueDetails() {
 
   renderVenueGallery(await loadVenueGalleryPhotos(venue.id));
   renderVenueMenu(await loadVenueMenu(venue.id));
+  renderVenueStore(await loadVenueProducts(venue.id));
 
   renderVenueLocation(venue);
 
@@ -4762,6 +4954,7 @@ function resetBusinessMenuForms() {
   setAdminValue("businessMenuItemPrice", "");
   setAdminValue("businessMenuItemCurrency", "TRY");
   setAdminValue("businessMenuItemImage", "");
+  clearAdminFile("businessMenuItemImageFile");
   setAdminValue("businessMenuItemSort", "0");
 
   const categoryActive =
@@ -5015,6 +5208,12 @@ async function createMenuItem(event) {
   const categoryId = getAdminValue("businessMenuItemCategory");
   const availableInput =
     document.getElementById("businessMenuItemAvailable");
+  const imageFile = getAdminFile("businessMenuItemImageFile");
+  const uploadedImage = imageFile
+    ? await uploadAdminImage(imageFile, "venues")
+    : "";
+
+  if (imageFile && !uploadedImage) return;
 
   const { error } = await supabaseClient
     .from("venue_menu_items")
@@ -5025,7 +5224,8 @@ async function createMenuItem(event) {
       description: getAdminValue("businessMenuItemDescription"),
       price: priceValue ? Number(priceValue) : null,
       currency: getAdminValue("businessMenuItemCurrency") || "TRY",
-      image_url: getAdminValue("businessMenuItemImage"),
+      image_url:
+        uploadedImage || getAdminValue("businessMenuItemImage"),
       is_available: availableInput ? availableInput.checked : true,
       sort_order: Number(getAdminValue("businessMenuItemSort")) || 0,
     }]);
@@ -5039,6 +5239,7 @@ async function createMenuItem(event) {
   setAdminValue("businessMenuItemDescription", "");
   setAdminValue("businessMenuItemPrice", "");
   setAdminValue("businessMenuItemImage", "");
+  clearAdminFile("businessMenuItemImageFile");
   setAdminValue("businessMenuItemSort", "0");
   showToast("Menu item saved");
   await refreshBusinessVenueMenu();
@@ -5076,6 +5277,362 @@ async function deleteMenuItem(itemId) {
 
   showToast("Menu item deleted");
   await refreshBusinessVenueMenu();
+}
+
+function populateBusinessStoreVenueSelect() {
+  const select = document.getElementById("businessStoreVenueSelect");
+
+  if (!select) return;
+
+  const currentValue = select.value;
+  select.innerHTML = "";
+
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = "Choose Venue";
+  select.appendChild(placeholder);
+
+  businessDashboardState.venues.forEach((venue) => {
+    const option = document.createElement("option");
+    option.value = venue.id;
+    option.textContent = safeText(venue.name);
+    select.appendChild(option);
+  });
+
+  if (
+    currentValue &&
+    businessDashboardState.venues.some(
+      (venue) => String(venue.id) === String(currentValue)
+    )
+  ) {
+    select.value = currentValue;
+  }
+}
+
+function getSelectedBusinessStoreVenueId() {
+  const venueId = getAdminValue("businessStoreVenueSelect");
+
+  if (!venueId || !ownsVenueRecord(venueId)) {
+    return "";
+  }
+
+  return venueId;
+}
+
+function resetBusinessStoreForms() {
+  setAdminValue("businessProductCategoryName", "");
+  setAdminValue("businessProductCategorySort", "0");
+  setAdminValue("businessProductCategory", "");
+  setAdminValue("businessProductName", "");
+  setAdminValue("businessProductDescription", "");
+  setAdminValue("businessProductPrice", "");
+  setAdminValue("businessProductCurrency", "TRY");
+  setAdminValue("businessProductImage", "");
+  clearAdminFile("businessProductImageFile");
+  setAdminValue("businessProductStock", "");
+  setAdminValue("businessProductSort", "0");
+
+  const categoryActive =
+    document.getElementById("businessProductCategoryActive");
+  const productActive =
+    document.getElementById("businessProductActive");
+
+  if (categoryActive) categoryActive.checked = true;
+  if (productActive) productActive.checked = true;
+}
+
+async function loadVenueProductsForBusiness(venueId) {
+  if (!venueId || !ownsVenueRecord(venueId)) {
+    return { categories: [], products: [] };
+  }
+
+  try {
+    const [categoriesResult, productsResult] = await Promise.all([
+      supabaseClient
+        .from("venue_product_categories")
+        .select("*")
+        .eq("venue_id", venueId)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true }),
+      supabaseClient
+        .from("venue_products")
+        .select("*")
+        .eq("venue_id", venueId)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true }),
+    ]);
+
+    if (categoriesResult.error || productsResult.error) {
+      showSafeError(
+        categoriesResult.error || productsResult.error,
+        "Store could not be loaded."
+      );
+      return { categories: [], products: [] };
+    }
+
+    return {
+      categories: categoriesResult.data || [],
+      products: productsResult.data || [],
+    };
+  } catch (error) {
+    showSafeError(error, "Store could not be loaded.");
+    return { categories: [], products: [] };
+  }
+}
+
+function populateBusinessProductCategorySelect(categories) {
+  const select = document.getElementById("businessProductCategory");
+
+  if (!select) return;
+
+  const currentValue = select.value;
+  select.innerHTML = "";
+
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = "No category";
+  select.appendChild(placeholder);
+
+  (categories || []).forEach((category) => {
+    const option = document.createElement("option");
+    option.value = category.id;
+    option.textContent = safeText(category.name);
+    select.appendChild(option);
+  });
+
+  if (
+    currentValue &&
+    (categories || []).some(
+      (category) => String(category.id) === String(currentValue)
+    )
+  ) {
+    select.value = currentValue;
+  }
+}
+
+function renderBusinessVenueProducts(productData) {
+  const list = document.getElementById("businessVenueProductsList");
+
+  if (!list) return;
+
+  list.innerHTML = "";
+  populateBusinessProductCategorySelect(productData.categories || []);
+
+  if (
+    (!productData.categories || productData.categories.length === 0) &&
+    (!productData.products || productData.products.length === 0)
+  ) {
+    renderEmptyState(
+      list,
+      "No products yet.",
+      "Create product categories and showcase products for the selected venue."
+    );
+    return;
+  }
+
+  const categoriesGroup = document.createElement("section");
+  categoriesGroup.className = "business-menu-group business-store-group";
+
+  const categoriesTitle = document.createElement("h3");
+  categoriesTitle.textContent = "Product Categories";
+  categoriesGroup.appendChild(categoriesTitle);
+
+  (productData.categories || []).forEach((category) => {
+    categoriesGroup.appendChild(
+      createBusinessMenuRow(
+        category.name,
+        `${category.is_active ? "Active" : "Hidden"} · Sort ${category.sort_order || 0}`,
+        () => deleteProductCategory(category.id)
+      )
+    );
+  });
+
+  list.appendChild(categoriesGroup);
+
+  const productsGroup = document.createElement("section");
+  productsGroup.className = "business-menu-group business-store-group";
+
+  const productsTitle = document.createElement("h3");
+  productsTitle.textContent = "Products";
+  productsGroup.appendChild(productsTitle);
+
+  (productData.products || []).forEach((product) => {
+    const price = formatMenuPrice(product);
+    const stock =
+      product.stock_quantity === null ||
+      product.stock_quantity === undefined ||
+      product.stock_quantity === ""
+        ? ""
+        : `${product.stock_quantity} stock`;
+    const availability = product.is_active ? "Active" : "Hidden";
+    productsGroup.appendChild(
+      createBusinessMenuRow(
+        product.name,
+        [price, stock, availability, `Sort ${product.sort_order || 0}`]
+          .filter(Boolean)
+          .join(" · "),
+        () => deleteVenueProduct(product.id)
+      )
+    );
+  });
+
+  list.appendChild(productsGroup);
+}
+
+async function refreshBusinessVenueProducts() {
+  const venueId = getSelectedBusinessStoreVenueId();
+  const list = document.getElementById("businessVenueProductsList");
+
+  if (!list) return;
+
+  if (!venueId) {
+    populateBusinessProductCategorySelect([]);
+    renderEmptyState(
+      list,
+      "Choose a venue.",
+      "Select an owned venue to manage its store catalog."
+    );
+    return;
+  }
+
+  renderBusinessVenueProducts(
+    await loadVenueProductsForBusiness(venueId)
+  );
+}
+
+async function createProductCategory(event) {
+  event.preventDefault();
+
+  const venueId = getSelectedBusinessStoreVenueId();
+
+  if (!venueId) {
+    showToast("Choose one of your venues");
+    return;
+  }
+
+  const name = getAdminValue("businessProductCategoryName");
+
+  if (!name) {
+    showToast("Category name required");
+    return;
+  }
+
+  const activeInput =
+    document.getElementById("businessProductCategoryActive");
+
+  const { error } = await supabaseClient
+    .from("venue_product_categories")
+    .insert([{
+      venue_id: venueId,
+      name,
+      sort_order: Number(getAdminValue("businessProductCategorySort")) || 0,
+      is_active: activeInput ? activeInput.checked : true,
+    }]);
+
+  if (error) {
+    showSafeError(error, "Product category could not be saved.");
+    return;
+  }
+
+  setAdminValue("businessProductCategoryName", "");
+  setAdminValue("businessProductCategorySort", "0");
+  showToast("Product category saved");
+  await refreshBusinessVenueProducts();
+}
+
+async function createVenueProduct(event) {
+  event.preventDefault();
+
+  const venueId = getSelectedBusinessStoreVenueId();
+
+  if (!venueId) {
+    showToast("Choose one of your venues");
+    return;
+  }
+
+  const name = getAdminValue("businessProductName");
+
+  if (!name) {
+    showToast("Product name required");
+    return;
+  }
+
+  const priceValue = getAdminValue("businessProductPrice");
+  const stockValue = getAdminValue("businessProductStock");
+  const categoryId = getAdminValue("businessProductCategory");
+  const activeInput =
+    document.getElementById("businessProductActive");
+  const imageFile = getAdminFile("businessProductImageFile");
+  const uploadedImage = imageFile
+    ? await uploadAdminImage(imageFile, "venues")
+    : "";
+
+  if (imageFile && !uploadedImage) return;
+
+  const { error } = await supabaseClient
+    .from("venue_products")
+    .insert([{
+      venue_id: venueId,
+      category_id: categoryId || null,
+      name,
+      description: getAdminValue("businessProductDescription"),
+      price: priceValue ? Number(priceValue) : null,
+      currency: getAdminValue("businessProductCurrency") || "TRY",
+      image_url:
+        uploadedImage || getAdminValue("businessProductImage"),
+      stock_quantity: stockValue ? Number(stockValue) : null,
+      is_active: activeInput ? activeInput.checked : true,
+      sort_order: Number(getAdminValue("businessProductSort")) || 0,
+    }]);
+
+  if (error) {
+    showSafeError(error, "Product could not be saved.");
+    return;
+  }
+
+  setAdminValue("businessProductName", "");
+  setAdminValue("businessProductDescription", "");
+  setAdminValue("businessProductPrice", "");
+  setAdminValue("businessProductImage", "");
+  clearAdminFile("businessProductImageFile");
+  setAdminValue("businessProductStock", "");
+  setAdminValue("businessProductSort", "0");
+  showToast("Product saved");
+  await refreshBusinessVenueProducts();
+}
+
+async function deleteProductCategory(categoryId) {
+  if (!categoryId || !confirm("Delete this product category?")) return;
+
+  const { error } = await supabaseClient
+    .from("venue_product_categories")
+    .delete()
+    .eq("id", categoryId);
+
+  if (error) {
+    showSafeError(error, "Product category could not be deleted.");
+    return;
+  }
+
+  showToast("Product category deleted");
+  await refreshBusinessVenueProducts();
+}
+
+async function deleteVenueProduct(productId) {
+  if (!productId || !confirm("Delete this product?")) return;
+
+  const { error } = await supabaseClient
+    .from("venue_products")
+    .delete()
+    .eq("id", productId);
+
+  if (error) {
+    showSafeError(error, "Product could not be deleted.");
+    return;
+  }
+
+  showToast("Product deleted");
+  await refreshBusinessVenueProducts();
 }
 
 function renderBusinessEvents(events) {
@@ -5673,6 +6230,11 @@ function createBusinessReservationCard(reservation) {
   }
 
   const actions = createReservationActions();
+  const profileLink = createUserProfileLink(reservation.user_id);
+
+  if (profileLink) {
+    actions.appendChild(profileLink);
+  }
 
   if (isPendingReservation(reservation)) {
     const approveButton = document.createElement("button");
@@ -5905,19 +6467,23 @@ async function refreshBusinessDashboard() {
     renderBusinessAnalytics(getEmptyBusinessAnalytics());
     populateBusinessDashboardSelects();
     populateBusinessMenuVenueSelect();
+    populateBusinessStoreVenueSelect();
     renderBusinessVenues([]);
     renderBusinessEvents([]);
     renderBusinessReservations([]);
     renderBusinessReservationSchedule([]);
     await refreshBusinessVenueMenu();
+    await refreshBusinessVenueProducts();
     return;
   }
 
   businessDashboardState.venues = await loadBusinessVenues();
   populateBusinessDashboardSelects();
   populateBusinessMenuVenueSelect();
+  populateBusinessStoreVenueSelect();
   renderBusinessVenues(businessDashboardState.venues);
   await refreshBusinessVenueMenu();
+  await refreshBusinessVenueProducts();
 
   businessDashboardState.events = await loadBusinessEvents();
   renderBusinessEvents(businessDashboardState.events);
@@ -6185,7 +6751,13 @@ function getConversationIdFromUrl() {
   return params.get("conversation");
 }
 
+function getUserIdFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("id") || params.get("user") || "";
+}
+
 let messageUnreadCountsByConversationId = {};
+let messageAttachmentsAvailable = null;
 
 function getConversationIdFromNotificationLink(linkUrl) {
   if (!linkUrl) return "";
@@ -6206,33 +6778,277 @@ function getConversationIdFromNotificationLink(linkUrl) {
 async function loadMessageUnreadCounts(userId) {
   if (!userId) return {};
 
-  const { data, error } =
+  const { data: conversations, error: conversationError } =
     await supabaseClient
-      .from("notifications")
-      .select("id, link_url")
-      .eq("user_id", userId)
-      .eq("is_read", false);
+      .from("message_conversations")
+      .select("id");
 
-  if (error) {
-    console.log(error);
+  if (conversationError) {
+    console.log(conversationError);
+    return {};
+  }
+
+  const conversationIds = (conversations || [])
+    .map((conversation) => conversation.id)
+    .filter(Boolean);
+
+  if (conversationIds.length === 0) return {};
+
+  let reads = [];
+
+  const { data: readRows, error: readsError } =
+    await supabaseClient
+      .from("message_conversation_reads")
+      .select("conversation_id, last_read_at")
+      .eq("user_id", userId)
+      .in("conversation_id", conversationIds);
+
+  if (readsError) {
+    console.warn(readsError);
+  } else {
+    reads = readRows || [];
+  }
+
+  const lastReadByConversationId = {};
+
+  reads.forEach((read) => {
+    if (!read.conversation_id) return;
+
+    lastReadByConversationId[String(read.conversation_id)] =
+      read.last_read_at || "";
+  });
+
+  const { data: messages, error: messagesError } =
+    await supabaseClient
+      .from("messages")
+      .select("conversation_id, sender_id, created_at")
+      .in("conversation_id", conversationIds)
+      .neq("sender_id", userId);
+
+  if (messagesError) {
+    console.log(messagesError);
     return {};
   }
 
   const counts = {};
 
-  (data || []).forEach((notification) => {
-    const conversationId =
-      getConversationIdFromNotificationLink(
-        notification.link_url
-      );
+  (messages || []).forEach((message) => {
+    const conversationId = String(message.conversation_id || "");
 
     if (!conversationId) return;
 
-    counts[String(conversationId)] =
-      (counts[String(conversationId)] || 0) + 1;
+    const lastReadAt =
+      lastReadByConversationId[conversationId] || "";
+    const hasBeenRead =
+      lastReadAt &&
+      new Date(message.created_at).getTime() <=
+        new Date(lastReadAt).getTime();
+
+    if (hasBeenRead) return;
+
+    counts[conversationId] =
+      (counts[conversationId] || 0) + 1;
   });
 
   return counts;
+}
+
+function getTotalUnreadMessageCount() {
+  return Object.values(
+    messageUnreadCountsByConversationId || {}
+  ).reduce((total, count) => total + Number(count || 0), 0);
+}
+
+function updateMessagesBottomNavUnread(count) {
+  const link = document.querySelector(
+    '.mobile-bottom-nav a[href="./messages.html"]'
+  );
+
+  if (!link) return;
+
+  let badge = link.querySelector(".message-nav-unread-badge");
+
+  if (count > 0) {
+    link.classList.add("has-unread");
+
+    if (!badge) {
+      badge = document.createElement("span");
+      badge.className = "message-nav-unread-badge";
+      link.appendChild(badge);
+    }
+
+    badge.textContent = count > 9 ? "9+" : String(count);
+    badge.setAttribute("aria-label", `${count} unread messages`);
+    return;
+  }
+
+  link.classList.remove("has-unread");
+
+  if (badge) {
+    badge.remove();
+  }
+}
+
+async function markConversationReadState(userId, conversationId) {
+  if (!userId || !conversationId) return;
+
+  const { error } =
+    await supabaseClient
+      .from("message_conversation_reads")
+      .upsert(
+        {
+          conversation_id: conversationId,
+          user_id: userId,
+          last_read_at: new Date().toISOString(),
+        },
+        { onConflict: "conversation_id,user_id" }
+      );
+
+  if (error) {
+    console.warn(error);
+  }
+}
+
+async function checkMessageAttachmentsTable() {
+  if (messageAttachmentsAvailable !== null) {
+    return messageAttachmentsAvailable;
+  }
+
+  try {
+    const { error } = await supabaseClient
+      .from("message_attachments")
+      .select("id")
+      .limit(1);
+
+    if (error) {
+      console.warn("Message attachments unavailable.", error);
+      messageAttachmentsAvailable = false;
+      return false;
+    }
+
+    messageAttachmentsAvailable = true;
+    return true;
+  } catch (error) {
+    console.warn("Message attachments unavailable.", error);
+    messageAttachmentsAvailable = false;
+    return false;
+  }
+}
+
+async function loadMessageAttachments(conversationId) {
+  if (!conversationId) return {};
+
+  const isAvailable = await checkMessageAttachmentsTable();
+
+  if (!isAvailable) return {};
+
+  try {
+    const { data, error } = await supabaseClient
+      .from("message_attachments")
+      .select("*")
+      .eq("conversation_id", conversationId)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.warn("Message attachments could not be loaded.", error);
+      return {};
+    }
+
+    const attachmentsByMessageId = {};
+
+    (data || []).forEach((attachment) => {
+      const messageId = String(attachment.message_id || "");
+
+      if (!messageId) return;
+
+      if (!attachmentsByMessageId[messageId]) {
+        attachmentsByMessageId[messageId] = [];
+      }
+
+      attachmentsByMessageId[messageId].push(attachment);
+    });
+
+    return attachmentsByMessageId;
+  } catch (error) {
+    console.warn("Message attachments could not be loaded.", error);
+    return {};
+  }
+}
+
+function renderMessageAttachments(bubble, attachments) {
+  const validAttachments = (attachments || []).filter((attachment) =>
+    safeText(attachment.file_url)
+  );
+
+  if (validAttachments.length === 0) return;
+
+  const list = document.createElement("div");
+  list.className = "message-attachments";
+
+  validAttachments.forEach((attachment) => {
+    const link = document.createElement("a");
+    link.className = "message-attachment-link";
+    link.href = attachment.file_url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+
+    const image = document.createElement("img");
+    image.src = attachment.file_url;
+    image.alt = safeText(attachment.file_name) || "Message image";
+    image.loading = "lazy";
+    image.addEventListener(
+      "error",
+      () => {
+        link.remove();
+      },
+      { once: true }
+    );
+
+    link.appendChild(image);
+    list.appendChild(link);
+  });
+
+  if (list.children.length > 0) {
+    bubble.appendChild(list);
+  }
+}
+
+async function saveMessageAttachment({
+  messageId,
+  conversationId,
+  senderId,
+  file,
+}) {
+  if (!messageId || !conversationId || !senderId || !file) return;
+
+  const isAvailable = await checkMessageAttachmentsTable();
+
+  if (!isAvailable) return;
+
+  try {
+    const fileUrl = await uploadAdminImage(file, "messages");
+
+    if (!fileUrl) return;
+
+    const { error } = await supabaseClient
+      .from("message_attachments")
+      .insert([
+        {
+          message_id: messageId,
+          conversation_id: conversationId,
+          sender_id: senderId,
+          file_url: fileUrl,
+          file_type: file.type || "",
+          file_name: file.name || "",
+        },
+      ]);
+
+    if (error) {
+      console.warn("Message attachment was not saved.", error);
+    }
+  } catch (error) {
+    console.warn("Message attachment was not saved.", error);
+  }
 }
 
 async function markConversationNotificationsRead(
@@ -6293,13 +7109,58 @@ function getConversationIdFromRpcResult(data) {
   return String(
     data.id ||
       data.conversation_id ||
+      data.get_or_create_direct_conversation ||
       data.get_or_create_reservation_conversation ||
       ""
   );
 }
 
+function isDirectConversation(conversation) {
+  if (!conversation) return false;
+
+  if (
+    safeText(conversation.conversation_type).toLowerCase() ===
+    "direct"
+  ) {
+    return true;
+  }
+
+  return (
+    !conversation.reservation_id &&
+    !conversation.venue_id &&
+    ((conversation.participant_one_id &&
+      conversation.participant_two_id) ||
+      (conversation.user_id && conversation.business_owner_id))
+  );
+}
+
+function getConversationParticipantIds(conversation) {
+  if (!conversation) return [];
+
+  return [
+    conversation.participant_one_id,
+    conversation.participant_two_id,
+    conversation.user_id,
+    conversation.business_owner_id,
+  ].filter(Boolean);
+}
+
+function getOtherConversationParticipantId(conversation, userId) {
+  return (
+    getConversationParticipantIds(conversation).find(
+      (participantId) =>
+        String(participantId) !== String(userId)
+    ) || ""
+  );
+}
+
 function getConversationTitle(conversation) {
-  if (!conversation) return "Reservation conversation";
+  if (!conversation) return "Conversation";
+
+  if (isDirectConversation(conversation)) {
+    return safeText(conversation.direct_participant_name) ||
+      "Direct message";
+  }
 
   if (conversation.reservation_id) {
     return `Reservation #${conversation.reservation_id}`;
@@ -6310,6 +7171,10 @@ function getConversationTitle(conversation) {
 
 function getConversationSubtitle(conversation) {
   const parts = [];
+
+  if (isDirectConversation(conversation)) {
+    parts.push("Profile conversation");
+  }
 
   if (conversation.venue_id) {
     parts.push(`Venue #${conversation.venue_id}`);
@@ -6329,6 +7194,10 @@ function getConversationSubtitle(conversation) {
 function getConversationRoleLabel(conversation, userId) {
   if (!conversation || !userId) return "";
 
+  if (isDirectConversation(conversation)) {
+    return "Direct message";
+  }
+
   if (String(conversation.user_id) === String(userId)) {
     return "Guest side";
   }
@@ -6345,6 +7214,10 @@ function getConversationRoleLabel(conversation, userId) {
 function getMessageSenderLabel(message, conversation, userId) {
   if (String(message.sender_id) === String(userId)) {
     return "You";
+  }
+
+  if (isDirectConversation(conversation)) {
+    return "Profile";
   }
 
   if (
@@ -6365,6 +7238,317 @@ function getMessageSenderLabel(message, conversation, userId) {
   return "Message";
 }
 
+function getProfileDisplayName(profile) {
+  if (!profile) return "User";
+
+  return (
+    safeText(profile.full_name) ||
+    safeText(profile.username) ||
+    safeText(profile.display_name) ||
+    safeText(profile.name) ||
+    safeText(profile.email) ||
+    safeText(profile.user_email) ||
+    "User"
+  );
+}
+
+function getProfileAvatar(profile) {
+  if (!profile) return "";
+
+  return (
+    safeText(profile.avatar_url) ||
+    safeText(profile.avatar) ||
+    safeText(profile.image) ||
+    safeText(profile.photo_url)
+  );
+}
+
+function getProfileEmail(profile) {
+  if (!profile) return "";
+
+  return (
+    safeText(profile.email) ||
+    safeText(profile.user_email) ||
+    safeText(profile.auth_email)
+  );
+}
+
+function createUserProfileLink(userId, label = "View profile") {
+  if (!userId) return null;
+
+  const link = document.createElement("a");
+  link.className = "profile-link";
+  link.href = `./user.html?id=${encodeURIComponent(userId)}`;
+  link.textContent = label;
+
+  return link;
+}
+
+async function loadProfileRecordByUserId(userId) {
+  if (!userId) return null;
+
+  const profileQueries = [
+    { table: "profiles", column: "id" },
+    { table: "profiles", column: "user_id" },
+    { table: "users", column: "id" },
+    { table: "users", column: "user_id" },
+  ];
+
+  for (const query of profileQueries) {
+    try {
+      const { data, error } = await supabaseClient
+        .from(query.table)
+        .select("*")
+        .eq(query.column, userId)
+        .maybeSingle();
+
+      if (error) {
+        console.warn(
+          `Public profile lookup unavailable on ${query.table}.${query.column}.`,
+          error
+        );
+        continue;
+      }
+
+      if (data) return data;
+    } catch (error) {
+      console.warn(
+        `Public profile lookup unavailable on ${query.table}.${query.column}.`,
+        error
+      );
+    }
+  }
+
+  return null;
+}
+
+async function hydrateDirectConversationProfiles(conversations) {
+  const directConversations = (conversations || []).filter(
+    isDirectConversation
+  );
+
+  if (directConversations.length === 0) return;
+
+  const session = await getSafeSession();
+  const sessionUserId = session && session.user ? session.user.id : "";
+
+  if (!sessionUserId) return;
+
+  const profileIds = [
+    ...new Set(
+      directConversations
+        .map((conversation) =>
+          getOtherConversationParticipantId(
+            conversation,
+            sessionUserId
+          )
+        )
+        .filter(Boolean)
+    ),
+  ];
+
+  if (profileIds.length === 0) return;
+
+  const profilesById = new Map();
+
+  await Promise.all(
+    profileIds.map(async (profileId) => {
+      const profile = await loadProfileRecordByUserId(profileId);
+      profilesById.set(String(profileId), profile);
+    })
+  );
+
+  directConversations.forEach((conversation) => {
+    const participantId = getOtherConversationParticipantId(
+      conversation,
+      sessionUserId
+    );
+    const profile = profilesById.get(String(participantId));
+    conversation.direct_participant_id = participantId;
+    conversation.direct_participant_name =
+      getProfileDisplayName(profile);
+  });
+}
+
+async function getOrCreateDirectConversation(targetUserId) {
+  if (!targetUserId) {
+    showToast("User not found");
+    return "";
+  }
+
+  const {
+    data: { session },
+  } = await supabaseClient.auth.getSession();
+
+  if (!session) {
+    window.location.href = "./auth.html";
+    return "";
+  }
+
+  if (String(targetUserId) === String(session.user.id)) {
+    showToast("You cannot message yourself");
+    return "";
+  }
+
+  let data = null;
+  let error = null;
+
+  try {
+    ({ data, error } = await supabaseClient.rpc(
+      "get_or_create_direct_conversation",
+      {
+        p_target_user_id: targetUserId,
+      }
+    ));
+  } catch (rpcError) {
+    error = rpcError;
+  }
+
+  if (error) {
+    console.warn("Direct conversation unavailable.", error);
+    showToast(error.message || "Conversation unavailable");
+    return "";
+  }
+
+  const conversationId = getConversationIdFromRpcResult(data);
+
+  if (!conversationId) {
+    showToast("Conversation unavailable");
+    return "";
+  }
+
+  return conversationId;
+}
+
+async function openDirectConversation(targetUserId) {
+  const conversationId =
+    await getOrCreateDirectConversation(targetUserId);
+
+  if (!conversationId) return;
+
+  window.location.href =
+    `./messages.html?conversation=${encodeURIComponent(
+      conversationId
+    )}`;
+}
+
+function renderPublicUserProfile(profile, userId, session) {
+  const nameElement = document.getElementById("publicUserName");
+  const metaElement = document.getElementById("publicUserMeta");
+  const avatarElement =
+    document.getElementById("publicUserAvatar");
+  const messageButton =
+    document.getElementById("publicUserMessageBtn");
+  const name = getProfileDisplayName(profile);
+  const email =
+    getProfileEmail(profile) ||
+    (session &&
+    session.user &&
+    String(session.user.id) === String(userId)
+      ? safeText(session.user.email)
+      : "");
+  const avatar = getProfileAvatar(profile);
+  const isSelf =
+    session &&
+    session.user &&
+    String(session.user.id) === String(userId);
+
+  if (nameElement) {
+    nameElement.textContent = name;
+  }
+
+  if (metaElement) {
+    metaElement.textContent =
+      email || (profile ? "TANIDIK member" : "Public member profile");
+  }
+
+  if (avatarElement) {
+    avatarElement.innerHTML = "";
+
+    if (avatar) {
+      const image = document.createElement("img");
+      image.src = getImage(avatar);
+      image.alt = name;
+      image.loading = "lazy";
+      image.addEventListener(
+        "error",
+        () => {
+          image.remove();
+          avatarElement.textContent =
+            name.charAt(0).toUpperCase() || "U";
+        },
+        { once: true }
+      );
+      avatarElement.appendChild(image);
+    } else {
+      avatarElement.textContent =
+        name.charAt(0).toUpperCase() || "U";
+    }
+  }
+
+  if (messageButton) {
+    messageButton.dataset.targetUserId = userId || "";
+    messageButton.disabled = !userId || Boolean(isSelf);
+    messageButton.textContent = isSelf ? "This is you" : "Message";
+  }
+}
+
+async function loadPublicUserProfile(userId) {
+  const messageButton =
+    document.getElementById("publicUserMessageBtn");
+
+  if (!userId) {
+    renderPublicUserProfile(null, "", null);
+
+    if (messageButton) {
+      messageButton.disabled = true;
+    }
+
+    showToast("User profile not found");
+    return null;
+  }
+
+  const session = await getSafeSession();
+  const profile = await loadProfileRecordByUserId(userId);
+
+  renderPublicUserProfile(profile, userId, session);
+  return profile;
+}
+
+function setupPublicUserProfile() {
+  const page = document.querySelector(".public-user-page");
+  const messageButton =
+    document.getElementById("publicUserMessageBtn");
+
+  if (!page || !messageButton) return;
+
+  const userId = getUserIdFromUrl();
+
+  messageButton.addEventListener("click", async () => {
+    const targetUserId = messageButton.dataset.targetUserId || userId;
+
+    if (!targetUserId || messageButton.disabled) return;
+
+    const session = await getSafeSession();
+
+    if (!session) {
+      window.location.href = "./auth.html";
+      return;
+    }
+
+    if (String(session.user.id) === String(targetUserId)) {
+      showToast("This is your profile");
+      messageButton.disabled = true;
+      messageButton.textContent = "This is you";
+      return;
+    }
+
+    await openDirectConversation(targetUserId);
+  });
+
+  loadPublicUserProfile(userId);
+}
+
 function getConversationPreview(messages) {
   const lastMessage = (messages || [])
     .slice()
@@ -6378,6 +7562,164 @@ function getConversationPreview(messages) {
   return body.length > 96
     ? `${body.slice(0, 96).trim()}...`
     : body;
+}
+
+function formatConversationReservationDateTime(reservation) {
+  if (!reservation) return "";
+
+  const date = safeText(reservation.reservation_date);
+  const time = safeText(reservation.reservation_time);
+
+  if (date && time) return `${date} at ${time}`;
+  if (date) return date;
+  if (time) return time;
+
+  return "";
+}
+
+function renderConversationContextHeader(context = {}) {
+  const header = document.getElementById("conversationContextHeader");
+
+  if (!header) return;
+
+  const conversation = context.conversation || {};
+  const venue = context.venue || {};
+  const reservation = context.reservation || {};
+  const venueId = conversation.venue_id || venue.id;
+  const venueName = safeText(venue.name) || "Conversation";
+  const venueImage = safeText(venue.image);
+  const reservationDateTime =
+    formatConversationReservationDateTime(reservation);
+  const partySize = Number(reservation.party_size) || 0;
+  const status = safeText(reservation.status);
+
+  header.innerHTML = "";
+  header.classList.toggle("has-image", Boolean(venueImage));
+
+  if (venueImage) {
+    const image = document.createElement("img");
+    image.src = getImage(venueImage);
+    image.alt = venueName;
+    image.loading = "lazy";
+    image.addEventListener(
+      "error",
+      () => {
+        image.remove();
+        header.classList.remove("has-image");
+      },
+      { once: true }
+    );
+    header.appendChild(image);
+  }
+
+  const body = document.createElement("div");
+  body.className = "conversation-context-body";
+
+  const topRow = document.createElement("div");
+  topRow.className = "conversation-context-top";
+
+  const title = document.createElement("strong");
+  title.textContent = venueName;
+  topRow.appendChild(title);
+
+  if (status) {
+    topRow.appendChild(createStatusBadge(status));
+  }
+
+  body.appendChild(topRow);
+
+  const metaParts = [];
+
+  if (reservationDateTime) {
+    metaParts.push(reservationDateTime);
+  }
+
+  if (partySize > 0) {
+    metaParts.push(`${partySize} ${partySize === 1 ? "guest" : "guests"}`);
+  }
+
+  if (metaParts.length > 0) {
+    const meta = document.createElement("span");
+    meta.className = "conversation-context-meta";
+    meta.textContent = metaParts.join(" - ");
+    body.appendChild(meta);
+  }
+
+  if (venueId) {
+    const link = document.createElement("a");
+    link.className = "conversation-context-link";
+    link.href = `./venue.html?id=${encodeURIComponent(venueId)}`;
+    link.textContent = "View venue";
+    body.appendChild(link);
+  }
+
+  header.appendChild(body);
+}
+
+async function loadConversationContextDetails(conversation) {
+  const context = {
+    conversation: conversation || {},
+    venue: null,
+    reservation: null,
+  };
+
+  if (!conversation) return context;
+
+  if (conversation.venue_id) {
+    try {
+      const { data, error } = await supabaseClient
+        .from("venues")
+        .select("id, name, image")
+        .eq("id", conversation.venue_id)
+        .maybeSingle();
+
+      if (error) {
+        console.warn("Conversation venue context unavailable.", error);
+      } else {
+        context.venue = data;
+      }
+    } catch (error) {
+      console.warn("Conversation venue context unavailable.", error);
+    }
+  }
+
+  if (conversation.reservation_id) {
+    try {
+      const { data, error } = await supabaseClient
+        .from("reservations")
+        .select("id, reservation_date, reservation_time, status, party_size")
+        .eq("id", conversation.reservation_id)
+        .maybeSingle();
+
+      if (error) {
+        console.warn(
+          "Conversation reservation context unavailable.",
+          error
+        );
+      } else {
+        context.reservation = data;
+      }
+    } catch (error) {
+      console.warn("Conversation reservation context unavailable.", error);
+    }
+  }
+
+  return context;
+}
+
+async function updateConversationContextHeader(conversation) {
+  renderConversationContextHeader({ conversation });
+
+  try {
+    const context = await loadConversationContextDetails(conversation);
+    renderConversationContextHeader(context);
+  } catch (error) {
+    console.warn("Conversation context header unavailable.", error);
+  }
+}
+
+function resetConversationContextHeader() {
+  renderConversationContextHeader();
 }
 
 function updateConversationHeader(conversation, userId) {
@@ -6455,6 +7797,16 @@ function updateMessageThreadUnreadBadge(
     if (badge) {
       badge.textContent =
         unreadCount > 9 ? "9+" : String(unreadCount);
+    } else {
+      const topRow = thread.querySelector(".message-thread-top");
+
+      if (topRow) {
+        const newBadge = document.createElement("span");
+        newBadge.className = "message-unread-badge";
+        newBadge.textContent =
+          unreadCount > 9 ? "9+" : String(unreadCount);
+        topRow.appendChild(newBadge);
+      }
     }
 
     return;
@@ -6555,6 +7907,7 @@ async function loadMessageInbox() {
   }
 
   const conversations = data || [];
+  await hydrateDirectConversationProfiles(conversations);
   await hydrateConversationPreviews(conversations);
   renderMessageInbox(conversations);
   return conversations;
@@ -6683,6 +8036,7 @@ async function loadConversation(conversationId) {
   if (!conversationId) {
     setMessageFormEnabled(false);
     resetConversationHeader();
+    resetConversationContextHeader();
     renderEmptyState(
       messagesContainer,
       "Choose a conversation",
@@ -6721,6 +8075,7 @@ async function loadConversation(conversationId) {
       "This conversation does not exist or you do not have access."
     );
     resetConversationHeader();
+    resetConversationContextHeader();
     setMessageFormEnabled(false);
     return null;
   }
@@ -6731,6 +8086,7 @@ async function loadConversation(conversationId) {
   panel.dataset.userId = conversation.user_id || "";
   panel.dataset.businessOwnerId =
     conversation.business_owner_id || "";
+  updateConversationContextHeader(conversation);
 
   const { data: messages, error: messagesError } =
     await supabaseClient
@@ -6753,14 +8109,20 @@ async function loadConversation(conversationId) {
     session.user.id,
     conversation.id
   );
+  await markConversationReadState(session.user.id, conversation.id);
   messageUnreadCountsByConversationId[
     String(conversation.id)
   ] = 0;
   updateMessageThreadUnreadBadge(conversation.id, 0);
+  updateMessagesBottomNavUnread(getTotalUnreadMessageCount());
+  const attachmentsByMessageId =
+    await loadMessageAttachments(conversation.id);
+
   renderConversationMessages(
     messages || [],
     session.user.id,
-    conversation
+    conversation,
+    attachmentsByMessageId
   );
   setupMessageForm(conversation.id);
   return conversation;
@@ -6769,7 +8131,8 @@ async function loadConversation(conversationId) {
 function renderConversationMessages(
   messages,
   sessionUserId,
-  conversation
+  conversation,
+  attachmentsByMessageId = {}
 ) {
   const messagesContainer =
     document.getElementById("conversationMessages");
@@ -6805,9 +8168,16 @@ function renderConversationMessages(
     );
     bubble.appendChild(sender);
 
-    const body = document.createElement("p");
-    body.textContent = safeText(message.body);
-    bubble.appendChild(body);
+    if (safeText(message.body)) {
+      const body = document.createElement("p");
+      body.textContent = safeText(message.body);
+      bubble.appendChild(body);
+    }
+
+    renderMessageAttachments(
+      bubble,
+      attachmentsByMessageId[String(message.id)] || []
+    );
 
     const meta = document.createElement("span");
     meta.textContent = formatNotificationDate(message.created_at);
@@ -6837,10 +8207,11 @@ function setupMessageForm(conversationId) {
     }
 
     const bodyInput = document.getElementById("messageBody");
+    const attachmentFile = getAdminFile("messageAttachmentImage");
     const body = bodyInput ? bodyInput.value.trim() : "";
 
-    if (!body) {
-      showToast("Write a message");
+    if (!body && !attachmentFile) {
+      showToast("Write a message or attach an image");
       return;
     }
 
@@ -6848,10 +8219,18 @@ function setupMessageForm(conversationId) {
 
     try {
       const sent =
-        await sendConversationMessage(conversationId, body);
+        await sendConversationMessage(
+          conversationId,
+          body,
+          attachmentFile
+        );
 
       if (sent && bodyInput) {
         bodyInput.value = "";
+      }
+
+      if (sent) {
+        clearAdminFile("messageAttachmentImage");
       }
     } catch (error) {
       console.log(error);
@@ -6889,14 +8268,18 @@ async function notifyMessageRecipient(conversation, senderId) {
   }
 }
 
-async function sendConversationMessage(conversationId, body) {
+async function sendConversationMessage(
+  conversationId,
+  body,
+  attachmentFile = null
+) {
   if (!conversationId) {
     showToast("Choose a conversation");
     return false;
   }
 
-  if (!body || !body.trim()) {
-    showToast("Write a message");
+  if ((!body || !body.trim()) && !attachmentFile) {
+    showToast("Write a message or attach an image");
     return false;
   }
 
@@ -6924,6 +8307,9 @@ async function sendConversationMessage(conversationId, body) {
     return false;
   }
 
+  const messageBody =
+    body && body.trim() ? body.trim() : "Image attachment";
+
   const { error } =
     await supabaseClient
       .from("messages")
@@ -6931,13 +8317,56 @@ async function sendConversationMessage(conversationId, body) {
         {
           conversation_id: conversation.id,
           sender_id: session.user.id,
-          body,
+          body: messageBody,
         },
       ]);
 
   if (error) {
     showSafeError(error, "Message could not be sent.");
     return false;
+  }
+
+  if (attachmentFile) {
+    let messageId = "";
+
+    try {
+      const { data: latestMessage, error: latestError } =
+        await supabaseClient
+          .from("messages")
+          .select("id")
+          .eq("conversation_id", conversation.id)
+          .eq("sender_id", session.user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+      if (latestError) {
+        console.warn(
+          "Message id could not be loaded for attachment.",
+          latestError
+        );
+      } else if (latestMessage) {
+        messageId = latestMessage.id;
+      }
+    } catch (latestError) {
+      console.warn(
+        "Message id could not be loaded for attachment.",
+        latestError
+      );
+    }
+
+    if (messageId) {
+      await saveMessageAttachment({
+        messageId,
+        conversationId: conversation.id,
+        senderId: session.user.id,
+        file: attachmentFile,
+      });
+    } else {
+      console.warn(
+        "Message attachment skipped because message id was unavailable."
+      );
+    }
   }
 
   await notifyMessageRecipient(conversation, session.user.id);
@@ -6966,6 +8395,7 @@ async function refreshMessagesPage() {
 
     messageUnreadCountsByConversationId =
       await loadMessageUnreadCounts(session.user.id);
+    updateMessagesBottomNavUnread(getTotalUnreadMessageCount());
     await loadMessageInbox();
     await loadConversation(getConversationIdFromUrl());
   } catch (error) {
@@ -7007,8 +8437,10 @@ async function setupMessagesPage() {
   }
 
   setupMessagesRefreshButton();
+  await checkMessageAttachmentsTable();
   messageUnreadCountsByConversationId =
     await loadMessageUnreadCounts(session.user.id);
+  updateMessagesBottomNavUnread(getTotalUnreadMessageCount());
   await loadMessageInbox();
   await loadConversation(getConversationIdFromUrl());
 }
@@ -7077,6 +8509,37 @@ function setupBusinessMenuManager() {
     itemForm.dataset.bound = "true";
     itemForm.addEventListener("submit", (event) => {
       runGuardedFormSubmit(event, createMenuItem);
+    });
+  }
+}
+
+function setupBusinessStoreManager() {
+  const venueSelect =
+    document.getElementById("businessStoreVenueSelect");
+  const categoryForm =
+    document.getElementById("businessProductCategoryForm");
+  const productForm =
+    document.getElementById("businessProductForm");
+
+  if (venueSelect && venueSelect.dataset.bound !== "true") {
+    venueSelect.dataset.bound = "true";
+    venueSelect.addEventListener("change", () => {
+      resetBusinessStoreForms();
+      refreshBusinessVenueProducts();
+    });
+  }
+
+  if (categoryForm && categoryForm.dataset.bound !== "true") {
+    categoryForm.dataset.bound = "true";
+    categoryForm.addEventListener("submit", (event) => {
+      runGuardedFormSubmit(event, createProductCategory);
+    });
+  }
+
+  if (productForm && productForm.dataset.bound !== "true") {
+    productForm.dataset.bound = "true";
+    productForm.addEventListener("submit", (event) => {
+      runGuardedFormSubmit(event, createVenueProduct);
     });
   }
 }
@@ -7153,6 +8616,7 @@ async function initBusinessDashboard() {
   setupBusinessMobilePanels();
   setupBusinessForms();
   setupBusinessMenuManager();
+  setupBusinessStoreManager();
   await refreshBusinessDashboard();
 }
 
@@ -7223,6 +8687,7 @@ runSafeInitializer("loadEventDetails", loadEventDetails);
 runSafeInitializer("initAdminPanel", initAdminPanel);
 runSafeInitializer("initBusinessDashboard", initBusinessDashboard);
 runSafeInitializer("setupMessagesPage", setupMessagesPage);
+runSafeInitializer("setupPublicUserProfile", setupPublicUserProfile);
 runSafeInitializer("setActiveNav", setActiveNav);
 runSafeInitializer("setupMobileNav", setupMobileNav);
 runSafeInitializer("registerServiceWorker", registerServiceWorker);
@@ -7234,3 +8699,6 @@ window.openEvent = openEvent;
 window.filterByCity = filterByCity;
 window.openReservationConversation =
   openReservationConversation;
+window.openDirectConversation = openDirectConversation;
+window.getOrCreateDirectConversation =
+  getOrCreateDirectConversation;

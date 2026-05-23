@@ -152,6 +152,13 @@
         </div>
 
         <div
+          id="conversationContextHeader"
+          class="conversation-context-header"
+          aria-live="polite"
+        >
+        </div>
+
+        <div
           id="conversationMessages"
           class="conversation-messages"
         >
@@ -161,12 +168,28 @@
           id="messageForm"
           class="message-form"
         >
-          <textarea
-            id="messageBody"
-            maxlength="1000"
-            placeholder="Write a reservation message..."
-            required
-          ></textarea>
+          <div class="message-composer-main">
+            <textarea
+              id="messageBody"
+              maxlength="1000"
+              placeholder="Write a reservation message..."
+            ></textarea>
+
+            <label
+              class="message-attach-control"
+              for="messageAttachmentImage"
+            >
+              <span aria-hidden="true">+</span>
+              Image
+            </label>
+
+            <input
+              id="messageAttachmentImage"
+              class="message-attachment-input"
+              type="file"
+              accept="image/*"
+            />
+          </div>
 
           <button
             type="submit"

@@ -787,6 +787,91 @@ body::after {
   word-break: break-word;
 }
 
+.public-user-page {
+  display: grid;
+  place-items: start center;
+  min-height: calc(100vh - var(--nav-h));
+  padding: calc(var(--nav-h) + 48px) 22px 120px;
+}
+
+.public-user-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 20px;
+  width: min(720px, 100%);
+}
+
+.public-user-avatar {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  width: 92px;
+  height: 92px;
+  border: 1px solid rgba(240,192,96,0.34);
+  border-radius: 26px;
+  background:
+    linear-gradient(145deg, rgba(240,192,96,0.18), rgba(255,255,255,0.06)),
+    rgba(8, 8, 18, 0.78);
+  color: var(--gold);
+  font-family: var(--fd);
+  font-size: 42px;
+  line-height: 1;
+}
+
+.public-user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.public-user-copy {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.public-user-copy h1 {
+  margin: 0;
+  font-size: clamp(34px, 7vw, 56px);
+  overflow-wrap: anywhere;
+}
+
+.public-user-copy p {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.public-user-copy .btn {
+  width: fit-content;
+  min-width: 140px;
+}
+
+.profile-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-height: 36px;
+  padding: 9px 12px;
+  border: 1px solid rgba(240,192,96,0.22);
+  border-radius: 999px;
+  background: rgba(240,192,96,0.08);
+  color: var(--gold);
+  font-family: var(--fm);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.profile-link:hover {
+  border-color: rgba(240,192,96,0.38);
+  background: rgba(240,192,96,0.12);
+}
+
 .profile-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1339,6 +1424,70 @@ body::after {
   line-height: 1.65;
 }
 
+.messages-page .conversation-context-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  margin: -4px 0 16px;
+  padding: 12px;
+  border: 1px solid rgba(240,192,96,0.14);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(240,192,96,0.08), rgba(255,255,255,0.035));
+}
+
+.messages-page .conversation-context-header:empty {
+  display: none;
+}
+
+.messages-page .conversation-context-header img {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  border-radius: 14px;
+  object-fit: cover;
+}
+
+.messages-page .conversation-context-body {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.messages-page .conversation-context-top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.messages-page .conversation-context-top strong {
+  min-width: 0;
+  color: white;
+  font-size: 15px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.messages-page .conversation-context-meta {
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.messages-page .conversation-context-link {
+  width: fit-content;
+  color: var(--gold);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.messages-page .conversation-context-link:hover {
+  text-decoration: underline;
+}
+
 .message-refresh-btn {
   flex: 0 0 auto;
   padding: 10px 14px;
@@ -1377,6 +1526,9 @@ body::after {
 
 .message-thread.unread {
   border-color: rgba(240,192,96,0.32);
+  background:
+    linear-gradient(135deg, rgba(240,192,96,0.12), rgba(255,255,255,0.035) 48%),
+    rgba(255,255,255,0.045);
   box-shadow:
     0 18px 46px rgba(0,0,0,0.26),
     0 0 26px rgba(240,192,96,0.08);
@@ -1495,6 +1647,12 @@ body::after {
   border-top: 1px solid rgba(255,255,255,0.08);
 }
 
+.message-composer-main {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
 .message-form textarea {
   min-height: 58px;
   max-height: 180px;
@@ -1512,6 +1670,64 @@ body::after {
   border-color: rgba(250,204,21,0.45);
   background: rgba(255,255,255,0.075);
   box-shadow: 0 0 0 4px rgba(250,204,21,0.08);
+}
+
+.message-attach-control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-height: 38px;
+  padding: 9px 13px;
+  border: 1px solid rgba(240,192,96,0.24);
+  border-radius: 999px;
+  background: rgba(240,192,96,0.08);
+  color: var(--gold);
+  cursor: pointer;
+  font-family: var(--fm);
+  font-size: 11px;
+  gap: 7px;
+  line-height: 1;
+}
+
+.message-attach-control span {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(240,192,96,0.16);
+  color: var(--gold);
+}
+
+.message-attachment-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.message-attachments {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 8px;
+}
+
+.message-attachment-link {
+  display: block;
+  overflow: hidden;
+  max-width: min(320px, 72vw);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  background: rgba(0,0,0,0.22);
+}
+
+.message-attachment-link img {
+  display: block;
+  width: 100%;
+  max-height: 280px;
+  object-fit: cover;
 }
 
 .message-form button {
@@ -1651,7 +1867,8 @@ body::after {
   font-family: inherit;
 }
 
-.business-page #businessMenuVenueSelect {
+.business-page #businessMenuVenueSelect,
+.business-page #businessStoreVenueSelect {
   width: min(420px, 100%);
   margin-bottom: 16px;
   padding: 16px;
@@ -1661,7 +1878,8 @@ body::after {
   color: white;
 }
 
-.business-menu-form {
+.business-menu-form,
+.business-store-form {
   margin-bottom: 18px;
 }
 
@@ -1683,6 +1901,7 @@ body::after {
 }
 
 .business-menu-list,
+.business-store-list,
 .business-menu-group {
   display: grid;
   gap: 14px;
@@ -3463,6 +3682,10 @@ p.reservation-note {
   box-shadow: 0 18px 48px rgba(0,0,0,0.26);
 }
 
+.venue-store-toggle {
+  margin-top: -12px;
+}
+
 .venue-menu-toggle::after {
   content: "+";
   display: grid;
@@ -3490,6 +3713,21 @@ p.reservation-note {
     linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.025)),
     rgba(0,0,0,0.14);
   box-shadow: 0 22px 60px rgba(0,0,0,0.28);
+}
+
+.venue-product-stock {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 10px;
+  padding: 5px 9px;
+  border: 1px solid rgba(240,192,96,0.16);
+  border-radius: 999px;
+  color: var(--gold2);
+  background: rgba(240,192,96,0.06);
+  font-family: var(--fm);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .venue-menu-panel[hidden] {
@@ -3790,6 +4028,34 @@ p.reservation-note {
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
   }
 
+  .mobile-bottom-nav a[href="./messages.html"] {
+    position: relative;
+  }
+
+  .mobile-bottom-nav a.has-unread[href="./messages.html"] {
+    color: var(--gold);
+  }
+
+  .mobile-bottom-nav .message-nav-unread-badge {
+    position: absolute;
+    top: 5px;
+    right: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 5px;
+    border: 1px solid rgba(240,192,96,0.45);
+    border-radius: 999px;
+    background: rgba(240,192,96,0.22);
+    color: var(--gold);
+    font-family: var(--fm);
+    font-size: 9px;
+    line-height: 1;
+    box-shadow: 0 0 16px rgba(240,192,96,0.22);
+  }
+
   .mobile-bottom-nav a:active {
     transform: scale(0.96);
   }
@@ -3990,6 +4256,27 @@ p.reservation-note {
     font-size: 34px;
   }
 
+  .public-user-page {
+    padding: calc(var(--nav-h) + 28px) 16px 118px;
+  }
+
+  .public-user-card {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 20px;
+  }
+
+  .public-user-avatar {
+    width: 78px;
+    height: 78px;
+    border-radius: 22px;
+    font-size: 36px;
+  }
+
+  .public-user-copy .btn {
+    width: 100%;
+  }
+
   .profile-mobile-actions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4150,7 +4437,8 @@ p.reservation-note {
     border-radius: 20px;
   }
 
-  .business-page #businessMenuVenueSelect {
+  .business-page #businessMenuVenueSelect,
+  .business-page #businessStoreVenueSelect {
     width: 100%;
   }
 
@@ -4809,6 +5097,24 @@ p.reservation-note {
   .messages-page .conversation-header p {
     font-size: 13px;
     line-height: 1.5;
+  }
+
+  .messages-page .conversation-context-header {
+    min-height: 56px;
+    margin-bottom: 12px;
+    padding: 10px;
+    border-radius: 16px;
+  }
+
+  .messages-page .conversation-context-header img {
+    width: 42px;
+    height: 42px;
+    flex-basis: 42px;
+    border-radius: 12px;
+  }
+
+  .messages-page .conversation-context-meta {
+    font-size: 12px;
   }
 
   .conversation-messages {

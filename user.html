@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <title>User Profile | TANIDIK</title>
+
+  <meta
+    name="description"
+    content="View a TANIDIK member profile and start a direct message."
+  />
+
+  <meta name="theme-color" content="#050505" />
+
+  <link
+    rel="icon"
+    href="./assets/favicon.svg"
+    type="image/svg+xml"
+  />
+
+  <link rel="manifest" href="./manifest.webmanifest" />
+
+  <link rel="apple-touch-icon" href="./assets/icon-192.png" />
+
+  <link
+    rel="stylesheet"
+    href="./css/style.css"
+  />
+</head>
+
+<body class="user-profile-page">
+
+  <nav class="navbar">
+
+    <h1>TANIDIK</h1>
+
+    <button
+      class="nav-toggle"
+      type="button"
+      aria-label="Toggle navigation"
+      aria-expanded="false"
+    >
+      Menu
+    </button>
+
+    <div class="nav-links">
+
+      <a href="./index.html">Home</a>
+
+      <a href="./discover.html">Discover</a>
+
+      <a href="./events.html">Events</a>
+
+      <a href="./favorites.html">Favorites</a>
+
+      <a
+        href="./auth.html"
+        id="authLink"
+      >
+        Login
+      </a>
+
+    </div>
+
+  </nav>
+
+  <main class="public-user-page">
+
+    <section class="public-user-card dashboard-section">
+      <div
+        id="publicUserAvatar"
+        class="public-user-avatar"
+        aria-hidden="true"
+      >
+        U
+      </div>
+
+      <div class="public-user-copy">
+        <span class="dashboard-kicker">
+          Member Profile
+        </span>
+
+        <h1 id="publicUserName">
+          User
+        </h1>
+
+        <p id="publicUserMeta">
+          Loading profile...
+        </p>
+
+        <button
+          id="publicUserMessageBtn"
+          type="button"
+          class="btn"
+          disabled
+        >
+          Message
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <nav
+    class="mobile-bottom-nav"
+    aria-label="Primary mobile navigation"
+  >
+    <a href="./index.html" data-nav-page="index.html"><span aria-hidden="true">H</span>Home</a>
+    <a href="./discover.html" data-nav-page="discover.html"><span aria-hidden="true">D</span>Discover</a>
+    <a href="./business.html" data-nav-page="business.html"><span aria-hidden="true">B</span>Business</a>
+    <a href="./messages.html" data-nav-page="messages.html"><span aria-hidden="true">M</span>Messages</a>
+    <a href="./profile.html" data-nav-page="profile.html"><span aria-hidden="true">P</span>Profile</a>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+  <script src="./js/app.js"></script>
+
+  <div id="toast" class="toast"></div>
+
+</body>
+</html>

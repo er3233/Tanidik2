@@ -161,6 +161,13 @@
 
       <button
         type="button"
+        data-business-panel="store"
+      >
+        Store
+      </button>
+
+      <button
+        type="button"
         data-business-panel="analytics"
       >
         Analytics
@@ -511,6 +518,13 @@
         />
 
         <input
+          type="file"
+          id="businessMenuItemImageFile"
+          accept="image/*"
+          class="admin-file-input"
+        />
+
+        <input
           type="number"
           id="businessMenuItemSort"
           placeholder="Sort order"
@@ -537,6 +551,144 @@
       <div
         id="businessVenueMenuList"
         class="business-menu-list"
+      >
+      </div>
+
+    </section>
+
+    <section
+      class="business-section dashboard-section dashboard-section--forms business-mobile-panel"
+      data-panel="store"
+    >
+
+      <h2>
+        Venue Store
+      </h2>
+
+      <p class="reservation-dashboard-copy">
+        Manage product categories and showcase products for one of your venues.
+      </p>
+
+      <select id="businessStoreVenueSelect">
+        <option value="">Choose Venue</option>
+      </select>
+
+      <form
+        id="businessProductCategoryForm"
+        class="admin-form business-store-form"
+      >
+        <input
+          type="text"
+          id="businessProductCategoryName"
+          placeholder="Category name"
+          required
+        />
+
+        <input
+          type="number"
+          id="businessProductCategorySort"
+          placeholder="Sort order"
+          value="0"
+        />
+
+        <label class="menu-toggle-field">
+          <input
+            type="checkbox"
+            id="businessProductCategoryActive"
+            checked
+          />
+          Active
+        </label>
+
+        <button
+          type="submit"
+          class="btn"
+        >
+          Save Category
+        </button>
+      </form>
+
+      <form
+        id="businessProductForm"
+        class="admin-form business-store-form"
+      >
+        <select id="businessProductCategory">
+          <option value="">No category</option>
+        </select>
+
+        <input
+          type="text"
+          id="businessProductName"
+          placeholder="Product name"
+          required
+        />
+
+        <textarea
+          id="businessProductDescription"
+          placeholder="Description"
+        ></textarea>
+
+        <input
+          type="number"
+          id="businessProductPrice"
+          placeholder="Price"
+          step="0.01"
+          min="0"
+        />
+
+        <input
+          type="text"
+          id="businessProductCurrency"
+          placeholder="Currency"
+          value="TRY"
+        />
+
+        <input
+          type="text"
+          id="businessProductImage"
+          placeholder="Image URL"
+        />
+
+        <input
+          type="file"
+          id="businessProductImageFile"
+          accept="image/*"
+          class="admin-file-input"
+        />
+
+        <input
+          type="number"
+          id="businessProductStock"
+          placeholder="Stock quantity"
+        />
+
+        <input
+          type="number"
+          id="businessProductSort"
+          placeholder="Sort order"
+          value="0"
+        />
+
+        <label class="menu-toggle-field">
+          <input
+            type="checkbox"
+            id="businessProductActive"
+            checked
+          />
+          Active
+        </label>
+
+        <button
+          type="submit"
+          class="btn"
+        >
+          Save Product
+        </button>
+      </form>
+
+      <div
+        id="businessVenueProductsList"
+        class="business-menu-list business-store-list"
       >
       </div>
 
