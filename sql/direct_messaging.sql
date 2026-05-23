@@ -2,6 +2,12 @@ alter table public.message_conversations
 add column if not exists conversation_type text not null default 'reservation';
 
 alter table public.message_conversations
+add column if not exists participant_one_id uuid references auth.users(id) on delete cascade;
+
+alter table public.message_conversations
+add column if not exists participant_two_id uuid references auth.users(id) on delete cascade;
+
+alter table public.message_conversations
 alter column reservation_id drop not null;
 
 alter table public.message_conversations
@@ -11,14 +17,31 @@ update public.message_conversations
 set conversation_type = 'reservation'
 where conversation_type is null;
 
-create unique index if not exists message_conversations_direct_pair_idx
-on public.message_conversations (
-  least(user_id, business_owner_id),
-  greatest(user_id, business_owner_id)
-)
+update public.message_conversations
+set
+  user_id = least(user_id, business_owner_id),
+  business_owner_id = greatest(user_id, business_owner_id),
+  participant_one_id = least(user_id, business_owner_id),
+  participant_two_id = greatest(user_id, business_owner_id)
 where conversation_type = 'direct'
   and user_id is not null
-  and business_owner_id is not null;
+  and business_owner_id is not null
+  and (
+    participant_one_id is null
+    or participant_two_id is null
+    or user_id > business_owner_id
+  );
+
+drop index if exists public.message_conversations_direct_pair_idx;
+
+create unique index message_conversations_direct_pair_idx
+on public.message_conversations (
+  participant_one_id,
+  participant_two_id
+)
+where conversation_type = 'direct'
+  and participant_one_id is not null
+  and participant_two_id is not null;
 
 alter table public.message_conversations enable row level security;
 
@@ -44,9 +67,15 @@ on public.message_conversations
 for insert
 with check (
   conversation_type = 'direct'
-  and user_id = auth.uid()
+  and (
+    user_id = auth.uid()
+    or business_owner_id = auth.uid()
+  )
   and business_owner_id is not null
-  and business_owner_id <> auth.uid()
+  and user_id is not null
+  and user_id <> business_owner_id
+  and participant_one_id = least(user_id, business_owner_id)
+  and participant_two_id = greatest(user_id, business_owner_id)
   and reservation_id is null
   and venue_id is null
 );
@@ -120,9 +149,9 @@ begin
   into v_conversation_id
   from public.message_conversations
   where conversation_type = 'direct'
-    and least(user_id, business_owner_id) =
+    and coalesce(participant_one_id, least(user_id, business_owner_id)) =
       least(v_current_user_id, p_target_user_id)
-    and greatest(user_id, business_owner_id) =
+    and coalesce(participant_two_id, greatest(user_id, business_owner_id)) =
       greatest(v_current_user_id, p_target_user_id)
   limit 1;
 
@@ -134,6 +163,8 @@ begin
     conversation_type,
     user_id,
     business_owner_id,
+    participant_one_id,
+    participant_two_id,
     reservation_id,
     venue_id,
     created_at,
@@ -141,8 +172,10 @@ begin
   )
   values (
     'direct',
-    v_current_user_id,
-    p_target_user_id,
+    least(v_current_user_id, p_target_user_id),
+    greatest(v_current_user_id, p_target_user_id),
+    least(v_current_user_id, p_target_user_id),
+    greatest(v_current_user_id, p_target_user_id),
     null,
     null,
     now(),

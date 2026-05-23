@@ -6756,6 +6756,12 @@ function getUserIdFromUrl() {
   return params.get("id") || params.get("user") || "";
 }
 
+function isValidUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    safeText(value)
+  );
+}
+
 let messageUnreadCountsByConversationId = {};
 let messageAttachmentsAvailable = null;
 
@@ -7099,17 +7105,19 @@ function getConversationIdFromRpcResult(data) {
   if (!data) return "";
 
   if (typeof data === "string" || typeof data === "number") {
-    return String(data);
+    return safeText(data);
   }
 
   if (Array.isArray(data)) {
     return getConversationIdFromRpcResult(data[0]);
   }
 
-  return String(
+  return safeText(
     data.id ||
       data.conversation_id ||
       data.get_or_create_direct_conversation ||
+      data.get_or_create_direct_conversation_id ||
+      data.direct_conversation_id ||
       data.get_or_create_reservation_conversation ||
       ""
   );
@@ -7371,7 +7379,7 @@ async function hydrateDirectConversationProfiles(conversations) {
 }
 
 async function getOrCreateDirectConversation(targetUserId) {
-  if (!targetUserId) {
+  if (!targetUserId || !isValidUuid(targetUserId)) {
     showToast("User not found");
     return "";
   }
@@ -7412,7 +7420,7 @@ async function getOrCreateDirectConversation(targetUserId) {
 
   const conversationId = getConversationIdFromRpcResult(data);
 
-  if (!conversationId) {
+  if (!conversationId || !isValidUuid(conversationId)) {
     showToast("Conversation unavailable");
     return "";
   }
@@ -7424,12 +7432,22 @@ async function openDirectConversation(targetUserId) {
   const conversationId =
     await getOrCreateDirectConversation(targetUserId);
 
-  if (!conversationId) return;
+  if (!conversationId) return false;
 
   window.location.href =
     `./messages.html?conversation=${encodeURIComponent(
       conversationId
     )}`;
+  return true;
+}
+
+function setPublicUserMessageError(message) {
+  const errorElement =
+    document.getElementById("publicUserMessageError");
+
+  if (errorElement) {
+    errorElement.textContent = safeText(message);
+  }
 }
 
 function renderPublicUserProfile(profile, userId, session) {
@@ -7488,8 +7506,13 @@ function renderPublicUserProfile(profile, userId, session) {
 
   if (messageButton) {
     messageButton.dataset.targetUserId = userId || "";
-    messageButton.disabled = !userId || Boolean(isSelf);
+    messageButton.disabled =
+      !userId || !isValidUuid(userId) || Boolean(isSelf);
     messageButton.textContent = isSelf ? "This is you" : "Message";
+  }
+
+  if (isSelf) {
+    setPublicUserMessageError("This is you.");
   }
 }
 
@@ -7497,13 +7520,14 @@ async function loadPublicUserProfile(userId) {
   const messageButton =
     document.getElementById("publicUserMessageBtn");
 
-  if (!userId) {
+  if (!userId || !isValidUuid(userId)) {
     renderPublicUserProfile(null, "", null);
 
     if (messageButton) {
       messageButton.disabled = true;
     }
 
+    setPublicUserMessageError("Could not start conversation. Please try again.");
     showToast("User profile not found");
     return null;
   }
@@ -7511,6 +7535,7 @@ async function loadPublicUserProfile(userId) {
   const session = await getSafeSession();
   const profile = await loadProfileRecordByUserId(userId);
 
+  setPublicUserMessageError("");
   renderPublicUserProfile(profile, userId, session);
   return profile;
 }
@@ -7527,7 +7552,16 @@ function setupPublicUserProfile() {
   messageButton.addEventListener("click", async () => {
     const targetUserId = messageButton.dataset.targetUserId || userId;
 
+    setPublicUserMessageError("");
+
     if (!targetUserId || messageButton.disabled) return;
+
+    if (!isValidUuid(targetUserId)) {
+      setPublicUserMessageError(
+        "Could not start conversation. Please try again."
+      );
+      return;
+    }
 
     const session = await getSafeSession();
 
@@ -7538,12 +7572,30 @@ function setupPublicUserProfile() {
 
     if (String(session.user.id) === String(targetUserId)) {
       showToast("This is your profile");
+      setPublicUserMessageError("This is you.");
       messageButton.disabled = true;
       messageButton.textContent = "This is you";
       return;
     }
 
-    await openDirectConversation(targetUserId);
+    messageButton.disabled = true;
+
+    try {
+      const opened = await openDirectConversation(targetUserId);
+
+      if (!opened) {
+        setPublicUserMessageError(
+          "Could not start conversation. Please try again."
+        );
+        messageButton.disabled = false;
+      }
+    } catch (error) {
+      console.warn("Direct conversation could not be opened.", error);
+      setPublicUserMessageError(
+        "Could not start conversation. Please try again."
+      );
+      messageButton.disabled = false;
+    }
   });
 
   loadPublicUserProfile(userId);

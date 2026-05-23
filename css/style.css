@@ -844,6 +844,12 @@ body::after {
   overflow-wrap: anywhere;
 }
 
+.public-user-error {
+  min-height: 20px;
+  color: #fca5a5;
+  font-size: 13px;
+}
+
 .public-user-copy .btn {
   width: fit-content;
   min-width: 140px;
