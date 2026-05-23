@@ -13,7 +13,7 @@
 
   <meta
     name="description"
-    content="Admin tools for managing TANIDIK venues, events, and uploaded images."
+    content="Discover premium nightlife venues, events, reservations, and business tools with TANIDIK."
   />
 
   <meta name="theme-color" content="#050505" />
@@ -30,21 +30,21 @@
 
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="TANIDIK" />
-  <meta property="og:title" content="Admin Panel | TANIDIK" />
+  <meta property="og:title" content="TANIDIK | Premium Nightlife Discovery" />
   <meta
     property="og:description"
-    content="Admin tools for managing TANIDIK venues, events, and uploaded images."
+    content="Discover premium nightlife venues, events, reservations, and business tools with TANIDIK."
   />
-  <meta property="og:url" content="https://hilarious-kheer-076854.netlify.app/admin.html" />
-  <meta property="og:image" content="https://hilarious-kheer-076854.netlify.app/assets/social-preview.png" />
+  <meta property="og:url" content="https://tanidik2.vercel.app" />
+  <meta property="og:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
 
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Admin Panel | TANIDIK" />
+  <meta name="twitter:title" content="TANIDIK | Premium Nightlife Discovery" />
   <meta
     name="twitter:description"
-    content="Admin tools for managing TANIDIK venues, events, and uploaded images."
+    content="Discover premium nightlife venues, events, reservations, and business tools with TANIDIK."
   />
-  <meta name="twitter:image" content="https://hilarious-kheer-076854.netlify.app/assets/social-preview.png" />
+  <meta name="twitter:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
 
   <link
     rel="stylesheet"
@@ -134,7 +134,9 @@
 
         <select
           id="adminVenueCategory"
+          required
         >
+          <option value="other">Other</option>
           <option value="night_club">Night Club</option>
           <option value="bar">Bar</option>
           <option value="restaurant">Restaurant</option>
@@ -145,7 +147,6 @@
           <option value="event_venue">Event Venue</option>
           <option value="sports_fitness">Sports / Fitness</option>
           <option value="wellness">Wellness</option>
-          <option value="other" selected>Other</option>
         </select>
 
         <input
@@ -310,6 +311,11 @@
       <h2>
         Reservations
       </h2>
+
+      <p class="reservation-dashboard-copy">
+        Moderate reservation activity with clear status, guest, and timing
+        details.
+      </p>
 
       <div
         id="adminReservationsList"

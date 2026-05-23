@@ -35,8 +35,8 @@
     property="og:description"
     content="Discover premium nightlife venues, events, favorites, and reviews with TANIDIK."
   />
-  <meta property="og:url" content="https://hilarious-kheer-076854.netlify.app/index.html" />
-  <meta property="og:image" content="https://hilarious-kheer-076854.netlify.app/assets/social-preview.png" />
+  <meta property="og:url" content="https://tanidik2.vercel.app" />
+  <meta property="og:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="TANIDIK | Premium Nightlife Discovery" />
@@ -44,7 +44,7 @@
     name="twitter:description"
     content="Discover premium nightlife venues, events, favorites, and reviews with TANIDIK."
   />
-  <meta name="twitter:image" content="https://hilarious-kheer-076854.netlify.app/assets/social-preview.png" />
+  <meta name="twitter:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
 
   <link
     rel="stylesheet"
@@ -91,61 +91,312 @@
     </div>
   </nav>
 
-  <main class="home-map-hero" id="homeMapHero">
-    <div class="home-map-canvas" id="homeMap"></div>
+  <main class="landing-page">
 
-    <div class="home-map-fallback" id="homeMapFallback">
-      <div class="home-map-fallback-grid"></div>
-    </div>
+    <section class="home-map-hero" id="homeMapHero">
+      <div class="home-map-canvas" id="homeMap"></div>
 
-    <div
-      class="home-map-reticle"
-      id="homeMapReticle"
-      aria-hidden="true"
-    ></div>
+      <div class="home-map-fallback" id="homeMapFallback">
+        <div class="home-map-fallback-grid"></div>
+      </div>
 
-    <section class="home-map-overlay" id="homeMapOverlay">
-      <span class="home-map-kicker">Bodrum after dark</span>
+      <div
+        class="home-map-reticle"
+        id="homeMapReticle"
+        aria-hidden="true"
+      ></div>
+
+      <section class="home-map-overlay" id="homeMapOverlay">
+        <span class="home-map-kicker">Bodrum after dark</span>
+
+        <h2>
+          TANIDIK
+        </h2>
+
+        <p>
+          A cinematic nightlife map for discovering premium venues, events,
+          and the pulse of the coast.
+        </p>
+
+        <div class="home-map-actions">
+          <a
+            href="./discover.html"
+            class="btn"
+          >
+            Discover
+          </a>
+
+          <button
+            class="home-walk-button"
+            id="walkModeButton"
+            type="button"
+            aria-pressed="false"
+          >
+            Walk Mode
+          </button>
+        </div>
+      </section>
+
+      <aside
+        class="home-venue-preview"
+        id="homeVenuePreview"
+        aria-live="polite"
+      ></aside>
+
+      <div class="home-walk-hud" id="homeWalkHud">
+        <span>WASD move</span>
+        <span>Arrows / drag rotate</span>
+      </div>
+    </section>
+
+    <section class="hero public-hero landing-hero">
+      <span class="landing-kicker">
+        TANIDIK Nightlife
+      </span>
 
       <h2>
-        TANIDIK
+        Premium nightlife, curated for the night ahead.
       </h2>
 
       <p>
-        A cinematic nightlife map for discovering premium venues, events,
-        and the pulse of the coast.
+        Discover polished venues, elevated events, reservation flows, reviews,
+        favorites, and private reservation messaging in one noir-lit platform.
       </p>
 
-      <div class="home-map-actions">
+      <div class="public-hero-cta landing-hero-actions">
         <a
           href="./discover.html"
           class="btn"
         >
-          Discover
+          Discover Venues
         </a>
 
-        <button
-          class="home-walk-button"
-          id="walkModeButton"
-          type="button"
-          aria-pressed="false"
+        <a
+          href="./events.html"
+          class="secondary-btn"
         >
-          Walk Mode
-        </button>
+          Explore Events
+        </a>
       </div>
     </section>
 
-    <aside
-      class="home-venue-preview"
-      id="homeVenuePreview"
-      aria-live="polite"
-    ></aside>
+    <section class="landing-section landing-business-cta">
+      <div class="landing-section-header">
+        <span class="landing-kicker">
+          For Verified Businesses
+        </span>
 
-    <div class="home-walk-hud" id="homeWalkHud">
-      <span>WASD move</span>
-      <span>Arrows / drag rotate</span>
-    </div>
+        <h2>
+          Manage the room before the doors open.
+        </h2>
+      </div>
+
+      <p>
+        Verified businesses can manage venues, publish events, review reservation
+        requests, and continue guest conversations through reservation messaging.
+      </p>
+
+      <div class="landing-actions">
+        <a
+          href="./profile.html"
+          class="btn"
+        >
+          Apply as Business
+        </a>
+
+        <a
+          href="./business.html"
+          class="secondary-btn"
+        >
+          Business Dashboard
+        </a>
+      </div>
+    </section>
+
+    <section class="landing-section">
+      <div class="landing-section-header">
+        <span class="landing-kicker">
+          Featured Venues
+        </span>
+
+        <h2>
+          Find the right atmosphere.
+        </h2>
+
+        <p>
+          Explore lounges, clubs, terraces, and late-night destinations shaped
+          for discovery.
+        </p>
+      </div>
+
+      <div class="landing-preview-grid">
+        <a
+          href="./discover.html"
+          class="landing-preview-card"
+        >
+          <span>Signature lounges</span>
+          <strong>Quiet luxury, curated sound, golden-hour service.</strong>
+        </a>
+
+        <a
+          href="./discover.html"
+          class="landing-preview-card"
+        >
+          <span>High-energy clubs</span>
+          <strong>Late sets, guest lists, and packed dance floors.</strong>
+        </a>
+
+        <a
+          href="./discover.html"
+          class="landing-preview-card"
+        >
+          <span>City rooftops</span>
+          <strong>Open air views, elevated tables, and night-sky moments.</strong>
+        </a>
+      </div>
+    </section>
+
+    <section class="landing-section">
+      <div class="landing-section-header">
+        <span class="landing-kicker">
+          Featured Events
+        </span>
+
+        <h2>
+          Plan around the pulse of the city.
+        </h2>
+
+        <p>
+          Browse upcoming nights, RSVP where available, and keep your plans close.
+        </p>
+      </div>
+
+      <div class="landing-preview-grid">
+        <a
+          href="./events.html"
+          class="landing-preview-card landing-preview-card--event"
+        >
+          <span>DJ nights</span>
+          <strong>Built for peak-hour rooms and midnight arrivals.</strong>
+        </a>
+
+        <a
+          href="./events.html"
+          class="landing-preview-card landing-preview-card--event"
+        >
+          <span>Launch parties</span>
+          <strong>New venues, limited nights, and curated guest energy.</strong>
+        </a>
+
+        <a
+          href="./events.html"
+          class="landing-preview-card landing-preview-card--event"
+        >
+          <span>Private moments</span>
+          <strong>Reservations, RSVPs, and quieter celebrations.</strong>
+        </a>
+      </div>
+    </section>
+
+    <section class="landing-section">
+      <div class="landing-section-header">
+        <span class="landing-kicker">
+          How It Works
+        </span>
+
+        <h2>
+          From discovery to the door.
+        </h2>
+      </div>
+
+      <div class="landing-steps">
+        <div>
+          <span>01</span>
+          <h3>Discover</h3>
+          <p>Browse venues and events by mood, city, reviews, and favorites.</p>
+        </div>
+
+        <div>
+          <span>02</span>
+          <h3>Reserve / RSVP</h3>
+          <p>Request reservations, follow statuses, and RSVP to event nights.</p>
+        </div>
+
+        <div>
+          <span>03</span>
+          <h3>Connect</h3>
+          <p>Keep reservation updates and business messages in one place.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="landing-section landing-trust">
+      <div>
+        <span class="landing-kicker">
+          Platform Trust
+        </span>
+
+        <h2>
+          Built for guests and operators.
+        </h2>
+      </div>
+
+      <div class="landing-trust-grid">
+        <div>
+          <strong>Verified businesses</strong>
+          <p>Business application flows help keep management tools reserved for approved operators.</p>
+        </div>
+
+        <div>
+          <strong>Reviews and favorites</strong>
+          <p>Guests can remember places, compare signals, and return to the right rooms.</p>
+        </div>
+
+        <div>
+          <strong>Reservation messaging</strong>
+          <p>Reservation-scoped conversations keep guest and business communication focused.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="landing-section landing-final-cta">
+      <span class="landing-kicker">
+        Start The Night
+      </span>
+
+      <h2>
+        Your next room is already waiting.
+      </h2>
+
+      <div class="landing-actions">
+        <a
+          href="./discover.html"
+          class="btn"
+        >
+          Discover Venues
+        </a>
+
+        <a
+          href="./profile.html"
+          class="secondary-btn"
+        >
+          Business Owner Entry
+        </a>
+      </div>
+    </section>
+
   </main>
+
+  <nav
+    class="mobile-bottom-nav"
+    aria-label="Primary mobile navigation"
+  >
+    <a href="./index.html" data-nav-page="index.html"><span aria-hidden="true">H</span>Home</a>
+    <a href="./discover.html" data-nav-page="discover.html"><span aria-hidden="true">D</span>Discover</a>
+    <a href="./business.html" data-nav-page="business.html"><span aria-hidden="true">B</span>Business</a>
+    <a href="./messages.html" data-nav-page="messages.html"><span aria-hidden="true">M</span>Messages</a>
+    <a href="./profile.html" data-nav-page="profile.html"><span aria-hidden="true">P</span>Profile</a>
+  </nav>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 

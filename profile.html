@@ -1,547 +1,406 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
   <title>Profile | TANIDIK</title>
-  <meta name="description" content="View your TANIDIK profile, favorites count, reviews count, and account details." />
+
+  <meta
+    name="description"
+    content="Discover premium nightlife venues, events, reservations, and business tools with TANIDIK."
+  />
+
   <meta name="theme-color" content="#050505" />
-  <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
+
+  <link
+    rel="icon"
+    href="./assets/favicon.svg"
+    type="image/svg+xml"
+  />
+
   <link rel="manifest" href="./manifest.webmanifest" />
+
   <link rel="apple-touch-icon" href="./assets/icon-192.png" />
+
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="TANIDIK" />
-  <meta property="og:title" content="Profile | TANIDIK" />
-  <meta property="og:description" content="View your TANIDIK profile, favorites count, reviews count, and account details." />
-  <meta property="og:url" content="https://hilarious-kheer-076854.netlify.app/profile.html" />
-  <meta property="og:image" content="https://hilarious-kheer-076854.netlify.app/assets/social-preview.png" />
+  <meta property="og:title" content="TANIDIK | Premium Nightlife Discovery" />
+  <meta
+    property="og:description"
+    content="Discover premium nightlife venues, events, reservations, and business tools with TANIDIK."
+  />
+  <meta property="og:url" content="https://tanidik2.vercel.app" />
+  <meta property="og:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
+
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Profile | TANIDIK" />
-  <meta name="twitter:description" content="View your TANIDIK profile, favorites count, reviews count, and account details." />
-  <meta name="twitter:image" content="https://hilarious-kheer-076854.netlify.app/assets/social-preview.png" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./css/style.css" />
-  <style>
-    :root {
-      --g: #b8955a;
-      --g2: #d4b07a;
-      --g3: rgba(184,149,90,0.12);
-      --g4: rgba(184,149,90,0.06);
-      --bg: #080810;
-      --s1: rgba(255,255,255,0.032);
-      --s2: rgba(255,255,255,0.055);
-      --bd: rgba(255,255,255,0.065);
-      --bd2: rgba(184,149,90,0.2);
-      --tx: #eeeae0;
-      --tx2: rgba(238,234,224,0.45);
-      --tx3: rgba(238,234,224,0.22);
-      --r: 20px;
-      --ff: 'Instrument Serif', serif;
-      --ffu: 'Inter', sans-serif;
-    }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
-    body {
-      background: var(--bg);
-      color: var(--tx);
-      font-family: var(--ffu);
-      font-weight: 300;
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
- 
-    /* ── CANVAS ── */
-    #c { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
- 
-    /* ── AMBIENT LIGHTS ── */
-    .amb {
-      position: fixed; inset: 0; z-index: 0; pointer-events: none;
-      background:
-        radial-gradient(ellipse 65% 45% at 15% 8%, rgba(100,20,35,0.16) 0%, transparent 100%),
-        radial-gradient(ellipse 50% 40% at 85% 90%, rgba(184,149,90,0.09) 0%, transparent 100%),
-        radial-gradient(ellipse 40% 55% at 55% 40%, rgba(15,60,80,0.08) 0%, transparent 100%);
-    }
- 
-    /* ── LAYOUT ── */
-    .profile-dashboard {
-      position: relative; z-index: 1;
-      max-width: 780px; margin: 0 auto;
-      padding: 0 24px 120px;
-    }
- 
-    /* ── HERO ── */
-    .dashboard-header--profile {
-      padding: 80px 0 0;
-      position: relative;
-    }
- 
-    .hero-inner {
-      display: flex;
-      align-items: flex-end;
-      gap: 28px;
-      padding-bottom: 36px;
-      border-bottom: 1px solid var(--bd);
-    }
- 
-    /* Avatar */
-    .av-wrap { position: relative; flex-shrink: 0; }
-    .av-ring {
-      position: absolute; inset: -3px; border-radius: 50%;
-      background: conic-gradient(from 220deg, var(--g) 0%, transparent 28%, transparent 72%, var(--g) 100%);
-      animation: spin 9s linear infinite;
-      opacity: .7;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .av {
-      width: 88px; height: 88px; border-radius: 50%;
-      background: linear-gradient(145deg, #16161f, #0d0d14);
-      border: 1px solid rgba(255,255,255,0.08);
-      display: flex; align-items: center; justify-content: center;
-      font-family: var(--ff); font-size: 2.2rem; font-style: italic;
-      color: var(--g); position: relative; z-index: 1;
-      box-shadow: 0 8px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
-      transition: transform .4s cubic-bezier(.34,1.56,.64,1);
-    }
-    .av:hover { transform: scale(1.07) rotateY(10deg); }
- 
-    .hero-text { flex: 1; }
-    .hero-tag {
-      font-size: 9.5px; font-weight: 500; letter-spacing: .5em;
-      text-transform: uppercase; color: var(--g); opacity: .75;
-      display: block; margin-bottom: 10px;
-    }
-    .hero-text h1 {
-      font-family: var(--ff); font-size: clamp(2.4rem, 7vw, 4.2rem);
-      font-weight: 400; font-style: italic; line-height: .95;
-      background: linear-gradient(135deg, var(--tx) 0%, var(--g2) 40%, #a07840 75%, var(--tx) 100%);
-      background-size: 250% 100%;
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-      animation: sh 7s 1s ease-in-out infinite;
-    }
-    @keyframes sh { 0%,100%{background-position:0%} 50%{background-position:100%} }
-    .hero-email {
-      display: block; margin-top: 10px;
-      font-size: .8rem; font-weight: 300; letter-spacing: .04em;
-      color: var(--g2); opacity: .75;
-    }
- 
-    /* ── STAT ROW ── */
-    .stats-row {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      margin-top: 24px;
-      animation: up .7s .3s ease both;
-    }
-    @keyframes up { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
- 
-    .stat {
-      background: var(--s1); border: 1px solid var(--bd);
-      border-radius: 16px; padding: 22px 20px 18px;
-      position: relative; overflow: hidden;
-      transition: border-color .3s, transform .35s ease, box-shadow .35s;
-      cursor: default; text-align: center;
-    }
-    .stat::before {
-      content: ''; position: absolute; top: 0; left: 20%; right: 20%; height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(184,149,90,.45), transparent);
-      opacity: 0; transition: opacity .3s;
-    }
-    .stat:hover { border-color: var(--bd2); transform: translateY(-4px); box-shadow: 0 18px 50px rgba(0,0,0,.4); }
-    .stat:hover::before { opacity: 1; }
-    .stat-val {
-      font-family: var(--ff); font-size: 2.6rem; font-weight: 400;
-      line-height: 1; letter-spacing: -.02em; color: var(--tx);
-      display: block;
-    }
-    .stat-lbl {
-      font-size: 9px; font-weight: 500; letter-spacing: .22em;
-      text-transform: uppercase; color: var(--tx2);
-      display: block; margin-top: 7px;
-    }
-    .stat-dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: var(--g); margin: 0 auto 14px;
-      box-shadow: 0 0 10px rgba(184,149,90,.5);
-    }
- 
-    /* ── SECTION BASE ── */
-    .section {
-      background: var(--s1); border: 1px solid var(--bd);
-      border-radius: var(--r); overflow: hidden;
-      margin-top: 14px;
-      transition: border-color .3s;
-      animation: up .7s ease both;
-    }
-    .section:hover { border-color: var(--bd2); }
- 
-    .section-head {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 20px 26px; cursor: default;
-      border-bottom: 1px solid var(--bd);
-      gap: 12px;
-    }
-    .section-title {
-      font-family: var(--ff); font-size: 1.25rem; font-style: italic;
-      font-weight: 400; color: var(--tx); display: flex; align-items: center; gap: 10px;
-    }
-    .section-pill {
-      font-family: var(--ffu); font-size: 9px; font-weight: 500;
-      letter-spacing: .18em; text-transform: uppercase;
-      background: var(--g3); border: 1px solid var(--bd2);
-      color: var(--g2); border-radius: 20px; padding: 3px 10px;
-    }
-    .section-body { padding: 22px 26px; }
- 
-    /* ── NOTIFICATIONS ── */
-    .notif-s { animation-delay: .35s; }
-    #profileNotificationsList:empty::after {
-      content: 'All caught up.';
-      display: block; font-size: .82rem; color: var(--tx3);
-      letter-spacing: .05em; padding: 4px 0;
-    }
- 
-    /* ── BUSINESS ── */
-    .biz-s { animation-delay: .45s; }
- 
-    /* Collapsed trigger row */
-    .biz-trigger {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 18px 26px; cursor: pointer;
-      border-bottom: 1px solid transparent;
-      transition: background .2s, border-color .2s;
-      gap: 12px;
-      user-select: none;
-    }
-    .biz-trigger:hover { background: var(--s2); border-color: var(--bd); }
-    .biz-trigger-label {
-      font-size: .8rem; font-weight: 400; letter-spacing: .08em;
-      color: var(--tx2);
-    }
-    .biz-trigger-icon {
-      width: 28px; height: 28px; border-radius: 8px;
-      background: var(--g3); border: 1px solid var(--bd2);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px; color: var(--g); flex-shrink: 0;
-      transition: transform .35s cubic-bezier(.34,1.56,.64,1), background .2s;
-    }
-    .biz-trigger.open .biz-trigger-icon { transform: rotate(45deg); background: var(--g3); }
- 
-    /* Accordion panel */
-    .biz-panel {
-      max-height: 0; overflow: hidden;
-      transition: max-height .5s cubic-bezier(.4,0,.2,1), opacity .4s ease;
-      opacity: 0;
-    }
-    .biz-panel.open { max-height: 600px; opacity: 1; }
-    .biz-panel-inner { padding: 22px 26px 26px; border-top: 1px solid var(--bd); }
- 
-    #profileBusinessApplications:empty::after {
-      content: 'No applications yet.';
-      display: block; font-size: .82rem; color: var(--tx3);
-      letter-spacing: .05em; margin-bottom: 18px;
-    }
- 
-    /* ── RESERVATIONS ── */
-    .rsv-s { animation-delay: .55s; }
-    #profileReservationsList:empty::after {
-      content: 'No reservations yet.';
-      display: block; font-size: .82rem; color: var(--tx3);
-      letter-spacing: .05em; padding: 4px 0;
-    }
- 
-    /* ── FORM ── */
-    .admin-form { display: flex; flex-direction: column; gap: 11px; }
-    .admin-form input,
-    .admin-form textarea {
-      background: rgba(255,255,255,0.028);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 11px; padding: 13px 17px;
-      color: var(--tx); font-family: var(--ffu);
-      font-size: .825rem; font-weight: 300;
-      width: 100%; outline: none; transition: border-color .22s, box-shadow .22s, background .22s;
-      letter-spacing: .02em;
-    }
-    .admin-form input::placeholder,
-    .admin-form textarea::placeholder { color: var(--tx3); font-size: .78rem; letter-spacing: .04em; }
-    .admin-form input:focus,
-    .admin-form textarea:focus {
-      border-color: rgba(184,149,90,.38);
-      background: rgba(184,149,90,.025);
-      box-shadow: 0 0 0 3px rgba(184,149,90,.07);
-    }
-    .admin-form textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
-    .admin-form-actions { margin-top: 4px; }
- 
-    /* ── ACTIONS ROW ── */
-    .actions-row {
-      display: flex; gap: 11px; flex-wrap: wrap;
-      margin-top: 28px;
-      animation: up .7s .65s ease both;
-    }
- 
-    /* ── BUTTONS ── */
-    .btn {
-      display: inline-flex; align-items: center; gap: 7px;
-      background: linear-gradient(135deg, #c8a96e 0%, #9a7540 100%);
-      color: #0a0703;
-      font-family: var(--ffu); font-size: .7rem; font-weight: 500;
-      letter-spacing: .14em; text-transform: uppercase;
-      border: none; border-radius: 10px; padding: 13px 26px;
-      cursor: pointer; text-decoration: none; position: relative; overflow: hidden;
-      transition: transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s;
-    }
-    .btn::before {
-      content: ''; position: absolute; inset: 0;
-      background: linear-gradient(135deg, rgba(255,255,255,.18) 0%, transparent 55%);
-    }
-    .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 35px rgba(184,149,90,.35); }
-    .btn:active { transform: translateY(0); }
- 
-    .secondary-btn {
-      display: inline-flex; align-items: center; gap: 7px;
-      background: var(--s1); color: var(--tx);
-      font-family: var(--ffu); font-size: .7rem; font-weight: 400;
-      letter-spacing: .1em; text-transform: uppercase;
-      border: 1px solid var(--bd); border-radius: 10px; padding: 12px 22px;
-      cursor: pointer; text-decoration: none;
-      transition: border-color .22s, color .22s, transform .22s, background .22s;
-      backdrop-filter: blur(10px);
-    }
-    .secondary-btn:hover {
-      border-color: var(--bd2); color: var(--g2);
-      background: var(--g4); transform: translateY(-2px);
-    }
- 
-    #logoutBtn {
-      display: inline-flex; align-items: center; gap: 7px;
-      background: transparent;
-      border: 1px solid rgba(120,25,40,.3);
-      color: rgba(238,234,224,.35);
-      font-family: var(--ffu); font-size: .7rem; font-weight: 400;
-      letter-spacing: .13em; text-transform: uppercase;
-      border-radius: 10px; padding: 12px 22px; cursor: pointer;
-      transition: border-color .22s, color .22s, background .22s, transform .22s;
-    }
-    #logoutBtn:hover {
-      border-color: rgba(190,55,75,.55); color: #e06070;
-      background: rgba(120,25,40,.1); transform: translateY(-2px);
-    }
- 
-    /* ── TOAST ── */
-    .toast {
-      position: fixed; bottom: 32px; left: 50%;
-      transform: translateX(-50%) translateY(14px);
-      background: rgba(12,12,20,.97);
-      border: 1px solid var(--bd2);
-      color: var(--tx); padding: 13px 26px;
-      border-radius: 12px; font-size: .82rem;
-      font-family: var(--ffu); letter-spacing: .04em;
-      opacity: 0; pointer-events: none;
-      transition: opacity .28s, transform .28s;
-      backdrop-filter: blur(24px); z-index: 9999;
-    }
-    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
- 
-    /* ── SCROLLBAR ── */
-    ::-webkit-scrollbar { width: 3px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(184,149,90,.2); border-radius: 3px; }
- 
-    /* ── MOBILE ── */
-    @media (max-width: 520px) {
-      .profile-dashboard { padding: 0 14px 80px; }
-      .hero-inner { flex-direction: column; align-items: flex-start; gap: 18px; }
-      .stats-row { grid-template-columns: repeat(3,1fr); gap: 8px; }
-      .section-body, .biz-panel-inner { padding: 18px 18px 22px; }
-      .section-head, .biz-trigger { padding: 16px 18px; }
-      .actions-row { flex-direction: column; }
-      .actions-row > * { justify-content: center; }
-    }
-  </style>
+  <meta name="twitter:title" content="TANIDIK | Premium Nightlife Discovery" />
+  <meta
+    name="twitter:description"
+    content="Discover premium nightlife venues, events, reservations, and business tools with TANIDIK."
+  />
+  <meta name="twitter:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
+
+  <link
+    rel="stylesheet"
+    href="./css/style.css"
+  />
 </head>
+
 <body>
- 
-<canvas id="c"></canvas>
-<div class="amb"></div>
- 
-<div class="profile-dashboard">
- 
-  <!-- ── HERO ── -->
-  <header class="dashboard-header dashboard-header--profile">
-    <div class="hero-inner">
-      <div class="av-wrap">
-        <div class="av-ring"></div>
-        <div class="av" id="profileAvatar"><span id="avLetter">T</span></div>
+
+  <nav class="navbar">
+
+    <h1>TANIDIK</h1>
+
+    <button
+      class="nav-toggle"
+      type="button"
+      aria-label="Toggle navigation"
+      aria-expanded="false"
+    >
+      Menu
+    </button>
+
+    <div class="nav-links">
+
+      <a href="./index.html">Home</a>
+
+      <a href="./discover.html">Discover</a>
+
+      <a href="./events.html">Events</a>
+
+      <a href="./favorites.html">Favorites</a>
+
+      <a
+        href="./auth.html"
+        id="authLink"
+      >
+        Login
+      </a>
+
+    </div>
+
+  </nav>
+
+  <div class="profile-dashboard">
+
+    <header class="dashboard-header dashboard-header--profile profile-hero-card">
+      <div class="profile-avatar" aria-hidden="true">
+        T
       </div>
-      <div class="hero-text">
-        <span class="hero-tag">Tanıdık · Member</span>
-        <h1>Your Profile</h1>
-        <span class="hero-email" id="userEmail">Loading...</span>
+
+      <div class="profile-hero-copy">
+        <span class="dashboard-kicker">
+          Member Profile
+        </span>
+
+        <h1>
+          Your Profile
+        </h1>
+
+        <p>
+          <span>Signed in as</span>
+          <strong id="userEmail">
+            Loading...
+          </strong>
+        </p>
       </div>
+    </header>
+
+    <div
+      class="profile-mobile-actions"
+      aria-label="Profile dashboard sections"
+    >
+      <button
+        type="button"
+        data-profile-panel="reservations"
+      >
+        My Reservations
+      </button>
+
+      <button
+        type="button"
+        data-profile-panel="favorites"
+      >
+        Favorites
+      </button>
+
+      <button
+        type="button"
+        data-profile-panel="reviews"
+      >
+        My Reviews
+      </button>
+
+      <button
+        type="button"
+        data-profile-panel="notifications"
+      >
+        Notifications
+      </button>
+
+      <button
+        type="button"
+        data-profile-panel="business"
+      >
+        Business
+      </button>
+
+      <button
+        type="button"
+        data-profile-panel="settings"
+      >
+        Settings / Profile Info
+      </button>
     </div>
-  </header>
- 
-  <!-- ── STATS ── -->
-  <div class="stats-row">
-    <div class="stat" data-tilt>
-      <div class="stat-dot"></div>
-      <span class="stat-val" id="profileFavoritesCount">0</span>
-      <span class="stat-lbl">Favorites</span>
-    </div>
-    <div class="stat" data-tilt>
-      <div class="stat-dot"></div>
-      <span class="stat-val" id="profileReviewsCount">0</span>
-      <span class="stat-lbl">Reviews</span>
-    </div>
-    <div class="stat" data-tilt>
-      <div class="stat-dot"></div>
-      <span class="stat-val" id="profileReservationsCount">0</span>
-      <span class="stat-lbl">Reservations</span>
-    </div>
-  </div>
- 
-  <!-- ── NOTIFICATIONS ── -->
-  <div class="section notif-s">
-    <div class="section-head">
-      <span class="section-title">Notifications</span>
-      <span class="section-pill">Inbox</span>
-    </div>
-    <div class="section-body">
-      <div id="profileNotificationsList" class="notifications-list"></div>
-    </div>
-  </div>
- 
-  <!-- ── RESERVATIONS ── -->
-  <div class="section rsv-s">
-    <div class="section-head">
-      <span class="section-title">Reservations</span>
-      <span class="section-pill">Recent</span>
-    </div>
-    <div class="section-body">
-      <div id="profileReservationsList" class="reservation-list"></div>
-    </div>
-  </div>
- 
-  <!-- ── BUSINESS APPLICATION (accordion) ── -->
-  <div class="section biz-s profile-business-section dashboard-section dashboard-section--approvals dashboard-section--forms">
-    <div class="section-head" style="border-bottom:none; padding-bottom:0;">
-      <span class="section-title">Business</span>
-      <span class="section-pill">Partnership</span>
-    </div>
- 
-    <div id="profileBusinessApplications" class="business-list" style="padding: 0 26px 4px; font-size:.82rem; color:var(--tx3); letter-spacing:.04em;"></div>
- 
-    <!-- Collapsed toggle -->
-    <div class="biz-trigger" id="bizToggle">
-      <span class="biz-trigger-label">Apply for Business Partnership</span>
-      <div class="biz-trigger-icon">+</div>
-    </div>
- 
-    <!-- Accordion panel -->
-    <div class="biz-panel" id="bizPanel">
-      <div class="biz-panel-inner">
-        <form id="businessApplicationForm" class="admin-form">
-          <input type="text" id="businessApplicationName" placeholder="Business Name" required />
-          <input type="tel" id="businessApplicationPhone" placeholder="Phone" />
-          <input type="text" id="businessApplicationAddress" placeholder="Address" />
-          <textarea id="businessApplicationDescription" placeholder="Tell us about your business" required></textarea>
-          <div class="admin-form-actions">
-            <button type="submit" class="btn">Apply Now</button>
-          </div>
-        </form>
+
+    <section
+      class="profile-mobile-panel profile-info-panel"
+      data-panel="settings"
+    >
+      <div class="profile-grid">
+
+        <div class="profile-card">
+          <span>Account</span>
+          <strong>
+            Active
+          </strong>
+        </div>
+
+        <div class="profile-card">
+          <span>Favorites</span>
+          <strong id="profileFavoritesCount">
+            0
+          </strong>
+        </div>
+
+        <div class="profile-card">
+          <span>Reviews</span>
+          <strong id="profileReviewsCount">
+            0
+          </strong>
+        </div>
+
+        <div class="profile-card">
+          <span>Reservations</span>
+          <strong id="profileReservationsCount">
+            0
+          </strong>
+        </div>
+
       </div>
-    </div>
+    </section>
+
+    <section
+      class="profile-mobile-panel profile-favorites-section dashboard-section"
+      data-panel="favorites"
+    >
+      <h2>
+        Favorites
+      </h2>
+
+      <p class="reservation-dashboard-copy">
+        Open your saved venues and manage your favorite places.
+      </p>
+
+      <a
+        href="./favorites.html"
+        class="secondary-btn"
+      >
+        View Favorites
+      </a>
+    </section>
+
+    <section
+      class="profile-mobile-panel profile-reviews-section dashboard-section"
+      data-panel="reviews"
+    >
+      <h2>
+        My Reviews
+      </h2>
+
+      <p class="reservation-dashboard-copy">
+        Your review count is tracked here. Open venue pages to add or update
+        reviews.
+      </p>
+
+      <a
+        href="./discover.html"
+        class="secondary-btn"
+      >
+        Discover Venues
+      </a>
+    </section>
+
+    <section
+      class="profile-notifications-section dashboard-section profile-mobile-panel"
+      data-panel="notifications"
+    >
+
+      <h2>
+        Notifications
+      </h2>
+
+      <div
+        id="profileNotificationsList"
+        class="notifications-list"
+      >
+      </div>
+
+    </section>
+
+    <section
+      class="profile-business-section dashboard-section dashboard-section--approvals dashboard-section--forms profile-mobile-panel"
+      data-panel="business"
+    >
+
+      <h2>
+        Business Application
+      </h2>
+
+      <div
+        id="profileBusinessApplications"
+        class="business-list"
+      >
+      </div>
+
+      <form
+        id="businessApplicationForm"
+        class="admin-form"
+      >
+        <input
+          type="text"
+          id="businessApplicationName"
+          placeholder="Business Name"
+          required
+        />
+
+        <input
+          type="tel"
+          id="businessApplicationPhone"
+          placeholder="Phone"
+        />
+
+        <input
+          type="text"
+          id="businessApplicationAddress"
+          placeholder="Address"
+        />
+
+        <textarea
+          id="businessApplicationDescription"
+          placeholder="Tell us about your business"
+          required
+        ></textarea>
+
+        <div class="admin-form-actions">
+          <button
+            type="submit"
+            class="btn"
+          >
+            Apply
+          </button>
+        </div>
+      </form>
+
+    </section>
+
+    <section
+      class="profile-reservations-section dashboard-section dashboard-section--reservations profile-mobile-panel is-open"
+      data-panel="reservations"
+    >
+
+      <h2>
+        Recent Reservations
+      </h2>
+
+      <p class="reservation-dashboard-copy">
+        Track upcoming requests, statuses, and pending cancellations in one
+        place.
+      </p>
+
+      <div
+        id="profileReservationsList"
+        class="reservation-list"
+      >
+      </div>
+
+    </section>
+
+    <section
+      class="profile-actions-section dashboard-section profile-mobile-panel"
+      data-panel="settings"
+    >
+      <h2>
+        Quick Actions
+      </h2>
+
+      <div class="profile-action-grid">
+        <a
+          id="businessDashboardLink"
+          href="./business.html"
+          class="secondary-btn profile-business-link"
+        >
+          Business Dashboard
+        </a>
+
+        <a
+          href="./messages.html"
+          class="secondary-btn profile-messages-link"
+        >
+          Messages
+        </a>
+
+        <button id="logoutBtn">
+          Logout
+        </button>
+      </div>
+    </section>
+
   </div>
- 
-  <!-- ── ACTION ROW ── -->
-  <div class="actions-row">
-    <a id="businessDashboardLink" href="./business.html" class="secondary-btn profile-business-link">Business Dashboard</a>
-    <a href="./messages.html" class="secondary-btn profile-messages-link">Messages</a>
-    <button id="logoutBtn">Logout</button>
-  </div>
- 
-</div>
- 
-<script>
-/* ─── PARTICLES ─── */
-(function(){
-  const cv=document.getElementById('c'), cx=cv.getContext('2d');
-  let W,H,pts=[];
-  const G='rgba(184,149,90,', W2='rgba(255,255,255,';
-  function resize(){W=cv.width=innerWidth;H=cv.height=innerHeight;}
-  function mk(){return{x:Math.random()*W,y:Math.random()*H,r:Math.random()*.9+.15,vx:(Math.random()-.5)*.15,vy:(Math.random()-.5)*.12-.03,life:Math.random(),spd:Math.random()*.0025+.0008,gold:Math.random()>.6};}
-  function init(){resize();pts=Array.from({length:70},mk);}
-  function draw(){
-    cx.clearRect(0,0,W,H);
-    pts.forEach((p,i)=>{
-      p.life+=p.spd; if(p.life>1){pts[i]=mk();pts[i].y=H+5;return;}
-      p.x+=p.vx;p.y+=p.vy;
-      const a=Math.sin(p.life*Math.PI)*.45;
-      cx.beginPath();cx.arc(p.x,p.y,p.r,0,Math.PI*2);
-      cx.fillStyle=(p.gold?G:W2)+a+')';cx.fill();
-      if(p.gold){
-        for(let j=i+1;j<pts.length;j++){
-          const q=pts[j],dx=p.x-q.x,dy=p.y-q.y,d=Math.sqrt(dx*dx+dy*dy);
-          if(d<80){cx.beginPath();cx.moveTo(p.x,p.y);cx.lineTo(q.x,q.y);cx.strokeStyle=G+(0.035*(1-d/80))+')';cx.lineWidth=.35;cx.stroke();}
-        }
-      }
-    });
-    requestAnimationFrame(draw);
-  }
-  addEventListener('resize',resize);init();draw();
-})();
- 
-/* ─── TILT ─── */
-document.querySelectorAll('[data-tilt]').forEach(el=>{
-  el.addEventListener('mousemove',e=>{
-    const r=el.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;
-    el.style.transform=`perspective(700px) rotateY(${x*16}deg) rotateX(${-y*12}deg) translateY(-4px)`;
-    el.style.boxShadow=`${-x*10}px ${-y*8}px 40px rgba(0,0,0,.4)`;
-  });
-  el.addEventListener('mouseleave',()=>{el.style.transform='';el.style.boxShadow='';});
-});
- 
-/* ─── ACCORDION ─── */
-const toggle=document.getElementById('bizToggle'), panel=document.getElementById('bizPanel');
-toggle.addEventListener('click',()=>{
-  const open=panel.classList.toggle('open');
-  toggle.classList.toggle('open',open);
-  toggle.style.borderBottomColor=open?'var(--bd)':'transparent';
-});
- 
-/* ─── COUNTERS ─── */
-function countUp(el){
-  const t=parseInt(el.textContent,10);
-  if(isNaN(t)||t===0)return;
-  let s=0;const dur=800;
-  const step=ts=>{if(!s)s=ts;const p=Math.min((ts-s)/dur,1),e=1-Math.pow(1-p,3);el.textContent=Math.round(e*t);if(p<1)requestAnimationFrame(step);};
-  requestAnimationFrame(step);
-}
-['profileFavoritesCount','profileReviewsCount','profileReservationsCount'].forEach(id=>{
-  const el=document.getElementById(id);if(!el)return;
-  new MutationObserver(()=>countUp(el)).observe(el,{childList:true,subtree:true,characterData:true});
-});
- 
-/* ─── AVATAR LETTER FROM EMAIL ─── */
-const em=document.getElementById('userEmail'),av=document.getElementById('avLetter');
-if(em&&av) new MutationObserver(()=>{const t=em.textContent.trim();if(t&&t!=='Loading...')av.textContent=t[0].toUpperCase();}).observe(em,{childList:true,subtree:true,characterData:true});
- 
-/* ─── REVEAL ON SCROLL ─── */
-const ro=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.style.animationPlayState='running';ro.unobserve(e.target);}}),{threshold:.08});
-document.querySelectorAll('.section,.actions-row,.stats-row').forEach(el=>{el.style.animationPlayState='paused';ro.observe(el);});
- 
-/* ─── AURORA PARALLAX ─── */
-document.addEventListener('mousemove',e=>{
-  const x=e.clientX/innerWidth,y=e.clientY/innerHeight;
-  document.querySelector('.amb').style.transform=`translate(${(x-.5)*18}px,${(y-.5)*12}px)`;
-});
-</script>
- 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+  <nav
+    class="mobile-bottom-nav"
+    aria-label="Primary mobile navigation"
+  >
+    <a href="./index.html" data-nav-page="index.html">
+      <span aria-hidden="true">⌂</span>
+      Home
+    </a>
+
+    <a href="./discover.html" data-nav-page="discover.html">
+      <span aria-hidden="true">⌕</span>
+      Discover
+    </a>
+
+    <a href="./business.html" data-nav-page="business.html">
+      <span aria-hidden="true">◇</span>
+      Business
+    </a>
+
+    <a href="./messages.html" data-nav-page="messages.html">
+      <span aria-hidden="true">♡</span>
+      Messages
+    </a>
+
+    <a href="./profile.html" data-nav-page="profile.html">
+      <span aria-hidden="true">◉</span>
+      Profile
+    </a>
+
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
 <script src="./js/app.js"></script>
+
 <div id="toast" class="toast"></div>
+
 </body>
 </html>

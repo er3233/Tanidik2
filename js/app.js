@@ -13,6 +13,20 @@ const PLACEHOLDER_IMAGE =
 
 const STORAGE_BUCKET = "tanidik-images";
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const VENUE_CATEGORIES = [
+  ["night_club", "Night Club"],
+  ["bar", "Bar"],
+  ["restaurant", "Restaurant"],
+  ["cafe", "Cafe"],
+  ["beach", "Beach"],
+  ["hotel", "Hotel"],
+  ["live_music", "Live Music"],
+  ["event_venue", "Event Venue"],
+  ["sports_fitness", "Sports / Fitness"],
+  ["wellness", "Wellness"],
+  ["other", "Other"],
+];
+const DEFAULT_VENUE_CATEGORY = "other";
 
 const email = document.getElementById("email");
 const password = document.getElementById("password");
@@ -40,7 +54,6 @@ let businessDashboardState = {
   venues: [],
   events: [],
   reservations: [],
-  activeReservationFilter: "today",
 };
 
 function getBusinessStatus(business) {
@@ -51,32 +64,74 @@ function safeText(value) {
   return value || "";
 }
 
-const VENUE_CATEGORIES = [
-  ["night_club", "Night Club"],
-  ["bar", "Bar"],
-  ["restaurant", "Restaurant"],
-  ["cafe", "Cafe"],
-  ["beach", "Beach"],
-  ["hotel", "Hotel"],
-  ["live_music", "Live Music"],
-  ["event_venue", "Event Venue"],
-  ["sports_fitness", "Sports / Fitness"],
-  ["wellness", "Wellness"],
-  ["other", "Other"],
-];
+function getVenueCategoryValue(venue) {
+  const category = safeText(venue && venue.category)
+    .toLowerCase()
+    .trim();
 
-const venueCategoryLabels = Object.fromEntries(VENUE_CATEGORIES);
-
-function normalizeVenueCategory(category) {
-  return venueCategoryLabels[category] ? category : "other";
+  return VENUE_CATEGORIES.some(([value]) => value === category)
+    ? category
+    : DEFAULT_VENUE_CATEGORY;
 }
 
-function getVenueCategoryLabel(category) {
-  return venueCategoryLabels[normalizeVenueCategory(category)];
+function getVenueCategoryLabel(venue) {
+  const category = getVenueCategoryValue(venue);
+  const match = VENUE_CATEGORIES.find(
+    ([value]) => value === category
+  );
+
+  return match ? match[1] : "Other";
+}
+
+function getVenueMetaLabel(venue) {
+  return [safeText(venue.city), getVenueCategoryLabel(venue)]
+    .filter(Boolean)
+    .join(" / ");
 }
 
 function getImage(image) {
   return image || PLACEHOLDER_IMAGE;
+}
+
+async function runSafeInitializer(name, initializer) {
+  try {
+    await initializer();
+  } catch (error) {
+    console.log(`${name} failed`, error);
+  }
+}
+
+function setTextIfPresent(id, value) {
+  const element = document.getElementById(id);
+
+  if (element) {
+    element.innerText = safeText(value);
+  }
+}
+
+function setImageIfPresent(id, image, fallback) {
+  const element = document.getElementById(id);
+
+  if (!element) return;
+
+  element.src = getImage(image);
+  element.addEventListener(
+    "error",
+    () => {
+      element.src = fallback || PLACEHOLDER_IMAGE;
+    },
+    { once: true }
+  );
+}
+
+function renderDetailUnavailable(title, message) {
+  const detail =
+    document.querySelector(".venue-details") ||
+    document.querySelector("main");
+
+  if (detail) {
+    renderEmptyState(detail, title, message);
+  }
 }
 
 function showToast(message) {
@@ -95,6 +150,53 @@ function showToast(message) {
   }, 2500);
 }
 
+function showSafeError(error, fallback) {
+  if (error) {
+    console.log(error);
+  }
+
+  showToast(fallback || "Something went wrong. Please try again.");
+}
+
+async function getSafeSession() {
+  try {
+    const {
+      data: { session },
+    } = await supabaseClient.auth.getSession();
+
+    return session;
+  } catch (error) {
+    console.log(error);
+    showToast("Session unavailable. Please login again.");
+    return null;
+  }
+}
+
+async function runGuardedFormSubmit(event, handler) {
+  event.preventDefault();
+
+  const form = event.currentTarget;
+
+  if (!form || form.dataset.submitting === "true") {
+    return;
+  }
+
+  const buttons = form.querySelectorAll("button");
+  form.dataset.submitting = "true";
+  buttons.forEach((button) => {
+    button.disabled = true;
+  });
+
+  try {
+    await handler(event);
+  } finally {
+    form.dataset.submitting = "false";
+    buttons.forEach((button) => {
+      button.disabled = false;
+    });
+  }
+}
+
 async function createNotification(
   userId,
   type,
@@ -102,7 +204,7 @@ async function createNotification(
   message = "",
   linkUrl = ""
 ) {
-  if (!userId) return;
+  if (!userId) return false;
 
   const payloads = [
     {
@@ -131,19 +233,27 @@ async function createNotification(
   let lastError = null;
 
   for (const payload of payloads) {
-    const { error } = await supabaseClient.rpc(
-      "create_notification",
-      payload
-    );
+    let error = null;
 
-    if (!error) return;
+    try {
+      ({ error } = await supabaseClient.rpc(
+        "create_notification",
+        payload
+      ));
+    } catch (rpcError) {
+      error = rpcError;
+    }
+
+    if (!error) return true;
 
     lastError = error;
   }
 
   if (lastError) {
-    console.log(lastError);
+    console.warn(lastError);
   }
+
+  return false;
 }
 
 function showMessage(message) {
@@ -257,13 +367,8 @@ function createVenueCard(venue, options = {}) {
 
   const meta = document.createElement("span");
   meta.className = "venue-meta";
-  meta.textContent = safeText(venue.city);
+  meta.textContent = getVenueMetaLabel(venue);
   content.appendChild(meta);
-
-  const category = document.createElement("span");
-  category.className = "venue-category-badge";
-  category.textContent = getVenueCategoryLabel(venue.category);
-  content.appendChild(category);
 
   if (options.stats) {
     content.appendChild(
@@ -476,15 +581,20 @@ async function loadEventAttendeeCounts(eventIds) {
     return {};
   }
 
-  const { data, error } =
-    await supabaseClient
+  let data = [];
+  let error = null;
+
+  try {
+    ({ data, error } = await supabaseClient
       .from("event_attendees")
       .select("event_id")
-      .in("event_id", uniqueEventIds);
+      .in("event_id", uniqueEventIds));
+  } catch (requestError) {
+    error = requestError;
+  }
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Attendance unavailable.");
     return {};
   }
 
@@ -529,8 +639,7 @@ async function getEventAttendanceState(eventId) {
       .maybeSingle();
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Attendance status could not be loaded.");
   }
 
   return {
@@ -604,8 +713,7 @@ async function attendEvent(eventId) {
       );
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Attendance could not be saved.");
     return;
   }
 
@@ -631,8 +739,7 @@ async function cancelEventAttendance(eventId) {
       .eq("user_id", session.user.id);
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Attendance could not be canceled.");
     return;
   }
 
@@ -759,8 +866,11 @@ async function loadVenueStats(venueIds) {
     return {};
   }
 
-  const [reviewsResult, favoritesResult] =
-    await Promise.all([
+  let reviewsResult = { data: [], error: null };
+  let favoritesResult = { data: [], error: null };
+
+  try {
+    [reviewsResult, favoritesResult] = await Promise.all([
       supabaseClient
         .from("venue_reviews")
         .select("venue_id, rating")
@@ -770,15 +880,18 @@ async function loadVenueStats(venueIds) {
         .select("venue_id")
         .in("venue_id", uniqueVenueIds),
     ]);
+  } catch (requestError) {
+    console.log(requestError);
+    showToast(requestError.message || "Venue stats unavailable");
+    return buildVenueStats(uniqueVenueIds, [], []);
+  }
 
   if (reviewsResult.error) {
-    console.log(reviewsResult.error);
-    showToast(reviewsResult.error.message);
+    showSafeError(reviewsResult.error, "Venue stats could not be loaded.");
   }
 
   if (favoritesResult.error) {
-    console.log(favoritesResult.error);
-    showToast(favoritesResult.error.message);
+    showSafeError(favoritesResult.error, "Venue stats could not be loaded.");
   }
 
   return buildVenueStats(
@@ -804,8 +917,7 @@ async function loadVenueReviews(venueId) {
       .order("created_at", { ascending: false });
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Reviews could not be loaded.");
     return;
   }
 
@@ -874,8 +986,7 @@ async function setupVenueReviewForm(venueId) {
         );
 
     if (error) {
-      console.log(error);
-      showToast(error.message);
+      showSafeError(error, "Review could not be saved.");
       return;
     }
 
@@ -889,41 +1000,125 @@ async function setupVenueReviewForm(venueId) {
 }
 
 function getReservationStatusClass(status) {
-  return `status-${safeText(status)
-    .toLowerCase()
-    .trim() || "pending"}`;
+  return `status-${getReservationStatusValue(status)}`;
+}
+
+function getReservationStatusValue(status) {
+  const value =
+    safeText(status).toLowerCase().trim() || "pending";
+
+  return ["pending", "approved", "rejected", "cancelled"]
+    .includes(value)
+    ? value
+    : "pending";
+}
+
+function getReservationStatusLabel(status) {
+  const value = getReservationStatusValue(status);
+  const labels = {
+    pending: "Waiting approval",
+    approved: "Approved",
+    rejected: "Rejected",
+    cancelled: "Cancelled",
+  };
+
+  return labels[value] || value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function createStatusBadge(status) {
   const badge = document.createElement("span");
   badge.className =
     `status-badge ${getReservationStatusClass(status)}`;
-  badge.textContent = safeText(status) || "pending";
+  badge.textContent = getReservationStatusLabel(status);
 
   return badge;
 }
 
 function isPendingReservation(reservation) {
-  return (
-    safeText(reservation.status).toLowerCase().trim() ===
-      "pending" || !reservation.status
-  );
+  return getReservationStatusValue(reservation.status) === "pending";
 }
 
 function getReservationTitle(reservation, options = {}) {
-  const venueName =
-    options.showVenue && reservation.venue_name
-      ? `${safeText(reservation.venue_name)} - `
-      : "";
+  if (options.showVenue && reservation.venue_name) {
+    return safeText(reservation.venue_name);
+  }
 
-  return `${venueName}${safeText(
-    reservation.reservation_date
-  )} ${safeText(reservation.reservation_time)}`;
+  return "Reservation request";
+}
+
+function createReservationMeta(label, value) {
+  const item = document.createElement("div");
+  item.className = "reservation-meta-item";
+
+  const labelElement = document.createElement("span");
+  labelElement.textContent = label;
+  item.appendChild(labelElement);
+
+  const valueElement = document.createElement("strong");
+  valueElement.textContent = safeText(value) || "Not set";
+  item.appendChild(valueElement);
+
+  return item;
+}
+
+function getReservationGuestLabel(reservation) {
+  return (
+    safeText(reservation.customer_name) ||
+    safeText(reservation.guest_name) ||
+    safeText(reservation.full_name) ||
+    safeText(reservation.name) ||
+    safeText(reservation.customer_email) ||
+    safeText(reservation.guest_email) ||
+    safeText(reservation.user_email) ||
+    safeText(reservation.email) ||
+    (reservation.user_id
+      ? `Guest #${String(reservation.user_id).slice(0, 8)}`
+      : "Guest")
+  );
+}
+
+function createReservationNote(noteText) {
+  const note = document.createElement("div");
+  note.className = "reservation-note";
+
+  const label = document.createElement("span");
+  label.textContent = "Request";
+  note.appendChild(label);
+
+  const text = document.createElement("p");
+  text.textContent = safeText(noteText);
+  note.appendChild(text);
+
+  return note;
+}
+
+function createReservationActions() {
+  const actions = document.createElement("div");
+  actions.className = "reservation-actions admin-item-actions";
+
+  return actions;
+}
+
+function bindReservationAction(button, action) {
+  button.addEventListener("click", async () => {
+    if (button.disabled) return;
+
+    button.disabled = true;
+
+    try {
+      await action();
+    } finally {
+      button.disabled = false;
+    }
+  });
 }
 
 function createReservationCard(reservation, options = {}) {
   const card = document.createElement("div");
-  card.className = "reservation-card";
+  card.className =
+    `reservation-card ${getReservationStatusClass(
+      reservation.status
+    )}`;
 
   const header = document.createElement("div");
   header.className = "reservation-card-header";
@@ -936,30 +1131,48 @@ function createReservationCard(reservation, options = {}) {
   header.appendChild(title);
   header.appendChild(createStatusBadge(reservation.status));
 
-  const details = document.createElement("p");
-  details.textContent = `${reservation.party_size} guests`;
+  const meta = document.createElement("div");
+  meta.className = "reservation-meta-grid";
+  meta.appendChild(
+    createReservationMeta(
+      "Date",
+      reservation.reservation_date
+    )
+  );
+  meta.appendChild(
+    createReservationMeta(
+      "Time",
+      reservation.reservation_time
+    )
+  );
+  meta.appendChild(
+    createReservationMeta(
+      "Guests",
+      `${reservation.party_size || 0}`
+    )
+  );
 
   card.appendChild(header);
-  card.appendChild(details);
+  card.appendChild(meta);
 
   if (reservation.note) {
-    const note = document.createElement("p");
-    note.textContent = reservation.note;
-    card.appendChild(note);
+    card.appendChild(createReservationNote(reservation.note));
   }
 
   if (options.allowCancel && isPendingReservation(reservation)) {
+    const actions = createReservationActions();
     const cancelButton = document.createElement("button");
     cancelButton.type = "button";
     cancelButton.className = "reservation-cancel-btn";
     cancelButton.textContent = "Cancel";
-    cancelButton.addEventListener("click", () => {
+    bindReservationAction(cancelButton, () => {
       cancelUserReservation(
         reservation.id,
         options.onCancel
       );
     });
-    card.appendChild(cancelButton);
+    actions.appendChild(cancelButton);
+    card.appendChild(actions);
   }
 
   return card;
@@ -1002,17 +1215,22 @@ async function cancelUserReservation(
 ) {
   if (!confirm("Cancel this reservation?")) return;
 
-  const { error } =
-    await supabaseClient.rpc(
+  let error = null;
+
+  try {
+    ({ error } = await supabaseClient.rpc(
       "cancel_pending_reservation",
       {
         reservation_id: reservationId,
       }
-    );
+    ));
+  } catch (rpcError) {
+    error = rpcError;
+  }
 
   if (error) {
     console.log(error);
-    showToast(error.message);
+    showToast(error.message || "Reservation unavailable");
     return;
   }
 
@@ -1029,25 +1247,47 @@ function getReservationNotificationTitle(status) {
     : "Reservation rejected";
 }
 
+function getReservationOwnerId(reservation) {
+  return (
+    reservation &&
+    (reservation.user_id ||
+      reservation.customer_id ||
+      reservation.profile_id)
+  );
+}
+
+function getReservationNotificationMessage(status) {
+  return status === "approved"
+    ? "Your reservation has been approved."
+    : "Your reservation was rejected.";
+}
+
 async function notifyUserReservationStatus(
   reservation,
   status
 ) {
-  if (!reservation || !reservation.user_id) return;
+  const userId = getReservationOwnerId(reservation);
+
+  if (!reservation || !userId) return;
 
   const title = getReservationNotificationTitle(status);
-  const message =
-    `Your reservation for ${safeText(
-      reservation.reservation_date
-    )} ${safeText(reservation.reservation_time)} was ${status}.`;
+  const message = getReservationNotificationMessage(status);
 
-  await createNotification(
-    reservation.user_id,
-    `reservation_${status}`,
-    title,
-    message,
-    `./venue.html?id=${reservation.venue_id}`
-  );
+  try {
+    const created = await createNotification(
+      userId,
+      `reservation_${status}`,
+      title,
+      message,
+      `./venue.html?id=${reservation.venue_id}`
+    );
+
+    if (!created) {
+      console.warn("Reservation status notification was not created.");
+    }
+  } catch (error) {
+    console.warn(error);
+  }
 }
 
 async function notifyBusinessOwnerReservationRequest(venueId) {
@@ -1133,8 +1373,7 @@ async function loadUserReservations(venueId) {
       .order("created_at", { ascending: false });
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Reservations could not be loaded.");
     return;
   }
 
@@ -1150,36 +1389,52 @@ async function setupReservationForm(venueId) {
   reservationForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    const {
-      data: { session },
-    } = await supabaseClient.auth.getSession();
-
-    if (!session) {
-      showToast("Login required");
+    if (reservationForm.dataset.submitting === "true") {
       return;
     }
 
-    const partySize = Number(
-      document.getElementById("reservationPartySize").value
-    );
+    reservationForm.dataset.submitting = "true";
 
-    if (partySize < 1 || partySize > 20) {
-      showToast("Party size must be between 1 and 20");
-      return;
-    }
+    try {
+      const {
+        data: { session },
+      } = await supabaseClient.auth.getSession();
 
-    const payload = {
-      venue_id: venueId,
-      user_id: session.user.id,
-      reservation_date:
-        document.getElementById("reservationDate").value,
-      reservation_time:
-        document.getElementById("reservationTime").value,
-      party_size: partySize,
-      note:
-        document.getElementById("reservationNote").value.trim(),
-      status: "pending",
-    };
+      if (!session) {
+        showToast("Login required");
+        return;
+      }
+
+      const partySizeInput =
+        document.getElementById("reservationPartySize");
+      const dateInput =
+        document.getElementById("reservationDate");
+      const timeInput =
+        document.getElementById("reservationTime");
+      const noteInput =
+        document.getElementById("reservationNote");
+
+      if (!partySizeInput || !dateInput || !timeInput) {
+        showToast("Reservation form unavailable");
+        return;
+      }
+
+      const partySize = Number(partySizeInput.value);
+
+      if (partySize < 1 || partySize > 20) {
+        showToast("Party size must be between 1 and 20");
+        return;
+      }
+
+      const payload = {
+        venue_id: venueId,
+        user_id: session.user.id,
+        reservation_date: dateInput.value,
+        reservation_time: timeInput.value,
+        party_size: partySize,
+        note: noteInput ? noteInput.value.trim() : "",
+        status: "pending",
+      };
 
     const { error } =
       await supabaseClient
@@ -1187,49 +1442,89 @@ async function setupReservationForm(venueId) {
         .insert([payload]);
 
     if (error) {
-      console.log(error);
-      showToast(error.message);
+      showSafeError(
+        error,
+        "Reservation could not be requested."
+      );
       return;
     }
 
-    showToast("Reservation requested");
-    await notifyBusinessOwnerReservationRequest(venueId);
-    reservationForm.reset();
-    await loadUserReservations(venueId);
+      showToast("Reservation requested");
+      await notifyBusinessOwnerReservationRequest(venueId);
+      reservationForm.reset();
+      await loadUserReservations(venueId);
+    } catch (error) {
+      console.log(error);
+      showToast(error.message || "Reservation unavailable");
+    } finally {
+      reservationForm.dataset.submitting = "false";
+    }
   });
 }
 
 if (loginBtn) {
   loginBtn.addEventListener("click", async () => {
-    const { error } =
-      await supabaseClient.auth.signInWithPassword({
-        email: email.value,
-        password: password.value,
-      });
+    if (loginBtn.disabled) return;
 
-    if (error) {
-      showToast(error.message);
+    if (!email || !password) {
+      showToast("Login form unavailable");
       return;
     }
 
-    window.location.href = "./index.html";
+    loginBtn.disabled = true;
+
+    try {
+      const { error } =
+        await supabaseClient.auth.signInWithPassword({
+          email: email.value,
+          password: password.value,
+        });
+
+      if (error) {
+        showToast(error.message);
+        return;
+      }
+
+      window.location.href = "./index.html";
+    } catch (error) {
+      console.log(error);
+      showToast(error.message || "Login unavailable");
+    } finally {
+      loginBtn.disabled = false;
+    }
   });
 }
 
 if (registerBtn) {
   registerBtn.addEventListener("click", async () => {
-    const { error } =
-      await supabaseClient.auth.signUp({
-        email: email.value,
-        password: password.value,
-      });
+    if (registerBtn.disabled) return;
 
-    if (error) {
-      showToast(error.message);
+    if (!email || !password) {
+      showToast("Registration form unavailable");
       return;
     }
 
-    showToast("Register successful");
+    registerBtn.disabled = true;
+
+    try {
+      const { error } =
+        await supabaseClient.auth.signUp({
+          email: email.value,
+          password: password.value,
+        });
+
+      if (error) {
+        showToast(error.message);
+        return;
+      }
+
+      showToast("Register successful");
+    } catch (error) {
+      console.log(error);
+      showToast(error.message || "Registration unavailable");
+    } finally {
+      registerBtn.disabled = false;
+    }
   });
 }
 
@@ -1254,25 +1549,18 @@ if (createVenueBtn) {
     const description =
       document.getElementById("venueDescriptionInput").value;
 
-    const categoryInput =
-      document.getElementById("venueCategoryInput");
-
     const { error } =
       await supabaseClient.from("venues").insert([
         {
           name,
           city,
-          category: normalizeVenueCategory(
-            categoryInput ? categoryInput.value : ""
-          ),
           image,
           description,
         },
       ]);
 
     if (error) {
-      console.log(error);
-      showToast(error.message);
+      showSafeError(error, "Venue could not be created.");
       return;
     }
 
@@ -1313,8 +1601,7 @@ if (createEventBtn) {
       ]);
 
     if (error) {
-      console.log(error);
-      showToast(error.message);
+      showSafeError(error, "Event could not be created.");
       return;
     }
 
@@ -1323,9 +1610,7 @@ if (createEventBtn) {
 }
 
 async function checkUser() {
-  const {
-    data: { session },
-  } = await supabaseClient.auth.getSession();
+  const session = await getSafeSession();
 
   const authLink =
     document.getElementById("authLink");
@@ -1346,9 +1631,69 @@ async function checkUser() {
 
     userEmail.innerText = session.user.email;
     ensureBusinessApplicationSection();
+    setupProfileMobilePanels();
     setupBusinessApplicationForm(session.user.id);
     await loadProfileStats(session.user.id);
   }
+}
+
+function setupProfileMobilePanels() {
+  const buttons =
+    document.querySelectorAll("[data-profile-panel]");
+  const panels =
+    document.querySelectorAll(".profile-mobile-panel");
+
+  if (!buttons.length || !panels.length) return;
+
+  buttons.forEach((button) => {
+    const panelName = button.dataset.profilePanel;
+    const matchingPanels =
+      document.querySelectorAll(
+        `.profile-mobile-panel[data-panel="${panelName}"]`
+      );
+    const isOpen = [...matchingPanels].some((panel) =>
+      panel.classList.contains("is-open")
+    );
+
+    button.classList.toggle("is-active", isOpen);
+    button.setAttribute(
+      "aria-expanded",
+      isOpen ? "true" : "false"
+    );
+  });
+
+  buttons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const panelName = button.dataset.profilePanel;
+      const matchingPanels =
+        document.querySelectorAll(
+          `.profile-mobile-panel[data-panel="${panelName}"]`
+        );
+
+      if (!matchingPanels.length) return;
+
+      const shouldOpen = ![...matchingPanels].some((panel) =>
+        panel.classList.contains("is-open")
+      );
+
+      panels.forEach((panel) => {
+        panel.classList.remove("is-open");
+      });
+
+      buttons.forEach((item) => {
+        item.classList.remove("is-active");
+        item.setAttribute("aria-expanded", "false");
+      });
+
+      if (shouldOpen) {
+        matchingPanels.forEach((panel) => {
+          panel.classList.add("is-open");
+        });
+        button.classList.add("is-active");
+        button.setAttribute("aria-expanded", "true");
+      }
+    });
+  });
 }
 
 function ensureBusinessApplicationSection() {
@@ -1366,7 +1711,9 @@ function ensureBusinessApplicationSection() {
   if (!profileDashboard) return;
 
   const section = document.createElement("section");
-  section.className = "profile-business-section";
+  section.className =
+    "profile-business-section dashboard-section dashboard-section--approvals dashboard-section--forms profile-mobile-panel";
+  section.dataset.panel = "business";
 
   const heading = document.createElement("h2");
   heading.textContent = "Business Application";
@@ -1466,23 +1813,20 @@ async function loadProfileStats(userId) {
     ]);
 
   if (favoritesResult.error) {
-    console.log(favoritesResult.error);
-    showToast(favoritesResult.error.message);
+    showSafeError(favoritesResult.error, "Profile stats could not be loaded.");
   } else if (favoritesCount) {
     favoritesCount.innerText =
       favoritesResult.count || 0;
   }
 
   if (reviewsResult.error) {
-    console.log(reviewsResult.error);
-    showToast(reviewsResult.error.message);
+    showSafeError(reviewsResult.error, "Profile stats could not be loaded.");
   } else if (reviewsCount) {
     reviewsCount.innerText = reviewsResult.count || 0;
   }
 
   if (reservationsResult.error) {
-    console.log(reservationsResult.error);
-    showToast(reservationsResult.error.message);
+    showSafeError(reservationsResult.error, "Profile stats could not be loaded.");
   } else if (reservationsCount) {
     reservationsCount.innerText =
       reservationsResult.count || 0;
@@ -1606,8 +1950,7 @@ async function loadProfileNotifications(userId) {
       .limit(12);
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Notifications could not be loaded.");
     return;
   }
 
@@ -1632,8 +1975,7 @@ async function markNotificationRead(notificationId) {
       .eq("user_id", session.user.id);
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Notification could not be updated.");
     return;
   }
 
@@ -1729,8 +2071,7 @@ async function loadProfileBusinessApplications(userId) {
       .order("created_at", { ascending: false });
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Applications could not be loaded.");
     return;
   }
 
@@ -1753,6 +2094,13 @@ function setupBusinessApplicationForm(userId) {
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
 
+    if (form.dataset.submitting === "true") {
+      return;
+    }
+
+    form.dataset.submitting = "true";
+
+    try {
     const payload = {
       owner_id: userId,
       name: getAdminValue("businessApplicationName"),
@@ -1771,8 +2119,7 @@ function setupBusinessApplicationForm(userId) {
         .insert([payload]);
 
     if (error) {
-      console.log(error);
-      showToast(error.message);
+      showSafeError(error, "Application could not be submitted.");
       return;
     }
 
@@ -1780,6 +2127,11 @@ function setupBusinessApplicationForm(userId) {
     clearBusinessApplicationForm();
     await loadProfileBusinessApplications(userId);
     await setupBusinessProfileLink(userId);
+    } catch (error) {
+      showSafeError(error, "Application could not be submitted.");
+    } finally {
+      form.dataset.submitting = "false";
+    }
   });
 }
 
@@ -1803,8 +2155,7 @@ async function loadProfileReservations(userId) {
       .limit(8);
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Reservations could not be loaded.");
     return;
   }
 
@@ -1813,8 +2164,7 @@ async function loadProfileReservations(userId) {
   if (recentReservations.length === 0) {
     renderEmptyState(
       reservationsList,
-      "No reservations yet",
-      "Your reservation history will appear here."
+      "No reservations yet."
     );
     return;
   }
@@ -1934,8 +2284,7 @@ async function addFavorite(venueId) {
     ]);
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Favorite could not be added.");
     return;
   }
 
@@ -1974,8 +2323,7 @@ async function removeFavorite(venueId) {
     .eq("venue_id", venueId);
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Favorite could not be removed.");
     return;
   }
 
@@ -2019,8 +2367,7 @@ async function loadVenues() {
       .select("*");
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Venues could not be loaded.");
     return;
   }
 
@@ -2087,9 +2434,6 @@ function renderCityFilters(venues) {
   cities.forEach((city) => {
     const button = document.createElement("button");
     button.className = "city-filter-btn";
-    if (city === (window.selectedCity || "All")) {
-      button.classList.add("active-filter");
-    }
     button.textContent = city;
     button.addEventListener("click", () => {
       filterByCity(city);
@@ -2105,23 +2449,24 @@ function renderCategoryFilters() {
 
   if (!categoryFilters) return;
 
+  const categories = [["All", "All"], ...VENUE_CATEGORIES];
   categoryFilters.innerHTML = "";
 
-  [["All", "All"], ...VENUE_CATEGORIES].forEach(
-    ([category, label]) => {
-      const button = document.createElement("button");
-      button.className = "category-filter-btn";
-      if (category === (window.selectedCategory || "All")) {
-        button.classList.add("active-filter");
-      }
-      button.textContent = label;
-      button.addEventListener("click", () => {
-        filterByCategory(category);
-      });
+  categories.forEach(([value, label]) => {
+    const button = document.createElement("button");
+    button.className = "category-filter-btn";
+    button.dataset.category = value;
+    button.textContent = label;
+    button.addEventListener("click", () => {
+      filterByCategory(value);
+    });
 
-      categoryFilters.appendChild(button);
+    if ((window.selectedCategory || "All") === value) {
+      button.classList.add("active-filter");
     }
-  );
+
+    categoryFilters.appendChild(button);
+  });
 }
 
 function setupVenueSearch() {
@@ -2163,12 +2508,7 @@ function filterByCategory(category) {
   });
 
   categoryFilters.forEach((button) => {
-    const label =
-      category === "All"
-        ? "All"
-        : getVenueCategoryLabel(category);
-
-    if (button.innerText === label) {
+    if (button.dataset.category === category) {
       button.classList.add("active-filter");
     }
   });
@@ -2202,8 +2542,7 @@ function applyVenueFilters() {
   if (selectedCategory !== "All") {
     filtered = filtered.filter(
       (venue) =>
-        normalizeVenueCategory(venue.category) ===
-        selectedCategory
+        getVenueCategoryValue(venue) === selectedCategory
     );
   }
 
@@ -2211,17 +2550,16 @@ function applyVenueFilters() {
     filtered = filtered.filter((venue) => {
       const name = safeText(venue.name).toLowerCase();
       const city = safeText(venue.city).toLowerCase();
-      const category = getVenueCategoryLabel(
-        venue.category
-      ).toLowerCase();
       const description =
         safeText(venue.description).toLowerCase();
+      const category =
+        getVenueCategoryLabel(venue).toLowerCase();
 
       return (
         name.includes(searchValue) ||
         city.includes(searchValue) ||
-        category.includes(searchValue) ||
-        description.includes(searchValue)
+        description.includes(searchValue) ||
+        category.includes(searchValue)
       );
     });
   }
@@ -2258,8 +2596,7 @@ async function loadFavorites() {
       .eq("user_id", session.user.id);
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Favorites could not be loaded.");
     return;
   }
 
@@ -2295,8 +2632,7 @@ async function loadFavorites() {
       .in("id", venueIds);
 
   if (venuesError) {
-    console.log(venuesError);
-    showToast(venuesError.message);
+    showSafeError(venuesError, "Favorite venues could not be loaded.");
     return;
   }
 
@@ -2345,8 +2681,7 @@ async function loadEvents() {
       .select("*");
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Events could not be loaded.");
     return;
   }
 
@@ -2463,11 +2798,65 @@ function openEvent(id) {
   window.location.href = `./event.html?id=${id}`;
 }
 
+function setupVenueMobilePanels() {
+  const actions =
+    document.querySelectorAll("[data-open-panel]");
+  const panels =
+    document.querySelectorAll(".venue-mobile-panel");
+
+  if (!actions.length || !panels.length) return;
+
+  actions.forEach((button) => {
+    const panelName = button.dataset.openPanel;
+    const panel = document.querySelector(
+      `.venue-mobile-panel[data-panel="${panelName}"]`
+    );
+
+    if (panel && panel.classList.contains("is-open")) {
+      button.classList.add("is-active");
+      button.setAttribute("aria-expanded", "true");
+    } else {
+      button.setAttribute("aria-expanded", "false");
+    }
+  });
+
+  actions.forEach((button) => {
+    button.addEventListener("click", () => {
+      const panelName = button.dataset.openPanel;
+      const panel = document.querySelector(
+        `.venue-mobile-panel[data-panel="${panelName}"]`
+      );
+
+      if (!panel) return;
+
+      const shouldOpen =
+        !panel.classList.contains("is-open");
+
+      panels.forEach((item) => {
+        item.classList.remove("is-open");
+      });
+
+      actions.forEach((item) => {
+        item.classList.remove("is-active");
+        item.setAttribute("aria-expanded", "false");
+      });
+
+      if (shouldOpen) {
+        panel.classList.add("is-open");
+        button.classList.add("is-active");
+        button.setAttribute("aria-expanded", "true");
+      }
+    });
+  });
+}
+
 async function loadVenueDetails() {
   const venueName =
     document.getElementById("venueName");
 
   if (!venueName) return;
+
+  setupVenueMobilePanels();
 
   const params = new URLSearchParams(
     window.location.search
@@ -2475,47 +2864,44 @@ async function loadVenueDetails() {
 
   const id = params.get("id");
 
-  if (!id) return;
-
-  const { data: venue, error } =
-    await supabaseClient
-      .from("venues")
-      .select("*")
-      .eq("id", id)
-      .single();
-
-  if (error) {
-    console.log(error);
-    showToast(error.message);
+  if (!id) {
+    renderDetailUnavailable(
+      "Venue unavailable",
+      "This venue link is missing an ID."
+    );
     return;
   }
 
-  document.getElementById("venueImage").src =
-    getImage(venue.image);
+  let venue = null;
+  let error = null;
 
-  document
-    .getElementById("venueImage")
-    .setAttribute(
-      "onerror",
-      `this.src='${PLACEHOLDER_IMAGE}'`
-    );
-
-  document.getElementById("venueName").innerText =
-    safeText(venue.name);
-
-  document.getElementById("venueCity").innerText =
-    safeText(venue.city);
-
-  const venueCategory =
-    document.getElementById("venueCategory");
-
-  if (venueCategory) {
-    venueCategory.innerText =
-      getVenueCategoryLabel(venue.category);
+  try {
+    ({ data: venue, error } = await supabaseClient
+      .from("venues")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle());
+  } catch (requestError) {
+    error = requestError;
   }
 
-  document.getElementById("venueDescription").innerText =
-    safeText(venue.description);
+  if (error || !venue) {
+    console.log(error);
+    renderDetailUnavailable(
+      "Venue unavailable",
+      "This venue does not exist or cannot be loaded right now."
+    );
+    if (error) {
+      showToast(error.message || "Venue unavailable");
+    }
+    return;
+  }
+
+  setImageIfPresent("venueImage", venue.image);
+  setTextIfPresent("venueName", venue.name);
+  setTextIfPresent("venueCity", venue.city);
+  setTextIfPresent("venueCategory", getVenueCategoryLabel(venue));
+  setTextIfPresent("venueDescription", venue.description);
 
   renderVenueLocation(venue);
 
@@ -2543,17 +2929,33 @@ async function loadVenueDetails() {
   await loadUserReservations(venue.id);
   await setupReservationForm(venue.id);
 
-  const { data: events } =
-    await supabaseClient
+  let events = [];
+  let eventsError = null;
+
+  try {
+    ({ data: events, error: eventsError } = await supabaseClient
       .from("events")
       .select("*")
-      .eq("venue_id", venue.id);
+      .eq("venue_id", venue.id));
+  } catch (requestError) {
+    eventsError = requestError;
+  }
 
   const venueEvents =
     document.getElementById("venueEvents");
 
   if (venueEvents) {
     venueEvents.innerHTML = "";
+
+    if (eventsError) {
+      console.log(eventsError);
+      renderEmptyState(
+        venueEvents,
+        "Events unavailable",
+        "Events for this venue could not be loaded."
+      );
+      return;
+    }
 
     if (!events || events.length === 0) {
       renderEmptyState(
@@ -2590,36 +2992,42 @@ async function loadEventDetails() {
 
   const id = params.get("id");
 
-  if (!id) return;
-
-  const { data: event, error } =
-    await supabaseClient
-      .from("events")
-      .select("*")
-      .eq("id", id)
-      .single();
-
-  if (error) {
-    console.log(error);
-    showToast(error.message);
+  if (!id) {
+    renderDetailUnavailable(
+      "Event unavailable",
+      "This event link is missing an ID."
+    );
     return;
   }
 
-  document.getElementById("eventImage").src =
-    getImage(event.image);
+  let event = null;
+  let error = null;
 
-  document
-    .getElementById("eventImage")
-    .setAttribute(
-      "onerror",
-      `this.src='${PLACEHOLDER_IMAGE}'`
+  try {
+    ({ data: event, error } = await supabaseClient
+      .from("events")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle());
+  } catch (requestError) {
+    error = requestError;
+  }
+
+  if (error || !event) {
+    console.log(error);
+    renderDetailUnavailable(
+      "Event unavailable",
+      "This event does not exist or cannot be loaded right now."
     );
+    if (error) {
+      showToast(error.message || "Event unavailable");
+    }
+    return;
+  }
 
-  document.getElementById("eventTitle").innerText =
-    safeText(event.title);
-
-  document.getElementById("eventDate").innerText =
-    safeText(event.event_date);
+  setImageIfPresent("eventImage", event.image);
+  setTextIfPresent("eventTitle", event.title);
+  setTextIfPresent("eventDate", event.event_date);
 
   const eventDate = document.getElementById("eventDate");
 
@@ -2632,15 +3040,24 @@ async function loadEventDetails() {
 
   await refreshEventAttendance(event.id);
 
-  document.getElementById("eventDescription").innerText =
-    safeText(event.description);
+  setTextIfPresent("eventDescription", event.description);
 
-  const { data: venue } =
-    await supabaseClient
+  let venue = null;
+  let venueError = null;
+
+  try {
+    ({ data: venue, error: venueError } = await supabaseClient
       .from("venues")
       .select("*")
       .eq("id", event.venue_id)
-      .single();
+      .maybeSingle());
+  } catch (requestError) {
+    venueError = requestError;
+  }
+
+  if (venueError) {
+    console.log(venueError);
+  }
 
   const eventVenue =
     document.getElementById("eventVenue");
@@ -2655,9 +3072,7 @@ async function checkAdminAccess() {
 
   if (!adminPage) return null;
 
-  const {
-    data: { session },
-  } = await supabaseClient.auth.getSession();
+  const session = await getSafeSession();
 
   if (!session) {
     window.location.href = "./auth.html";
@@ -2755,14 +3170,19 @@ async function uploadAdminImage(file, folder) {
   const fileName = getSafeFileName(file.name);
   const filePath = `${folder}/${Date.now()}-${fileName}`;
 
-  const { error } =
-    await supabaseClient.storage
+  let error = null;
+
+  try {
+    ({ error } = await supabaseClient.storage
       .from(STORAGE_BUCKET)
-      .upload(filePath, file);
+      .upload(filePath, file));
+  } catch (uploadError) {
+    error = uploadError;
+  }
 
   if (error) {
     console.log(error);
-    showToast(error.message);
+    showToast(error.message || "Image upload failed");
     return "";
   }
 
@@ -2778,7 +3198,7 @@ function clearAdminVenueForm() {
   setAdminValue("adminVenueId", "");
   setAdminValue("adminVenueName", "");
   setAdminValue("adminVenueCity", "");
-  setAdminValue("adminVenueCategory", "other");
+  setAdminValue("adminVenueCategory", DEFAULT_VENUE_CATEGORY);
   setAdminValue("adminVenueImage", "");
   clearAdminFile("adminVenueImageFile");
   setAdminValue("adminVenueAddress", "");
@@ -2805,14 +3225,14 @@ function createAdminActions(onEdit, onDelete) {
   editButton.type = "button";
   editButton.className = "secondary-btn";
   editButton.textContent = "Edit";
-  editButton.addEventListener("click", onEdit);
+  bindReservationAction(editButton, onEdit);
   actions.appendChild(editButton);
 
   const deleteButton = document.createElement("button");
   deleteButton.type = "button";
   deleteButton.className = "admin-delete-btn";
   deleteButton.textContent = "Delete";
-  deleteButton.addEventListener("click", onDelete);
+  bindReservationAction(deleteButton, onDelete);
   actions.appendChild(deleteButton);
 
   return actions;
@@ -2850,7 +3270,7 @@ function renderAdminVenues(venues) {
     const meta = document.createElement("span");
     meta.className = "venue-meta";
     meta.textContent =
-      `#${venue.id} ${safeText(venue.city)} - ${getVenueCategoryLabel(venue.category)}`;
+      `#${venue.id} ${getVenueMetaLabel(venue)}`;
     content.appendChild(meta);
 
     const description = document.createElement("p");
@@ -2867,7 +3287,7 @@ function renderAdminVenues(venues) {
           setAdminValue("adminVenueCity", venue.city);
           setAdminValue(
             "adminVenueCategory",
-            normalizeVenueCategory(venue.category)
+            getVenueCategoryValue(venue)
           );
           setAdminValue("adminVenueImage", venue.image);
           setAdminValue(
@@ -2992,44 +3412,66 @@ function renderAdminReservations(reservations) {
 
   reservations.forEach((reservation) => {
     const item = document.createElement("div");
-    item.className = "admin-item";
+    item.className =
+      `admin-item reservation-management-card ${getReservationStatusClass(
+        reservation.status
+      )}`;
 
     const content = document.createElement("div");
+    content.className = "reservation-management-content";
+
+    const header = document.createElement("div");
+    header.className = "reservation-card-header";
 
     const title = document.createElement("h3");
     title.textContent =
-      `Venue #${safeText(reservation.venue_id)} - ${safeText(
-        reservation.reservation_date
-      )} ${safeText(reservation.reservation_time)}`;
-    content.appendChild(title);
+      `Venue #${safeText(reservation.venue_id)}`;
+    header.appendChild(title);
+    header.appendChild(createStatusBadge(reservation.status));
+    content.appendChild(header);
 
-    const meta = document.createElement("span");
-    meta.className = "venue-meta";
-    meta.textContent =
-      `${reservation.party_size} guests`;
+    const meta = document.createElement("div");
+    meta.className = "reservation-meta-grid";
+    meta.appendChild(
+      createReservationMeta(
+        "Date",
+        reservation.reservation_date
+      )
+    );
+    meta.appendChild(
+      createReservationMeta(
+        "Time",
+        reservation.reservation_time
+      )
+    );
+    meta.appendChild(
+      createReservationMeta(
+        "Guests",
+        `${reservation.party_size || 0}`
+      )
+    );
     content.appendChild(meta);
 
     const user = document.createElement("p");
+    user.className = "reservation-note";
     user.textContent =
       `User: ${safeText(reservation.user_id)}`;
     content.appendChild(user);
 
     if (reservation.note) {
       const note = document.createElement("p");
+      note.className = "reservation-note";
       note.textContent = reservation.note;
       content.appendChild(note);
     }
 
-    content.appendChild(createStatusBadge(reservation.status));
-
-    const actions = document.createElement("div");
-    actions.className = "admin-item-actions";
+    const actions = createReservationActions();
 
     const approveButton = document.createElement("button");
     approveButton.type = "button";
     approveButton.className = "btn";
     approveButton.textContent = "Approve";
-    approveButton.addEventListener("click", () => {
+    bindReservationAction(approveButton, () => {
       updateReservationStatus(reservation.id, "approved");
     });
     actions.appendChild(approveButton);
@@ -3038,7 +3480,7 @@ function renderAdminReservations(reservations) {
     rejectButton.type = "button";
     rejectButton.className = "admin-delete-btn";
     rejectButton.textContent = "Reject";
-    rejectButton.addEventListener("click", () => {
+    bindReservationAction(rejectButton, () => {
       updateReservationStatus(reservation.id, "rejected");
     });
     actions.appendChild(rejectButton);
@@ -3114,7 +3556,7 @@ function renderAdminBusinessApplications(businesses) {
     approveButton.type = "button";
     approveButton.className = "btn";
     approveButton.textContent = "Approve";
-    approveButton.addEventListener("click", () => {
+    bindReservationAction(approveButton, () => {
       updateBusinessApplicationStatus(
         business.id,
         "approved"
@@ -3126,7 +3568,7 @@ function renderAdminBusinessApplications(businesses) {
     rejectButton.type = "button";
     rejectButton.className = "admin-delete-btn";
     rejectButton.textContent = "Reject";
-    rejectButton.addEventListener("click", () => {
+    bindReservationAction(rejectButton, () => {
       const reason = prompt("Rejection reason");
 
       if (reason === null) return;
@@ -3167,8 +3609,7 @@ async function loadAdminVenues() {
       .order("id", { ascending: false });
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Venues could not be loaded.");
     return;
   }
 
@@ -3190,8 +3631,7 @@ async function loadAdminEvents() {
       .order("id", { ascending: false });
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Events could not be loaded.");
     return;
   }
 
@@ -3216,8 +3656,7 @@ async function loadAdminReservations() {
       .order("created_at", { ascending: false });
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Reservations could not be loaded.");
     return;
   }
 
@@ -3240,8 +3679,7 @@ async function loadAdminBusinessApplications() {
       .order("created_at", { ascending: false });
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Applications could not be loaded.");
     return;
   }
 
@@ -3280,9 +3718,9 @@ async function saveAdminVenue(event) {
   const payload = {
     name: getAdminValue("adminVenueName"),
     city: getAdminValue("adminVenueCity"),
-    category: normalizeVenueCategory(
-      getAdminValue("adminVenueCategory")
-    ),
+    category: getVenueCategoryValue({
+      category: getAdminValue("adminVenueCategory"),
+    }),
     image: uploadedImage || getAdminValue("adminVenueImage"),
     address: getAdminValue("adminVenueAddress"),
     latitude: hasLatitude ? Number(latitudeValue) : null,
@@ -3300,8 +3738,7 @@ async function saveAdminVenue(event) {
   const { error } = await request;
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Venue could not be saved.");
     return;
   }
 
@@ -3339,8 +3776,7 @@ async function saveAdminEvent(event) {
   const { error } = await request;
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Event could not be saved.");
     return;
   }
 
@@ -3359,8 +3795,7 @@ async function deleteAdminVenue(id) {
       .eq("id", id);
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Venue could not be deleted.");
     return;
   }
 
@@ -3379,8 +3814,7 @@ async function deleteAdminEvent(id) {
       .eq("id", id);
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Event could not be deleted.");
     return;
   }
 
@@ -3409,8 +3843,7 @@ async function updateReservationStatus(id, status) {
       .eq("id", id);
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Reservation status could not be updated.");
     return;
   }
 
@@ -3448,8 +3881,7 @@ async function updateBusinessApplicationStatus(
       .eq("id", id);
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Application status could not be updated.");
     return;
   }
 
@@ -3492,14 +3924,16 @@ function setupAdminForms() {
   if (adminVenueForm) {
     adminVenueForm.addEventListener(
       "submit",
-      saveAdminVenue
+      (event) =>
+        runGuardedFormSubmit(event, saveAdminVenue)
     );
   }
 
   if (adminEventForm) {
     adminEventForm.addEventListener(
       "submit",
-      saveAdminEvent
+      (event) =>
+        runGuardedFormSubmit(event, saveAdminEvent)
     );
   }
 
@@ -3768,7 +4202,10 @@ function clearBusinessVenueForm() {
   setAdminValue("businessVenueBusinessId", "");
   setAdminValue("businessVenueName", "");
   setAdminValue("businessVenueCity", "");
-  setAdminValue("businessVenueCategory", "other");
+  setAdminValue(
+    "businessVenueCategory",
+    DEFAULT_VENUE_CATEGORY
+  );
   setAdminValue("businessVenueImage", "");
   clearAdminFile("businessVenueImageFile");
   setAdminValue("businessVenueAddress", "");
@@ -3818,7 +4255,7 @@ function renderBusinessVenues(venues) {
     const meta = document.createElement("span");
     meta.className = "venue-meta";
     meta.textContent =
-      `#${venue.id} ${safeText(venue.city)} - ${getVenueCategoryLabel(venue.category)}`;
+      `#${venue.id} ${getVenueMetaLabel(venue)}`;
     content.appendChild(meta);
 
     if (venue.description) {
@@ -3840,7 +4277,7 @@ function renderBusinessVenues(venues) {
           setAdminValue("businessVenueCity", venue.city);
           setAdminValue(
             "businessVenueCategory",
-            normalizeVenueCategory(venue.category)
+            getVenueCategoryValue(venue)
           );
           setAdminValue("businessVenueImage", venue.image);
           setAdminValue(
@@ -3952,253 +4389,560 @@ function renderBusinessReservations(reservations) {
 
   list.innerHTML = "";
 
-  // Ensure activeReservationFilter is initialized
-  if (!businessDashboardState.activeReservationFilter) {
-    businessDashboardState.activeReservationFilter = "today";
-  }
-  const currentFilter = businessDashboardState.activeReservationFilter;
-
-  // Filter reservations based on active tab
-  const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm = String(today.getMonth() + 1).padStart(2, '0');
-  const dd = String(today.getDate()).padStart(2, '0');
-  const todayStr = `${yyyy}-${mm}-${dd}`;
-
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowY = tomorrow.getFullYear();
-  const tomorrowM = String(tomorrow.getMonth() + 1).padStart(2, '0');
-  const tomorrowD = String(tomorrow.getDate()).padStart(2, '0');
-  const tomorrowStr = `${tomorrowY}-${tomorrowM}-${tomorrowD}`;
-
-  let filtered = [];
-  if (currentFilter === "today") {
-    filtered = reservations.filter(r => r.reservation_date === todayStr);
-  } else if (currentFilter === "upcoming") {
-    filtered = reservations.filter(r => r.reservation_date > todayStr);
-  } else if (currentFilter === "pending") {
-    filtered = reservations.filter(r => {
-      const status = (r.status || "").toLowerCase().trim();
-      return status === "pending" || status === "";
-    });
-  } else if (currentFilter === "approved") {
-    filtered = reservations.filter(r => (r.status || "").toLowerCase().trim() === "approved");
-  } else if (currentFilter === "rejected") {
-    filtered = reservations.filter(r => (r.status || "").toLowerCase().trim() === "rejected");
-  }
-
-  // Set up the filter tabs visual active state in the DOM
-  const filterBar = document.getElementById("reservationsFilterBar");
-  if (filterBar) {
-    const tabs = filterBar.querySelectorAll(".filter-tab");
-    tabs.forEach(tab => {
-      if (tab.getAttribute("data-filter") === currentFilter) {
-        tab.classList.add("active");
-      } else {
-        tab.classList.remove("active");
-      }
-    });
-  }
-
-  if (filtered.length === 0) {
-    let emptyTitle = "No Reservations";
-    let emptyMsg = "No reservations found for this view.";
-    if (currentFilter === "today") {
-      emptyTitle = "No Reservations Today";
-      emptyMsg = "You don't have any reservation requests scheduled for today.";
-    } else if (currentFilter === "upcoming") {
-      emptyTitle = "No Upcoming Reservations";
-      emptyMsg = "No future reservations are currently scheduled.";
-    } else if (currentFilter === "pending") {
-      emptyTitle = "No Pending Requests";
-      emptyMsg = "Hooray! All reservation requests have been processed.";
-    } else if (currentFilter === "approved") {
-      emptyTitle = "No Approved Reservations";
-      emptyMsg = "You haven't approved any reservations yet.";
-    } else if (currentFilter === "rejected") {
-      emptyTitle = "No Rejected Reservations";
-      emptyMsg = "You haven't rejected any reservations.";
-    }
-    
-    renderEmptyState(list, emptyTitle, emptyMsg);
+  if (!reservations || reservations.length === 0) {
+    renderEmptyState(
+      list,
+      "No reservations yet",
+      "Reservations for your venues will appear here."
+    );
     return;
   }
 
-  // Sort reservations by date and then by time
-  filtered.sort((a, b) => {
-    if (a.reservation_date !== b.reservation_date) {
-      return a.reservation_date.localeCompare(b.reservation_date);
-    }
-    return a.reservation_time.localeCompare(b.reservation_time);
-  });
-
-  // Group by date
-  const groups = {};
-  filtered.forEach(r => {
-    const date = r.reservation_date;
-    if (!groups[date]) {
-      groups[date] = [];
-    }
-    groups[date].push(r);
-  });
-
   const fragment = document.createDocumentFragment();
+  const statuses = [
+    ["all", "All"],
+    ["pending", "Pending"],
+    ["approved", "Approved"],
+    ["rejected", "Rejected"],
+    ["cancelled", "Cancelled"],
+  ];
+  const activeStatus =
+    window.businessReservationStatusFilter || "all";
+  const counts = reservations.reduce((items, reservation) => {
+    const status = getReservationStatusValue(
+      reservation.status
+    );
+    items.all += 1;
+    items[status] = (items[status] || 0) + 1;
+    return items;
+  }, {
+    all: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    cancelled: 0,
+  });
 
-  // Helper for date header formatting
-  function formatGroupDate(dateStr) {
-    if (dateStr === todayStr) return "Today";
-    if (dateStr === tomorrowStr) return "Tomorrow";
-    
-    try {
-      const parts = dateStr.split('-');
-      if (parts.length === 3) {
-        const d = new Date(parts[0], parts[1] - 1, parts[2]);
-        return d.toLocaleDateString("en-US", {
-          weekday: "long",
-          month: "short",
-          day: "numeric",
-          year: "numeric"
-        });
-      }
-    } catch (e) {
-      console.error(e);
-    }
-    return dateStr;
+  const filters = document.createElement("div");
+  filters.className = "reservation-status-filters";
+
+  statuses.forEach(([value, label]) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className =
+      value === activeStatus
+        ? "reservation-status-filter active-filter"
+        : "reservation-status-filter";
+    button.textContent = `${label} ${counts[value] || 0}`;
+    button.addEventListener("click", () => {
+      window.businessReservationStatusFilter = value;
+      renderBusinessReservations(
+        businessDashboardState.reservations
+      );
+    });
+    filters.appendChild(button);
+  });
+
+  list.appendChild(filters);
+
+  const visibleReservations =
+    activeStatus === "all"
+      ? reservations
+      : reservations.filter(
+          (reservation) =>
+            getReservationStatusValue(reservation.status) ===
+            activeStatus
+        );
+
+  if (visibleReservations.length === 0) {
+    renderEmptyState(
+      list,
+      `No ${getReservationStatusLabel(activeStatus)} reservations`,
+      "New booking activity will appear here when it matches this status."
+    );
+    list.prepend(filters);
+    return;
   }
 
-  Object.keys(groups).forEach(date => {
-    // Create Date Group Container
-    const dateGroup = document.createElement("div");
-    dateGroup.className = "reservation-date-group";
+  const groupedStatuses =
+    activeStatus === "all"
+      ? statuses.filter(([value]) => value !== "all")
+      : statuses.filter(([value]) => value === activeStatus);
 
-    // Date Group Header
+  groupedStatuses.forEach(([statusValue, statusLabel]) => {
+    const groupReservations = visibleReservations.filter(
+      (reservation) =>
+        getReservationStatusValue(reservation.status) ===
+        statusValue
+    );
+
+    if (activeStatus === "all" && groupReservations.length === 0) {
+      return;
+    }
+
+    const group = document.createElement("section");
+    group.className =
+      `reservation-inbox-group ${getReservationStatusClass(
+        statusValue
+      )}`;
+
     const groupHeader = document.createElement("div");
-    groupHeader.className = "reservation-date-header";
-    
-    const headerTitle = document.createElement("h4");
-    headerTitle.textContent = formatGroupDate(date);
-    groupHeader.appendChild(headerTitle);
+    groupHeader.className = "reservation-inbox-group-header";
 
-    const countBadge = document.createElement("span");
-    countBadge.className = "date-count-badge";
-    countBadge.textContent = `${groups[date].length} reservation${groups[date].length > 1 ? 's' : ''}`;
-    groupHeader.appendChild(countBadge);
+    const heading = document.createElement("h3");
+    heading.textContent = statusLabel;
+    groupHeader.appendChild(heading);
 
-    dateGroup.appendChild(groupHeader);
+    const count = document.createElement("span");
+    count.textContent = `${groupReservations.length}`;
+    groupHeader.appendChild(count);
 
-    // Cards list container for this date
-    const cardsContainer = document.createElement("div");
-    cardsContainer.className = "reservation-cards-container";
+    group.appendChild(groupHeader);
 
-    groups[date].forEach(reservation => {
-      const card = document.createElement("div");
-      card.className = "reservation-card-v2";
-      card.classList.add(`status-${(reservation.status || "pending").toLowerCase()}`);
+    const groupList = document.createElement("div");
+    groupList.className = "reservation-inbox-list";
 
-      const mainContent = document.createElement("div");
-      mainContent.className = "res-card-main";
-
-      const topRow = document.createElement("div");
-      topRow.className = "res-card-top";
-
-      const venueName = document.createElement("span");
-      venueName.className = "res-venue-name";
-      venueName.textContent = getBusinessDashboardVenueName(reservation.venue_id);
-      topRow.appendChild(venueName);
-
-      const statusBadge = createStatusBadge(reservation.status);
-      topRow.appendChild(statusBadge);
-      mainContent.appendChild(topRow);
-
-      const infoRow = document.createElement("div");
-      infoRow.className = "res-info-row";
-
-      // Time Info
-      const timeInfo = document.createElement("div");
-      timeInfo.className = "res-info-item";
-      timeInfo.innerHTML = `
-        <svg class="res-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"></circle>
-          <polyline points="12 6 12 12 16 14"></polyline>
-        </svg>
-        <span>${safeText(reservation.reservation_time)}</span>
-      `;
-      infoRow.appendChild(timeInfo);
-
-      // Party Size Info
-      const partyInfo = document.createElement("div");
-      partyInfo.className = "res-info-item";
-      partyInfo.innerHTML = `
-        <svg class="res-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-          <circle cx="9" cy="7" r="4"></circle>
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-        </svg>
-        <span><strong>${reservation.party_size}</strong> guest${reservation.party_size > 1 ? 's' : ''}</span>
-      `;
-      infoRow.appendChild(partyInfo);
-
-      mainContent.appendChild(infoRow);
-
-      if (reservation.note) {
-        const noteBlock = document.createElement("div");
-        noteBlock.className = "res-note-block";
-        noteBlock.textContent = reservation.note;
-        mainContent.appendChild(noteBlock);
-      }
-
-      card.appendChild(mainContent);
-
-      // Actions container - Keep Approve/Reject strictly for pending
-      const statusClean = (reservation.status || "").toLowerCase().trim();
-      if (statusClean === "pending" || !statusClean) {
-        const actions = document.createElement("div");
-        actions.className = "res-card-actions";
-
-        const approveButton = document.createElement("button");
-        approveButton.type = "button";
-        approveButton.className = "res-btn-approve";
-        approveButton.innerHTML = `
-          <svg class="res-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
-          Approve
-        `;
-        approveButton.addEventListener("click", (e) => {
-          e.stopPropagation();
-          updateBusinessReservationStatus(reservation.id, "approved");
-        });
-        actions.appendChild(approveButton);
-
-        const rejectButton = document.createElement("button");
-        rejectButton.type = "button";
-        rejectButton.className = "res-btn-reject";
-        rejectButton.innerHTML = `
-          <svg class="res-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-          Reject
-        `;
-        rejectButton.addEventListener("click", (e) => {
-          e.stopPropagation();
-          updateBusinessReservationStatus(reservation.id, "rejected");
-        });
-        actions.appendChild(rejectButton);
-
-        card.appendChild(actions);
-      }
-
-      cardsContainer.appendChild(card);
+    groupReservations.forEach((reservation) => {
+      groupList.appendChild(
+        createBusinessReservationCard(reservation)
+      );
     });
 
-    dateGroup.appendChild(cardsContainer);
-    fragment.appendChild(dateGroup);
+    group.appendChild(groupList);
+    fragment.appendChild(group);
   });
 
   list.appendChild(fragment);
+}
+
+function getWeekDates() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(today);
+    date.setDate(today.getDate() + index);
+    return date;
+  });
+}
+
+function normalizeReservationDate(value) {
+  if (!value) return "";
+
+  const date =
+    value instanceof Date
+      ? new Date(value)
+      : new Date(`${value}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) return "";
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function normalizeReservationTime(value) {
+  const time = safeText(value).trim();
+
+  if (!time) return "";
+
+  const match = time.match(/^(\d{1,2}):?(\d{2})?/);
+
+  if (!match) return time;
+
+  const hour = Math.min(Math.max(Number(match[1]), 0), 23);
+  const minute = match[2] ? Number(match[2]) : 0;
+
+  return `${String(hour).padStart(2, "0")}:${String(
+    Number.isNaN(minute) ? 0 : minute
+  ).padStart(2, "0")}`;
+}
+
+function getReservationTimeLabel(time) {
+  if (!time) return "Time not set";
+
+  const [hourValue, minuteValue = "00"] = time.split(":");
+  const hour = Number(hourValue);
+
+  if (Number.isNaN(hour)) return time;
+
+  const period = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour % 12 || 12;
+
+  return `${displayHour}:${minuteValue} ${period}`;
+}
+
+function isApprovedScheduleReservation(reservation) {
+  const normalizedStatus = String(
+    reservation.status || ""
+  ).trim().toLowerCase();
+  const isApprovedReservation = [
+    "approved",
+    "approve",
+    "accepted",
+    "confirmed",
+    "onaylandı",
+    "onaylandı",
+    "onaylandi",
+  ].includes(normalizedStatus);
+
+  return isApprovedReservation;
+}
+
+function getScheduleReservationDate(reservation) {
+  return (
+    reservation.reservation_date ||
+    reservation.date ||
+    reservation.booking_date
+  );
+}
+
+function getScheduleReservationTime(reservation) {
+  return (
+    reservation.reservation_time ||
+    reservation.time ||
+    reservation.booking_time
+  );
+}
+
+function getScheduleTimeSlots() {
+  return [
+    ...Array.from({ length: 14 }, (_, index) => index + 10),
+    0,
+    1,
+    2,
+    3,
+  ].map((hour) => `${String(hour).padStart(2, "0")}:00`);
+}
+
+function getScheduleHourSlot(time) {
+  const normalizedTime = normalizeReservationTime(time);
+
+  if (!normalizedTime) return "";
+
+  const [hourValue] = normalizedTime.split(":");
+  const hour = Number(hourValue);
+
+  if (Number.isNaN(hour)) return "";
+
+  return `${String(hour).padStart(2, "0")}:00`;
+}
+
+function getRelatedReservationRecord(record, key) {
+  const value = record && record[key];
+
+  if (Array.isArray(value)) {
+    return value.length ? value[0] : null;
+  }
+
+  return value || null;
+}
+
+function getScheduleCustomerName(reservation) {
+  const profiles = getRelatedReservationRecord(
+    reservation,
+    "profiles"
+  );
+  const profile = getRelatedReservationRecord(
+    reservation,
+    "profile"
+  );
+
+  return (
+    safeText(reservation.user_name) ||
+    safeText(reservation.customer_name) ||
+    safeText(reservation.guest_name) ||
+    safeText(profiles && profiles.full_name) ||
+    safeText(profile && profile.full_name) ||
+    safeText(reservation["profiles.full_name"]) ||
+    safeText(reservation["profile.full_name"]) ||
+    safeText(reservation.user_email) ||
+    safeText(reservation.email) ||
+    "Guest"
+  );
+}
+
+function getScheduleVenueName(reservation) {
+  const venues = getRelatedReservationRecord(
+    reservation,
+    "venues"
+  );
+  const venue = getRelatedReservationRecord(
+    reservation,
+    "venue"
+  );
+
+  return (
+    safeText(reservation.venue_name) ||
+    safeText(venues && venues.name) ||
+    safeText(venue && venue.name) ||
+    safeText(reservation["venues.name"]) ||
+    safeText(reservation["venue.name"]) ||
+    safeText(reservation.business_name) ||
+    safeText(getBusinessDashboardVenueName(reservation.venue_id)) ||
+    "Venue"
+  );
+}
+
+function buildBusinessReservationSchedule(reservations) {
+  const weekDates = getWeekDates();
+  const weekKeys = weekDates.map((date) =>
+    normalizeReservationDate(date)
+  );
+  const slots = getScheduleTimeSlots();
+  const approvedReservations = (reservations || []).filter(
+    isApprovedScheduleReservation
+  );
+  const entriesByDateTime = {};
+
+  approvedReservations.forEach((reservation) => {
+    const date = normalizeReservationDate(
+      getScheduleReservationDate(reservation)
+    );
+    const time = getScheduleHourSlot(
+      getScheduleReservationTime(reservation)
+    );
+
+    if (
+      !date ||
+      !time ||
+      !weekKeys.includes(date) ||
+      !slots.includes(time)
+    ) {
+      return;
+    }
+
+    const key = `${date}|${time}`;
+    entriesByDateTime[key] = entriesByDateTime[key] || [];
+    entriesByDateTime[key].push({
+      date,
+      time,
+      customerName: getScheduleCustomerName(reservation),
+      venueName: getScheduleVenueName(reservation),
+      partySize: Number(reservation.party_size) || 0,
+    });
+  });
+
+  return {
+    weekDates,
+    weekKeys,
+    slots,
+    entriesByDateTime,
+  };
+}
+
+function createReservationScheduleBadge() {
+  return createStatusBadge("approved");
+}
+
+function createReservationScheduleBooking(entries) {
+  const item = document.createElement("div");
+  item.className = "reservation-schedule-item";
+
+  if (entries.length === 1) {
+    const booking = entries[0];
+    const name = document.createElement("strong");
+    name.textContent = booking.customerName;
+    item.appendChild(name);
+
+    const venue = document.createElement("span");
+    venue.textContent = booking.venueName;
+    item.appendChild(venue);
+
+    const party = document.createElement("span");
+    party.textContent = `${booking.partySize || 0} guests`;
+    item.appendChild(party);
+
+    item.appendChild(createReservationScheduleBadge());
+    return item;
+  }
+
+  const totalGuests = entries.reduce(
+    (sum, entry) => sum + (Number(entry.partySize) || 0),
+    0
+  );
+  const heading = document.createElement("strong");
+  heading.textContent = `${entries.length} bookings`;
+  item.appendChild(heading);
+
+  const guests = document.createElement("span");
+  guests.textContent = `${totalGuests} guests`;
+  item.appendChild(guests);
+
+  const names = document.createElement("span");
+  names.textContent = entries
+    .map((entry) => entry.customerName)
+    .filter(Boolean)
+    .join(", ");
+  item.appendChild(names);
+
+  const venues = document.createElement("span");
+  venues.textContent = [
+    ...new Set(entries.map((entry) => entry.venueName)),
+  ].join(", ");
+  item.appendChild(venues);
+
+  item.appendChild(createReservationScheduleBadge());
+  return item;
+}
+
+function renderBusinessReservationSchedule(reservations) {
+  const container =
+    document.getElementById("businessReservationSchedule");
+
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  const schedule =
+    buildBusinessReservationSchedule(reservations || []);
+
+  const table = document.createElement("div");
+  table.className = "reservation-schedule-table";
+  table.style.setProperty(
+    "--schedule-columns",
+    `${schedule.weekDates.length + 1}`
+  );
+
+  const emptyCorner = document.createElement("div");
+  emptyCorner.className =
+    "reservation-schedule-cell reservation-schedule-head";
+  emptyCorner.textContent = "Time";
+  table.appendChild(emptyCorner);
+
+  schedule.weekDates.forEach((date) => {
+    const header = document.createElement("div");
+    header.className =
+      "reservation-schedule-cell reservation-schedule-head";
+    header.textContent = date.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
+    table.appendChild(header);
+  });
+
+  schedule.slots.forEach((slot) => {
+    const timeCell = document.createElement("div");
+    timeCell.className =
+      "reservation-schedule-cell reservation-schedule-time";
+    timeCell.textContent = getReservationTimeLabel(slot);
+    table.appendChild(timeCell);
+
+    schedule.weekKeys.forEach((dateKey) => {
+      const cell = document.createElement("div");
+      const entries =
+        schedule.entriesByDateTime[`${dateKey}|${slot}`] || [];
+
+      if (entries.length === 0) {
+        cell.className =
+          "reservation-schedule-cell reservation-schedule-available";
+        const available = document.createElement("span");
+        available.className = "reservation-schedule-empty";
+        available.textContent = "Available";
+        cell.appendChild(available);
+      } else {
+        cell.className =
+          "reservation-schedule-cell reservation-schedule-occupied";
+        cell.appendChild(createReservationScheduleBooking(entries));
+      }
+
+      table.appendChild(cell);
+    });
+  });
+
+  container.appendChild(table);
+}
+
+function createBusinessReservationCard(reservation) {
+  const item = document.createElement("div");
+  item.className =
+    `admin-item reservation-management-card ${getReservationStatusClass(
+      reservation.status
+    )}`;
+
+  const content = document.createElement("div");
+  content.className = "reservation-management-content";
+
+  const header = document.createElement("div");
+  header.className = "reservation-card-header";
+
+  const title = document.createElement("h3");
+  title.textContent =
+    getBusinessDashboardVenueName(reservation.venue_id);
+  header.appendChild(title);
+  header.appendChild(createStatusBadge(reservation.status));
+  content.appendChild(header);
+
+  const meta = document.createElement("div");
+  meta.className = "reservation-meta-grid";
+  meta.appendChild(
+    createReservationMeta(
+      "Guest",
+      getReservationGuestLabel(reservation)
+    )
+  );
+  meta.appendChild(
+    createReservationMeta("Date", reservation.reservation_date)
+  );
+  meta.appendChild(
+    createReservationMeta("Time", reservation.reservation_time)
+  );
+  meta.appendChild(
+    createReservationMeta(
+      "Party",
+      `${reservation.party_size || 0}`
+    )
+  );
+  content.appendChild(meta);
+
+  if (reservation.note) {
+    content.appendChild(createReservationNote(reservation.note));
+  }
+
+  const actions = createReservationActions();
+
+  if (isPendingReservation(reservation)) {
+    const approveButton = document.createElement("button");
+    approveButton.type = "button";
+    approveButton.className = "btn";
+    approveButton.textContent = "Approve";
+    bindReservationAction(approveButton, () => {
+      updateBusinessReservationStatus(
+        reservation.id,
+        "approved"
+      );
+    });
+    actions.appendChild(approveButton);
+
+    const rejectButton = document.createElement("button");
+    rejectButton.type = "button";
+    rejectButton.className = "admin-delete-btn";
+    rejectButton.textContent = "Reject";
+    bindReservationAction(rejectButton, () => {
+      updateBusinessReservationStatus(
+        reservation.id,
+        "rejected"
+      );
+    });
+    actions.appendChild(rejectButton);
+  }
+
+  const messageButton = document.createElement("button");
+  messageButton.type = "button";
+  messageButton.className = "secondary-btn";
+  messageButton.textContent = "Message User";
+  bindReservationAction(messageButton, () => {
+    openReservationConversation(reservation.id);
+  });
+  actions.appendChild(messageButton);
+
+  item.appendChild(content);
+  item.appendChild(actions);
+
+  return item;
 }
 
 async function loadBusinessBusinesses(session) {
@@ -4210,8 +4954,7 @@ async function loadBusinessBusinesses(session) {
       .order("created_at", { ascending: false });
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Businesses could not be loaded.");
     return [];
   }
 
@@ -4231,8 +4974,7 @@ async function loadBusinessVenues() {
       .order("id", { ascending: false });
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Venues could not be loaded.");
     return [];
   }
 
@@ -4252,8 +4994,7 @@ async function loadBusinessEvents() {
       .order("id", { ascending: false });
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Events could not be loaded.");
     return [];
   }
 
@@ -4273,8 +5014,7 @@ async function loadBusinessReservations() {
       .order("created_at", { ascending: false });
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Reservations could not be loaded.");
     return [];
   }
 
@@ -4349,16 +5089,14 @@ async function loadBusinessAnalytics() {
   ] = await Promise.all(statsRequests);
 
   if (favoritesResult.error) {
-    console.log(favoritesResult.error);
-    showToast(favoritesResult.error.message);
+    showSafeError(favoritesResult.error, "Analytics could not be fully loaded.");
   } else {
     analytics.totalFavorites =
       (favoritesResult.data || []).length;
   }
 
   if (reviewsResult.error) {
-    console.log(reviewsResult.error);
-    showToast(reviewsResult.error.message);
+    showSafeError(reviewsResult.error, "Analytics could not be fully loaded.");
   } else {
     const reviews = reviewsResult.data || [];
     analytics.totalReviews = reviews.length;
@@ -4373,8 +5111,7 @@ async function loadBusinessAnalytics() {
   }
 
   if (attendeesResult.error) {
-    console.log(attendeesResult.error);
-    showToast(attendeesResult.error.message);
+    showSafeError(attendeesResult.error, "Analytics could not be fully loaded.");
   } else {
     analytics.totalAttendees =
       (attendeesResult.data || []).length;
@@ -4400,6 +5137,7 @@ async function refreshBusinessDashboard() {
     renderBusinessVenues([]);
     renderBusinessEvents([]);
     renderBusinessReservations([]);
+    renderBusinessReservationSchedule([]);
     return;
   }
 
@@ -4413,6 +5151,9 @@ async function refreshBusinessDashboard() {
   businessDashboardState.reservations =
     await loadBusinessReservations();
   renderBusinessReservations(
+    businessDashboardState.reservations
+  );
+  renderBusinessReservationSchedule(
     businessDashboardState.reservations
   );
 
@@ -4465,9 +5206,9 @@ async function saveBusinessVenue(event) {
     business_id: businessId,
     name: getAdminValue("businessVenueName"),
     city: getAdminValue("businessVenueCity"),
-    category: normalizeVenueCategory(
-      getAdminValue("businessVenueCategory")
-    ),
+    category: getVenueCategoryValue({
+      category: getAdminValue("businessVenueCategory"),
+    }),
     image:
       uploadedImage || getAdminValue("businessVenueImage"),
     address: getAdminValue("businessVenueAddress"),
@@ -4487,8 +5228,7 @@ async function saveBusinessVenue(event) {
   const { error } = await request;
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Venue could not be saved.");
     return;
   }
 
@@ -4545,8 +5285,7 @@ async function saveBusinessEvent(event) {
   const { error } = await request;
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Event could not be saved.");
     return;
   }
 
@@ -4571,8 +5310,7 @@ async function deleteBusinessVenue(id) {
       .in("business_id", getBusinessDashboardBusinessIds());
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Venue could not be deleted.");
     return;
   }
 
@@ -4600,8 +5338,7 @@ async function deleteBusinessEvent(id) {
       .in("venue_id", getBusinessDashboardVenueIds());
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Event could not be deleted.");
     return;
   }
 
@@ -4628,14 +5365,846 @@ async function updateBusinessReservationStatus(id, status) {
       .in("venue_id", getBusinessDashboardVenueIds());
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Reservation status could not be updated.");
     return;
   }
 
   showToast(`Reservation ${status}`);
-  await notifyUserReservationStatus(reservation, status);
+  notifyUserReservationStatus(reservation, status);
   await refreshBusinessDashboard();
+}
+
+function getConversationIdFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("conversation");
+}
+
+let messageUnreadCountsByConversationId = {};
+
+function getConversationIdFromNotificationLink(linkUrl) {
+  if (!linkUrl) return "";
+
+  try {
+    const url = new URL(linkUrl, window.location.href);
+    const path = url.pathname.split("/").pop();
+
+    if (path !== "messages.html") return "";
+
+    return url.searchParams.get("conversation") || "";
+  } catch (error) {
+    console.log(error);
+    return "";
+  }
+}
+
+async function loadMessageUnreadCounts(userId) {
+  if (!userId) return {};
+
+  const { data, error } =
+    await supabaseClient
+      .from("notifications")
+      .select("id, link_url")
+      .eq("user_id", userId)
+      .eq("is_read", false);
+
+  if (error) {
+    console.log(error);
+    return {};
+  }
+
+  const counts = {};
+
+  (data || []).forEach((notification) => {
+    const conversationId =
+      getConversationIdFromNotificationLink(
+        notification.link_url
+      );
+
+    if (!conversationId) return;
+
+    counts[String(conversationId)] =
+      (counts[String(conversationId)] || 0) + 1;
+  });
+
+  return counts;
+}
+
+async function markConversationNotificationsRead(
+  userId,
+  conversationId
+) {
+  if (!userId || !conversationId) return;
+
+  const { data, error } =
+    await supabaseClient
+      .from("notifications")
+      .select("id, link_url")
+      .eq("user_id", userId)
+      .eq("is_read", false);
+
+  if (error) {
+    console.log(error);
+    return;
+  }
+
+  const notificationIds = (data || [])
+    .filter(
+      (notification) =>
+        String(
+          getConversationIdFromNotificationLink(
+            notification.link_url
+          )
+        ) === String(conversationId)
+    )
+    .map((notification) => notification.id)
+    .filter(Boolean);
+
+  if (notificationIds.length === 0) return;
+
+  const { error: updateError } =
+    await supabaseClient
+      .from("notifications")
+      .update({ is_read: true })
+      .eq("user_id", userId)
+      .in("id", notificationIds);
+
+  if (updateError) {
+    console.log(updateError);
+  }
+}
+
+function getConversationIdFromRpcResult(data) {
+  if (!data) return "";
+
+  if (typeof data === "string" || typeof data === "number") {
+    return String(data);
+  }
+
+  if (Array.isArray(data)) {
+    return getConversationIdFromRpcResult(data[0]);
+  }
+
+  return String(
+    data.id ||
+      data.conversation_id ||
+      data.get_or_create_reservation_conversation ||
+      ""
+  );
+}
+
+function getConversationTitle(conversation) {
+  if (!conversation) return "Reservation conversation";
+
+  if (conversation.reservation_id) {
+    return `Reservation #${conversation.reservation_id}`;
+  }
+
+  return `Conversation #${safeText(conversation.id)}`;
+}
+
+function getConversationSubtitle(conversation) {
+  const parts = [];
+
+  if (conversation.venue_id) {
+    parts.push(`Venue #${conversation.venue_id}`);
+  }
+
+  if (conversation.updated_at || conversation.created_at) {
+    parts.push(
+      formatNotificationDate(
+        conversation.updated_at || conversation.created_at
+      )
+    );
+  }
+
+  return parts.filter(Boolean).join(" - ");
+}
+
+function getConversationRoleLabel(conversation, userId) {
+  if (!conversation || !userId) return "";
+
+  if (String(conversation.user_id) === String(userId)) {
+    return "Guest side";
+  }
+
+  if (
+    String(conversation.business_owner_id) === String(userId)
+  ) {
+    return "Business side";
+  }
+
+  return "";
+}
+
+function getMessageSenderLabel(message, conversation, userId) {
+  if (String(message.sender_id) === String(userId)) {
+    return "You";
+  }
+
+  if (
+    conversation &&
+    String(message.sender_id) === String(conversation.user_id)
+  ) {
+    return "Guest";
+  }
+
+  if (
+    conversation &&
+    String(message.sender_id) ===
+      String(conversation.business_owner_id)
+  ) {
+    return "Business";
+  }
+
+  return "Message";
+}
+
+function getConversationPreview(messages) {
+  const lastMessage = (messages || [])
+    .slice()
+    .reverse()
+    .find((message) => safeText(message.body).trim());
+
+  if (!lastMessage) return "";
+
+  const body = safeText(lastMessage.body).trim();
+
+  return body.length > 96
+    ? `${body.slice(0, 96).trim()}...`
+    : body;
+}
+
+function updateConversationHeader(conversation, userId) {
+  const header = document.getElementById("conversationHeader");
+
+  if (!header) return;
+
+  header.innerHTML = "";
+
+  const kicker = document.createElement("span");
+  kicker.className = "messages-kicker";
+  kicker.textContent = getConversationRoleLabel(
+    conversation,
+    userId
+  ) || "Reservation Thread";
+  header.appendChild(kicker);
+
+  const title = document.createElement("h2");
+  title.textContent = getConversationTitle(conversation);
+  header.appendChild(title);
+
+  const subtitle = getConversationSubtitle(conversation);
+
+  if (subtitle) {
+    const paragraph = document.createElement("p");
+    paragraph.textContent = subtitle;
+    header.appendChild(paragraph);
+  }
+}
+
+function resetConversationHeader() {
+  const header = document.getElementById("conversationHeader");
+
+  if (!header) return;
+
+  header.innerHTML = "";
+
+  const kicker = document.createElement("span");
+  kicker.className = "messages-kicker";
+  kicker.textContent = "Reservation Thread";
+  header.appendChild(kicker);
+
+  const title = document.createElement("h2");
+  title.textContent = "Conversation";
+  header.appendChild(title);
+
+  const paragraph = document.createElement("p");
+  paragraph.textContent =
+    "Choose a reservation conversation from your inbox.";
+  header.appendChild(paragraph);
+}
+
+function updateMessageThreadUnreadBadge(
+  conversationId,
+  unreadCount
+) {
+  const thread = [
+    ...document.querySelectorAll(".message-thread"),
+  ].find((item) => {
+    const href = item.getAttribute("href");
+
+    return (
+      String(getConversationIdFromNotificationLink(href)) ===
+      String(conversationId)
+    );
+  });
+
+  if (!thread) return;
+
+  const badge = thread.querySelector(".message-unread-badge");
+
+  if (unreadCount > 0) {
+    thread.classList.add("unread");
+
+    if (badge) {
+      badge.textContent =
+        unreadCount > 9 ? "9+" : String(unreadCount);
+    }
+
+    return;
+  }
+
+  thread.classList.remove("unread");
+
+  if (badge) {
+    badge.remove();
+  }
+}
+
+function setMessageFormEnabled(isEnabled) {
+  const form = document.getElementById("messageForm");
+  const bodyInput = document.getElementById("messageBody");
+  const button = form
+    ? form.querySelector("button[type='submit']")
+    : null;
+
+  if (bodyInput) {
+    bodyInput.disabled = !isEnabled;
+  }
+
+  if (button) {
+    button.disabled = !isEnabled;
+  }
+}
+
+async function openReservationConversation(reservationId) {
+  if (!reservationId) {
+    showToast("Reservation not found");
+    return;
+  }
+
+  const {
+    data: { session },
+  } = await supabaseClient.auth.getSession();
+
+  if (!session) {
+    window.location.href = "./auth.html";
+    return;
+  }
+
+  let data = null;
+  let error = null;
+
+  try {
+    ({ data, error } = await supabaseClient.rpc(
+      "get_or_create_reservation_conversation",
+      {
+        p_reservation_id: reservationId,
+      }
+    ));
+  } catch (rpcError) {
+    error = rpcError;
+  }
+
+  if (error) {
+    console.log(error);
+    showToast(error.message || "Conversation unavailable");
+    return;
+  }
+
+  const conversationId = getConversationIdFromRpcResult(data);
+
+  if (!conversationId) {
+    showToast("Conversation unavailable");
+    return;
+  }
+
+  window.location.href =
+    `./messages.html?conversation=${encodeURIComponent(
+      conversationId
+    )}`;
+}
+
+async function loadMessageInbox() {
+  const list = document.getElementById("messagesList");
+
+  if (!list) return [];
+
+  renderEmptyState(list, "Loading messages...");
+
+  const { data, error } =
+    await supabaseClient
+      .from("message_conversations")
+      .select("*")
+      .order("updated_at", { ascending: false });
+
+  if (error) {
+    console.log(error);
+    renderEmptyState(
+      list,
+      "Messages unavailable",
+      "You may not have access to these conversations."
+    );
+    return [];
+  }
+
+  const conversations = data || [];
+  await hydrateConversationPreviews(conversations);
+  renderMessageInbox(conversations);
+  return conversations;
+}
+
+async function hydrateConversationPreviews(conversations) {
+  if (!conversations || conversations.length === 0) return;
+
+  const conversationIds = conversations
+    .map((conversation) => conversation.id)
+    .filter(Boolean);
+
+  if (conversationIds.length === 0) return;
+
+  const { data, error } =
+    await supabaseClient
+      .from("messages")
+      .select("conversation_id, body, created_at")
+      .in("conversation_id", conversationIds)
+      .order("created_at", { ascending: false });
+
+  if (error) {
+    console.log(error);
+    return;
+  }
+
+  const previewsById = {};
+
+  (data || []).forEach((message) => {
+    const conversationId = String(message.conversation_id);
+
+    if (previewsById[conversationId]) return;
+
+    previewsById[conversationId] = safeText(message.body);
+  });
+
+  conversations.forEach((conversation) => {
+    conversation.last_message_preview =
+      previewsById[String(conversation.id)] || "";
+  });
+}
+
+function renderMessageInbox(conversations) {
+  const list = document.getElementById("messagesList");
+
+  if (!list) return;
+
+  list.innerHTML = "";
+
+  if (!conversations || conversations.length === 0) {
+    renderEmptyState(
+      list,
+      "No messages yet",
+      "Reservation conversations will appear here."
+    );
+    return;
+  }
+
+  const activeConversationId = getConversationIdFromUrl();
+  const fragment = document.createDocumentFragment();
+
+  conversations.forEach((conversation) => {
+    const unreadCount =
+      messageUnreadCountsByConversationId[
+        String(conversation.id)
+      ] || 0;
+    const link = document.createElement("a");
+    link.href = `./messages.html?conversation=${encodeURIComponent(
+      conversation.id
+    )}`;
+    link.className =
+      String(conversation.id) === String(activeConversationId)
+        ? "message-thread active"
+        : "message-thread";
+
+    if (unreadCount > 0) {
+      link.classList.add("unread");
+    }
+
+    const topRow = document.createElement("div");
+    topRow.className = "message-thread-top";
+
+    const title = document.createElement("strong");
+    title.textContent = getConversationTitle(conversation);
+    topRow.appendChild(title);
+
+    if (unreadCount > 0) {
+      const badge = document.createElement("span");
+      badge.className = "message-unread-badge";
+      badge.textContent =
+        unreadCount > 9 ? "9+" : String(unreadCount);
+      topRow.appendChild(badge);
+    }
+
+    link.appendChild(topRow);
+
+    const subtitle = getConversationSubtitle(conversation);
+
+    if (subtitle) {
+      const meta = document.createElement("span");
+      meta.className = "message-thread-meta";
+      meta.textContent = subtitle;
+      link.appendChild(meta);
+    }
+
+    if (conversation.last_message_preview) {
+      const preview = document.createElement("p");
+      preview.className = "message-thread-preview";
+      preview.textContent = conversation.last_message_preview;
+      link.appendChild(preview);
+    }
+
+    fragment.appendChild(link);
+  });
+
+  list.appendChild(fragment);
+}
+
+async function loadConversation(conversationId) {
+  const panel = document.getElementById("conversationPanel");
+  const messagesContainer =
+    document.getElementById("conversationMessages");
+
+  if (!panel || !messagesContainer) return null;
+
+  if (!conversationId) {
+    setMessageFormEnabled(false);
+    resetConversationHeader();
+    renderEmptyState(
+      messagesContainer,
+      "Choose a conversation",
+      "Open a reservation conversation from your inbox."
+    );
+    return null;
+  }
+
+  renderEmptyState(messagesContainer, "Loading conversation...");
+
+  const {
+    data: { session },
+  } = await supabaseClient.auth.getSession();
+
+  if (!session) {
+    setMessageFormEnabled(false);
+    window.location.href = "./auth.html";
+    return null;
+  }
+
+  const { data: conversation, error: conversationError } =
+    await supabaseClient
+      .from("message_conversations")
+      .select("*")
+      .eq("id", conversationId)
+      .maybeSingle();
+
+  if (conversationError || !conversation) {
+    if (conversationError) {
+      console.log(conversationError);
+    }
+
+    renderEmptyState(
+      messagesContainer,
+      "Conversation unavailable",
+      "This conversation does not exist or you do not have access."
+    );
+    resetConversationHeader();
+    setMessageFormEnabled(false);
+    return null;
+  }
+
+  setMessageFormEnabled(true);
+  updateConversationHeader(conversation, session.user.id);
+  panel.dataset.conversationId = conversation.id;
+  panel.dataset.userId = conversation.user_id || "";
+  panel.dataset.businessOwnerId =
+    conversation.business_owner_id || "";
+
+  const { data: messages, error: messagesError } =
+    await supabaseClient
+      .from("messages")
+      .select("*")
+      .eq("conversation_id", conversation.id)
+      .order("created_at", { ascending: true });
+
+  if (messagesError) {
+    console.log(messagesError);
+    renderEmptyState(
+      messagesContainer,
+      "Messages unavailable",
+      "Messages could not be loaded."
+    );
+    return conversation;
+  }
+
+  await markConversationNotificationsRead(
+    session.user.id,
+    conversation.id
+  );
+  messageUnreadCountsByConversationId[
+    String(conversation.id)
+  ] = 0;
+  updateMessageThreadUnreadBadge(conversation.id, 0);
+  renderConversationMessages(
+    messages || [],
+    session.user.id,
+    conversation
+  );
+  setupMessageForm(conversation.id);
+  return conversation;
+}
+
+function renderConversationMessages(
+  messages,
+  sessionUserId,
+  conversation
+) {
+  const messagesContainer =
+    document.getElementById("conversationMessages");
+
+  if (!messagesContainer) return;
+
+  messagesContainer.innerHTML = "";
+
+  if (!messages || messages.length === 0) {
+    renderEmptyState(
+      messagesContainer,
+      "No messages yet",
+      "Send the first reservation message."
+    );
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+
+  messages.forEach((message) => {
+    const bubble = document.createElement("div");
+    bubble.className =
+      String(message.sender_id) === String(sessionUserId)
+        ? "message-bubble message-bubble--own"
+        : "message-bubble";
+
+    const sender = document.createElement("strong");
+    sender.className = "message-sender-label";
+    sender.textContent = getMessageSenderLabel(
+      message,
+      conversation,
+      sessionUserId
+    );
+    bubble.appendChild(sender);
+
+    const body = document.createElement("p");
+    body.textContent = safeText(message.body);
+    bubble.appendChild(body);
+
+    const meta = document.createElement("span");
+    meta.textContent = formatNotificationDate(message.created_at);
+    bubble.appendChild(meta);
+
+    fragment.appendChild(bubble);
+  });
+
+  messagesContainer.appendChild(fragment);
+  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+function setupMessageForm(conversationId) {
+  const form = document.getElementById("messageForm");
+
+  if (!form || form.dataset.bound === String(conversationId)) {
+    return;
+  }
+
+  form.dataset.bound = String(conversationId);
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    if (form.dataset.submitting === "true") {
+      return;
+    }
+
+    const bodyInput = document.getElementById("messageBody");
+    const body = bodyInput ? bodyInput.value.trim() : "";
+
+    if (!body) {
+      showToast("Write a message");
+      return;
+    }
+
+    form.dataset.submitting = "true";
+
+    try {
+      const sent =
+        await sendConversationMessage(conversationId, body);
+
+      if (sent && bodyInput) {
+        bodyInput.value = "";
+      }
+    } catch (error) {
+      console.log(error);
+      showToast(error.message || "Message could not be sent");
+    } finally {
+      form.dataset.submitting = "false";
+    }
+  });
+}
+
+async function notifyMessageRecipient(conversation, senderId) {
+  if (!conversation || typeof createNotification !== "function") {
+    return;
+  }
+
+  const recipientId =
+    String(senderId) === String(conversation.user_id)
+      ? conversation.business_owner_id
+      : conversation.user_id;
+
+  if (!recipientId || String(recipientId) === String(senderId)) {
+    return;
+  }
+
+  try {
+    await createNotification(
+      recipientId,
+      "message_new",
+      "New reservation message",
+      getConversationTitle(conversation),
+      `./messages.html?conversation=${conversation.id}`
+    );
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+async function sendConversationMessage(conversationId, body) {
+  if (!conversationId) {
+    showToast("Choose a conversation");
+    return false;
+  }
+
+  if (!body || !body.trim()) {
+    showToast("Write a message");
+    return false;
+  }
+
+  const {
+    data: { session },
+  } = await supabaseClient.auth.getSession();
+
+  if (!session) {
+    window.location.href = "./auth.html";
+    return false;
+  }
+
+  const { data: conversation, error: conversationError } =
+    await supabaseClient
+      .from("message_conversations")
+      .select("*")
+      .eq("id", conversationId)
+      .maybeSingle();
+
+  if (conversationError || !conversation) {
+    if (conversationError) {
+      console.log(conversationError);
+    }
+    showToast("Conversation unavailable");
+    return false;
+  }
+
+  const { error } =
+    await supabaseClient
+      .from("messages")
+      .insert([
+        {
+          conversation_id: conversation.id,
+          sender_id: session.user.id,
+          body,
+        },
+      ]);
+
+  if (error) {
+    showSafeError(error, "Message could not be sent.");
+    return false;
+  }
+
+  await notifyMessageRecipient(conversation, session.user.id);
+  await loadConversation(conversation.id);
+  await loadMessageInbox();
+  return true;
+}
+
+async function refreshMessagesPage() {
+  const refreshButton =
+    document.getElementById("messagesRefreshBtn");
+
+  if (refreshButton) {
+    refreshButton.disabled = true;
+  }
+
+  try {
+    const {
+      data: { session },
+    } = await supabaseClient.auth.getSession();
+
+    if (!session) {
+      window.location.href = "./auth.html";
+      return;
+    }
+
+    messageUnreadCountsByConversationId =
+      await loadMessageUnreadCounts(session.user.id);
+    await loadMessageInbox();
+    await loadConversation(getConversationIdFromUrl());
+  } catch (error) {
+    console.log(error);
+    showToast(error.message || "Messages could not refresh");
+  } finally {
+    if (refreshButton) {
+      refreshButton.disabled = false;
+    }
+  }
+}
+
+function setupMessagesRefreshButton() {
+  const refreshButton =
+    document.getElementById("messagesRefreshBtn");
+
+  if (!refreshButton || refreshButton.dataset.bound === "true") {
+    return;
+  }
+
+  refreshButton.dataset.bound = "true";
+  refreshButton.addEventListener("click", refreshMessagesPage);
+}
+
+async function setupMessagesPage() {
+  const messagesList = document.getElementById("messagesList");
+  const conversationPanel =
+    document.getElementById("conversationPanel");
+
+  if (!messagesList || !conversationPanel) return;
+
+  const {
+    data: { session },
+  } = await supabaseClient.auth.getSession();
+
+  if (!session) {
+    window.location.href = "./auth.html";
+    return;
+  }
+
+  setupMessagesRefreshButton();
+  messageUnreadCountsByConversationId =
+    await loadMessageUnreadCounts(session.user.id);
+  await loadMessageInbox();
+  await loadConversation(getConversationIdFromUrl());
 }
 
 function setupBusinessForms() {
@@ -4649,11 +6218,15 @@ function setupBusinessForms() {
     document.getElementById("businessEventClearBtn");
 
   if (venueForm) {
-    venueForm.addEventListener("submit", saveBusinessVenue);
+    venueForm.addEventListener("submit", (event) =>
+      runGuardedFormSubmit(event, saveBusinessVenue)
+    );
   }
 
   if (eventForm) {
-    eventForm.addEventListener("submit", saveBusinessEvent);
+    eventForm.addEventListener("submit", (event) =>
+      runGuardedFormSubmit(event, saveBusinessEvent)
+    );
   }
 
   if (venueClearButton) {
@@ -4671,19 +6244,55 @@ function setupBusinessForms() {
   }
 }
 
-function setupReservationsFilters() {
-  const filterBar = document.getElementById("reservationsFilterBar");
-  if (!filterBar) return;
+function setupBusinessMobilePanels() {
+  const buttons =
+    document.querySelectorAll("[data-business-panel]");
+  const panels =
+    document.querySelectorAll(".business-mobile-panel");
 
-  filterBar.addEventListener("click", (event) => {
-    const tabButton = event.target.closest(".filter-tab");
-    if (!tabButton) return;
+  if (!buttons.length || !panels.length) return;
 
-    const filterVal = tabButton.getAttribute("data-filter");
-    if (filterVal) {
-      businessDashboardState.activeReservationFilter = filterVal;
-      renderBusinessReservations(businessDashboardState.reservations);
+  buttons.forEach((button) => {
+    const panelName = button.dataset.businessPanel;
+    const panel = document.querySelector(
+      `.business-mobile-panel[data-panel="${panelName}"]`
+    );
+
+    if (panel && panel.classList.contains("is-open")) {
+      button.classList.add("is-active");
+      button.setAttribute("aria-expanded", "true");
+    } else {
+      button.setAttribute("aria-expanded", "false");
     }
+  });
+
+  buttons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const panelName = button.dataset.businessPanel;
+      const panel = document.querySelector(
+        `.business-mobile-panel[data-panel="${panelName}"]`
+      );
+
+      if (!panel) return;
+
+      const shouldOpen =
+        !panel.classList.contains("is-open");
+
+      panels.forEach((item) => {
+        item.classList.remove("is-open");
+      });
+
+      buttons.forEach((item) => {
+        item.classList.remove("is-active");
+        item.setAttribute("aria-expanded", "false");
+      });
+
+      if (shouldOpen) {
+        panel.classList.add("is-open");
+        button.classList.add("is-active");
+        button.setAttribute("aria-expanded", "true");
+      }
+    });
   });
 }
 
@@ -4696,9 +6305,7 @@ async function initBusinessDashboard() {
   ensureBusinessAnalyticsSection();
   renderBusinessAnalytics(getEmptyBusinessAnalytics());
 
-  const {
-    data: { session },
-  } = await supabaseClient.auth.getSession();
+  const session = await getSafeSession();
 
   if (!session) {
     window.location.href = "./auth.html";
@@ -4706,22 +6313,29 @@ async function initBusinessDashboard() {
   }
 
   businessDashboardState.session = session;
+  setupBusinessMobilePanels();
   setupBusinessForms();
-  setupReservationsFilters();
   await refreshBusinessDashboard();
 }
 
 function setActiveNav() {
   const currentPage =
-    window.location.pathname.split("/").pop();
+    window.location.pathname.split("/").pop() ||
+    "index.html";
 
   const navLinks =
-    document.querySelectorAll(".nav-links a");
+    document.querySelectorAll(
+      ".nav-links a, .mobile-bottom-nav a"
+    );
 
   navLinks.forEach((link) => {
     const href = link.getAttribute("href");
+    const navPage = link.dataset.navPage;
 
-    if (href === `./${currentPage}`) {
+    if (
+      href === `./${currentPage}` ||
+      navPage === currentPage
+    ) {
       link.classList.add("active");
     }
   });
@@ -4762,20 +6376,23 @@ function registerServiceWorker() {
   });
 }
 
-checkUser();
-loadVenues();
-loadFavorites();
-loadEvents();
-loadVenueDetails();
-loadEventDetails();
-initAdminPanel();
-initBusinessDashboard();
-setActiveNav();
-setupMobileNav();
-registerServiceWorker();
+runSafeInitializer("checkUser", checkUser);
+runSafeInitializer("loadVenues", loadVenues);
+runSafeInitializer("loadFavorites", loadFavorites);
+runSafeInitializer("loadEvents", loadEvents);
+runSafeInitializer("loadVenueDetails", loadVenueDetails);
+runSafeInitializer("loadEventDetails", loadEventDetails);
+runSafeInitializer("initAdminPanel", initAdminPanel);
+runSafeInitializer("initBusinessDashboard", initBusinessDashboard);
+runSafeInitializer("setupMessagesPage", setupMessagesPage);
+runSafeInitializer("setActiveNav", setActiveNav);
+runSafeInitializer("setupMobileNav", setupMobileNav);
+runSafeInitializer("registerServiceWorker", registerServiceWorker);
 
 window.addFavorite = addFavorite;
 window.removeFavorite = removeFavorite;
 window.openVenue = openVenue;
 window.openEvent = openEvent;
 window.filterByCity = filterByCity;
+window.openReservationConversation =
+  openReservationConversation;
