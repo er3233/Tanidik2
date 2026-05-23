@@ -35,8 +35,8 @@
     property="og:description"
     content="Discover premium nightlife venues, events, favorites, and reviews with TANIDIK."
   />
-  <meta property="og:url" content="https://hilarious-kheer-076854.netlify.app/index.html" />
-  <meta property="og:image" content="https://hilarious-kheer-076854.netlify.app/assets/social-preview.png" />
+  <meta property="og:url" content="https://tanidik2.vercel.app" />
+  <meta property="og:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="TANIDIK | Premium Nightlife Discovery" />
@@ -44,11 +44,21 @@
     name="twitter:description"
     content="Discover premium nightlife venues, events, favorites, and reviews with TANIDIK."
   />
-  <meta name="twitter:image" content="https://hilarious-kheer-076854.netlify.app/assets/social-preview.png" />
+  <meta name="twitter:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
 
   <link
     rel="stylesheet"
     href="./css/style.css"
+  />
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
+  />
+
+  <link
+    rel="stylesheet"
+    href="./css/home-map.css"
   />
 </head>
 
@@ -82,6 +92,62 @@
   </nav>
 
   <main class="landing-page">
+
+    <section class="home-map-hero" id="homeMapHero">
+      <div class="home-map-canvas" id="homeMap"></div>
+
+      <div class="home-map-fallback" id="homeMapFallback">
+        <div class="home-map-fallback-grid"></div>
+      </div>
+
+      <div
+        class="home-map-reticle"
+        id="homeMapReticle"
+        aria-hidden="true"
+      ></div>
+
+      <section class="home-map-overlay" id="homeMapOverlay">
+        <span class="home-map-kicker">Bodrum after dark</span>
+
+        <h2>
+          TANIDIK
+        </h2>
+
+        <p>
+          A cinematic nightlife map for discovering premium venues, events,
+          and the pulse of the coast.
+        </p>
+
+        <div class="home-map-actions">
+          <a
+            href="./discover.html"
+            class="btn"
+          >
+            Discover
+          </a>
+
+          <button
+            class="home-walk-button"
+            id="walkModeButton"
+            type="button"
+            aria-pressed="false"
+          >
+            Walk Mode
+          </button>
+        </div>
+      </section>
+
+      <aside
+        class="home-venue-preview"
+        id="homeVenuePreview"
+        aria-live="polite"
+      ></aside>
+
+      <div class="home-walk-hud" id="homeWalkHud">
+        <span>WASD move</span>
+        <span>Arrows / drag rotate</span>
+      </div>
+    </section>
 
     <section class="hero public-hero landing-hero">
       <span class="landing-kicker">
@@ -323,7 +389,10 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+
 <script src="./js/app.js"></script>
+<script src="./js/home-map.js"></script>
 
 <div id="toast" class="toast"></div>
 

@@ -111,6 +111,53 @@ function showToast(message) {
   }, 2500);
 }
 
+function showSafeError(error, fallback) {
+  if (error) {
+    console.log(error);
+  }
+
+  showToast(fallback || "Something went wrong. Please try again.");
+}
+
+async function getSafeSession() {
+  try {
+    const {
+      data: { session },
+    } = await supabaseClient.auth.getSession();
+
+    return session;
+  } catch (error) {
+    console.log(error);
+    showToast("Session unavailable. Please login again.");
+    return null;
+  }
+}
+
+async function runGuardedFormSubmit(event, handler) {
+  event.preventDefault();
+
+  const form = event.currentTarget;
+
+  if (!form || form.dataset.submitting === "true") {
+    return;
+  }
+
+  const buttons = form.querySelectorAll("button");
+  form.dataset.submitting = "true";
+  buttons.forEach((button) => {
+    button.disabled = true;
+  });
+
+  try {
+    await handler(event);
+  } finally {
+    form.dataset.submitting = "false";
+    buttons.forEach((button) => {
+      button.disabled = false;
+    });
+  }
+}
+
 async function createNotification(
   userId,
   type,
@@ -506,8 +553,7 @@ async function loadEventAttendeeCounts(eventIds) {
   }
 
   if (error) {
-    console.log(error);
-    showToast(error.message || "Attendance unavailable");
+    showSafeError(error, "Attendance unavailable.");
     return {};
   }
 
@@ -552,8 +598,7 @@ async function getEventAttendanceState(eventId) {
       .maybeSingle();
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Attendance status could not be loaded.");
   }
 
   return {
@@ -627,8 +672,7 @@ async function attendEvent(eventId) {
       );
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Attendance could not be saved.");
     return;
   }
 
@@ -654,8 +698,7 @@ async function cancelEventAttendance(eventId) {
       .eq("user_id", session.user.id);
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Attendance could not be canceled.");
     return;
   }
 
@@ -803,13 +846,11 @@ async function loadVenueStats(venueIds) {
   }
 
   if (reviewsResult.error) {
-    console.log(reviewsResult.error);
-    showToast(reviewsResult.error.message);
+    showSafeError(reviewsResult.error, "Venue stats could not be loaded.");
   }
 
   if (favoritesResult.error) {
-    console.log(favoritesResult.error);
-    showToast(favoritesResult.error.message);
+    showSafeError(favoritesResult.error, "Venue stats could not be loaded.");
   }
 
   return buildVenueStats(
@@ -835,8 +876,7 @@ async function loadVenueReviews(venueId) {
       .order("created_at", { ascending: false });
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Reviews could not be loaded.");
     return;
   }
 
@@ -905,8 +945,7 @@ async function setupVenueReviewForm(venueId) {
         );
 
     if (error) {
-      console.log(error);
-      showToast(error.message);
+      showSafeError(error, "Review could not be saved.");
       return;
     }
 
@@ -1226,8 +1265,7 @@ async function loadUserReservations(venueId) {
       .order("created_at", { ascending: false });
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Reservations could not be loaded.");
     return;
   }
 
@@ -1290,16 +1328,18 @@ async function setupReservationForm(venueId) {
         status: "pending",
       };
 
-      const { error } =
-        await supabaseClient
-          .from("reservations")
-          .insert([payload]);
+    const { error } =
+      await supabaseClient
+        .from("reservations")
+        .insert([payload]);
 
-      if (error) {
-        console.log(error);
-        showToast(error.message);
-        return;
-      }
+    if (error) {
+      showSafeError(
+        error,
+        "Reservation could not be requested."
+      );
+      return;
+    }
 
       showToast("Reservation requested");
       await notifyBusinessOwnerReservationRequest(venueId);
@@ -1412,8 +1452,7 @@ if (createVenueBtn) {
       ]);
 
     if (error) {
-      console.log(error);
-      showToast(error.message);
+      showSafeError(error, "Venue could not be created.");
       return;
     }
 
@@ -1454,8 +1493,7 @@ if (createEventBtn) {
       ]);
 
     if (error) {
-      console.log(error);
-      showToast(error.message);
+      showSafeError(error, "Event could not be created.");
       return;
     }
 
@@ -1464,9 +1502,7 @@ if (createEventBtn) {
 }
 
 async function checkUser() {
-  const {
-    data: { session },
-  } = await supabaseClient.auth.getSession();
+  const session = await getSafeSession();
 
   const authLink =
     document.getElementById("authLink");
@@ -1607,23 +1643,20 @@ async function loadProfileStats(userId) {
     ]);
 
   if (favoritesResult.error) {
-    console.log(favoritesResult.error);
-    showToast(favoritesResult.error.message);
+    showSafeError(favoritesResult.error, "Profile stats could not be loaded.");
   } else if (favoritesCount) {
     favoritesCount.innerText =
       favoritesResult.count || 0;
   }
 
   if (reviewsResult.error) {
-    console.log(reviewsResult.error);
-    showToast(reviewsResult.error.message);
+    showSafeError(reviewsResult.error, "Profile stats could not be loaded.");
   } else if (reviewsCount) {
     reviewsCount.innerText = reviewsResult.count || 0;
   }
 
   if (reservationsResult.error) {
-    console.log(reservationsResult.error);
-    showToast(reservationsResult.error.message);
+    showSafeError(reservationsResult.error, "Profile stats could not be loaded.");
   } else if (reservationsCount) {
     reservationsCount.innerText =
       reservationsResult.count || 0;
@@ -1747,8 +1780,7 @@ async function loadProfileNotifications(userId) {
       .limit(12);
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Notifications could not be loaded.");
     return;
   }
 
@@ -1773,8 +1805,7 @@ async function markNotificationRead(notificationId) {
       .eq("user_id", session.user.id);
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Notification could not be updated.");
     return;
   }
 
@@ -1870,8 +1901,7 @@ async function loadProfileBusinessApplications(userId) {
       .order("created_at", { ascending: false });
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Applications could not be loaded.");
     return;
   }
 
@@ -1894,6 +1924,13 @@ function setupBusinessApplicationForm(userId) {
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
 
+    if (form.dataset.submitting === "true") {
+      return;
+    }
+
+    form.dataset.submitting = "true";
+
+    try {
     const payload = {
       owner_id: userId,
       name: getAdminValue("businessApplicationName"),
@@ -1912,8 +1949,7 @@ function setupBusinessApplicationForm(userId) {
         .insert([payload]);
 
     if (error) {
-      console.log(error);
-      showToast(error.message);
+      showSafeError(error, "Application could not be submitted.");
       return;
     }
 
@@ -1921,6 +1957,11 @@ function setupBusinessApplicationForm(userId) {
     clearBusinessApplicationForm();
     await loadProfileBusinessApplications(userId);
     await setupBusinessProfileLink(userId);
+    } catch (error) {
+      showSafeError(error, "Application could not be submitted.");
+    } finally {
+      form.dataset.submitting = "false";
+    }
   });
 }
 
@@ -1944,8 +1985,7 @@ async function loadProfileReservations(userId) {
       .limit(8);
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Reservations could not be loaded.");
     return;
   }
 
@@ -2075,8 +2115,7 @@ async function addFavorite(venueId) {
     ]);
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Favorite could not be added.");
     return;
   }
 
@@ -2115,8 +2154,7 @@ async function removeFavorite(venueId) {
     .eq("venue_id", venueId);
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Favorite could not be removed.");
     return;
   }
 
@@ -2160,8 +2198,7 @@ async function loadVenues() {
       .select("*");
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Venues could not be loaded.");
     return;
   }
 
@@ -2332,8 +2369,7 @@ async function loadFavorites() {
       .eq("user_id", session.user.id);
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Favorites could not be loaded.");
     return;
   }
 
@@ -2369,8 +2405,7 @@ async function loadFavorites() {
       .in("id", venueIds);
 
   if (venuesError) {
-    console.log(venuesError);
-    showToast(venuesError.message);
+    showSafeError(venuesError, "Favorite venues could not be loaded.");
     return;
   }
 
@@ -2419,8 +2454,7 @@ async function loadEvents() {
       .select("*");
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Events could not be loaded.");
     return;
   }
 
@@ -2756,9 +2790,7 @@ async function checkAdminAccess() {
 
   if (!adminPage) return null;
 
-  const {
-    data: { session },
-  } = await supabaseClient.auth.getSession();
+  const session = await getSafeSession();
 
   if (!session) {
     window.location.href = "./auth.html";
@@ -2910,14 +2942,14 @@ function createAdminActions(onEdit, onDelete) {
   editButton.type = "button";
   editButton.className = "secondary-btn";
   editButton.textContent = "Edit";
-  editButton.addEventListener("click", onEdit);
+  bindReservationAction(editButton, onEdit);
   actions.appendChild(editButton);
 
   const deleteButton = document.createElement("button");
   deleteButton.type = "button";
   deleteButton.className = "admin-delete-btn";
   deleteButton.textContent = "Delete";
-  deleteButton.addEventListener("click", onDelete);
+  bindReservationAction(deleteButton, onDelete);
   actions.appendChild(deleteButton);
 
   return actions;
@@ -3237,7 +3269,7 @@ function renderAdminBusinessApplications(businesses) {
     approveButton.type = "button";
     approveButton.className = "btn";
     approveButton.textContent = "Approve";
-    approveButton.addEventListener("click", () => {
+    bindReservationAction(approveButton, () => {
       updateBusinessApplicationStatus(
         business.id,
         "approved"
@@ -3249,7 +3281,7 @@ function renderAdminBusinessApplications(businesses) {
     rejectButton.type = "button";
     rejectButton.className = "admin-delete-btn";
     rejectButton.textContent = "Reject";
-    rejectButton.addEventListener("click", () => {
+    bindReservationAction(rejectButton, () => {
       const reason = prompt("Rejection reason");
 
       if (reason === null) return;
@@ -3290,8 +3322,7 @@ async function loadAdminVenues() {
       .order("id", { ascending: false });
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Venues could not be loaded.");
     return;
   }
 
@@ -3313,8 +3344,7 @@ async function loadAdminEvents() {
       .order("id", { ascending: false });
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Events could not be loaded.");
     return;
   }
 
@@ -3339,8 +3369,7 @@ async function loadAdminReservations() {
       .order("created_at", { ascending: false });
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Reservations could not be loaded.");
     return;
   }
 
@@ -3363,8 +3392,7 @@ async function loadAdminBusinessApplications() {
       .order("created_at", { ascending: false });
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Applications could not be loaded.");
     return;
   }
 
@@ -3420,8 +3448,7 @@ async function saveAdminVenue(event) {
   const { error } = await request;
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Venue could not be saved.");
     return;
   }
 
@@ -3459,8 +3486,7 @@ async function saveAdminEvent(event) {
   const { error } = await request;
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Event could not be saved.");
     return;
   }
 
@@ -3479,8 +3505,7 @@ async function deleteAdminVenue(id) {
       .eq("id", id);
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Venue could not be deleted.");
     return;
   }
 
@@ -3499,8 +3524,7 @@ async function deleteAdminEvent(id) {
       .eq("id", id);
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Event could not be deleted.");
     return;
   }
 
@@ -3529,8 +3553,7 @@ async function updateReservationStatus(id, status) {
       .eq("id", id);
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Reservation status could not be updated.");
     return;
   }
 
@@ -3568,8 +3591,7 @@ async function updateBusinessApplicationStatus(
       .eq("id", id);
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Application status could not be updated.");
     return;
   }
 
@@ -3612,14 +3634,16 @@ function setupAdminForms() {
   if (adminVenueForm) {
     adminVenueForm.addEventListener(
       "submit",
-      saveAdminVenue
+      (event) =>
+        runGuardedFormSubmit(event, saveAdminVenue)
     );
   }
 
   if (adminEventForm) {
     adminEventForm.addEventListener(
       "submit",
-      saveAdminEvent
+      (event) =>
+        runGuardedFormSubmit(event, saveAdminEvent)
     );
   }
 
@@ -4179,8 +4203,7 @@ async function loadBusinessBusinesses(session) {
       .order("created_at", { ascending: false });
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Businesses could not be loaded.");
     return [];
   }
 
@@ -4200,8 +4223,7 @@ async function loadBusinessVenues() {
       .order("id", { ascending: false });
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Venues could not be loaded.");
     return [];
   }
 
@@ -4221,8 +4243,7 @@ async function loadBusinessEvents() {
       .order("id", { ascending: false });
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Events could not be loaded.");
     return [];
   }
 
@@ -4242,8 +4263,7 @@ async function loadBusinessReservations() {
       .order("created_at", { ascending: false });
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Reservations could not be loaded.");
     return [];
   }
 
@@ -4318,16 +4338,14 @@ async function loadBusinessAnalytics() {
   ] = await Promise.all(statsRequests);
 
   if (favoritesResult.error) {
-    console.log(favoritesResult.error);
-    showToast(favoritesResult.error.message);
+    showSafeError(favoritesResult.error, "Analytics could not be fully loaded.");
   } else {
     analytics.totalFavorites =
       (favoritesResult.data || []).length;
   }
 
   if (reviewsResult.error) {
-    console.log(reviewsResult.error);
-    showToast(reviewsResult.error.message);
+    showSafeError(reviewsResult.error, "Analytics could not be fully loaded.");
   } else {
     const reviews = reviewsResult.data || [];
     analytics.totalReviews = reviews.length;
@@ -4342,8 +4360,7 @@ async function loadBusinessAnalytics() {
   }
 
   if (attendeesResult.error) {
-    console.log(attendeesResult.error);
-    showToast(attendeesResult.error.message);
+    showSafeError(attendeesResult.error, "Analytics could not be fully loaded.");
   } else {
     analytics.totalAttendees =
       (attendeesResult.data || []).length;
@@ -4453,8 +4470,7 @@ async function saveBusinessVenue(event) {
   const { error } = await request;
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Venue could not be saved.");
     return;
   }
 
@@ -4511,8 +4527,7 @@ async function saveBusinessEvent(event) {
   const { error } = await request;
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Event could not be saved.");
     return;
   }
 
@@ -4537,8 +4552,7 @@ async function deleteBusinessVenue(id) {
       .in("business_id", getBusinessDashboardBusinessIds());
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Venue could not be deleted.");
     return;
   }
 
@@ -4566,8 +4580,7 @@ async function deleteBusinessEvent(id) {
       .in("venue_id", getBusinessDashboardVenueIds());
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Event could not be deleted.");
     return;
   }
 
@@ -4594,8 +4607,7 @@ async function updateBusinessReservationStatus(id, status) {
       .in("venue_id", getBusinessDashboardVenueIds());
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Reservation status could not be updated.");
     return;
   }
 
@@ -4607,6 +4619,100 @@ async function updateBusinessReservationStatus(id, status) {
 function getConversationIdFromUrl() {
   const params = new URLSearchParams(window.location.search);
   return params.get("conversation");
+}
+
+let messageUnreadCountsByConversationId = {};
+
+function getConversationIdFromNotificationLink(linkUrl) {
+  if (!linkUrl) return "";
+
+  try {
+    const url = new URL(linkUrl, window.location.href);
+    const path = url.pathname.split("/").pop();
+
+    if (path !== "messages.html") return "";
+
+    return url.searchParams.get("conversation") || "";
+  } catch (error) {
+    console.log(error);
+    return "";
+  }
+}
+
+async function loadMessageUnreadCounts(userId) {
+  if (!userId) return {};
+
+  const { data, error } =
+    await supabaseClient
+      .from("notifications")
+      .select("id, link_url")
+      .eq("user_id", userId)
+      .eq("is_read", false);
+
+  if (error) {
+    console.log(error);
+    return {};
+  }
+
+  const counts = {};
+
+  (data || []).forEach((notification) => {
+    const conversationId =
+      getConversationIdFromNotificationLink(
+        notification.link_url
+      );
+
+    if (!conversationId) return;
+
+    counts[String(conversationId)] =
+      (counts[String(conversationId)] || 0) + 1;
+  });
+
+  return counts;
+}
+
+async function markConversationNotificationsRead(
+  userId,
+  conversationId
+) {
+  if (!userId || !conversationId) return;
+
+  const { data, error } =
+    await supabaseClient
+      .from("notifications")
+      .select("id, link_url")
+      .eq("user_id", userId)
+      .eq("is_read", false);
+
+  if (error) {
+    console.log(error);
+    return;
+  }
+
+  const notificationIds = (data || [])
+    .filter(
+      (notification) =>
+        String(
+          getConversationIdFromNotificationLink(
+            notification.link_url
+          )
+        ) === String(conversationId)
+    )
+    .map((notification) => notification.id)
+    .filter(Boolean);
+
+  if (notificationIds.length === 0) return;
+
+  const { error: updateError } =
+    await supabaseClient
+      .from("notifications")
+      .update({ is_read: true })
+      .eq("user_id", userId)
+      .in("id", notificationIds);
+
+  if (updateError) {
+    console.log(updateError);
+  }
 }
 
 function getConversationIdFromRpcResult(data) {
@@ -4654,6 +4760,147 @@ function getConversationSubtitle(conversation) {
   }
 
   return parts.filter(Boolean).join(" - ");
+}
+
+function getConversationRoleLabel(conversation, userId) {
+  if (!conversation || !userId) return "";
+
+  if (String(conversation.user_id) === String(userId)) {
+    return "Guest side";
+  }
+
+  if (
+    String(conversation.business_owner_id) === String(userId)
+  ) {
+    return "Business side";
+  }
+
+  return "";
+}
+
+function getMessageSenderLabel(message, conversation, userId) {
+  if (String(message.sender_id) === String(userId)) {
+    return "You";
+  }
+
+  if (
+    conversation &&
+    String(message.sender_id) === String(conversation.user_id)
+  ) {
+    return "Guest";
+  }
+
+  if (
+    conversation &&
+    String(message.sender_id) ===
+      String(conversation.business_owner_id)
+  ) {
+    return "Business";
+  }
+
+  return "Message";
+}
+
+function getConversationPreview(messages) {
+  const lastMessage = (messages || [])
+    .slice()
+    .reverse()
+    .find((message) => safeText(message.body).trim());
+
+  if (!lastMessage) return "";
+
+  const body = safeText(lastMessage.body).trim();
+
+  return body.length > 96
+    ? `${body.slice(0, 96).trim()}...`
+    : body;
+}
+
+function updateConversationHeader(conversation, userId) {
+  const header = document.getElementById("conversationHeader");
+
+  if (!header) return;
+
+  header.innerHTML = "";
+
+  const kicker = document.createElement("span");
+  kicker.className = "messages-kicker";
+  kicker.textContent = getConversationRoleLabel(
+    conversation,
+    userId
+  ) || "Reservation Thread";
+  header.appendChild(kicker);
+
+  const title = document.createElement("h2");
+  title.textContent = getConversationTitle(conversation);
+  header.appendChild(title);
+
+  const subtitle = getConversationSubtitle(conversation);
+
+  if (subtitle) {
+    const paragraph = document.createElement("p");
+    paragraph.textContent = subtitle;
+    header.appendChild(paragraph);
+  }
+}
+
+function resetConversationHeader() {
+  const header = document.getElementById("conversationHeader");
+
+  if (!header) return;
+
+  header.innerHTML = "";
+
+  const kicker = document.createElement("span");
+  kicker.className = "messages-kicker";
+  kicker.textContent = "Reservation Thread";
+  header.appendChild(kicker);
+
+  const title = document.createElement("h2");
+  title.textContent = "Conversation";
+  header.appendChild(title);
+
+  const paragraph = document.createElement("p");
+  paragraph.textContent =
+    "Choose a reservation conversation from your inbox.";
+  header.appendChild(paragraph);
+}
+
+function updateMessageThreadUnreadBadge(
+  conversationId,
+  unreadCount
+) {
+  const thread = [
+    ...document.querySelectorAll(".message-thread"),
+  ].find((item) => {
+    const href = item.getAttribute("href");
+
+    return (
+      String(getConversationIdFromNotificationLink(href)) ===
+      String(conversationId)
+    );
+  });
+
+  if (!thread) return;
+
+  const badge = thread.querySelector(".message-unread-badge");
+
+  if (unreadCount > 0) {
+    thread.classList.add("unread");
+
+    if (badge) {
+      badge.textContent =
+        unreadCount > 9 ? "9+" : String(unreadCount);
+    }
+
+    return;
+  }
+
+  thread.classList.remove("unread");
+
+  if (badge) {
+    badge.remove();
+  }
 }
 
 function setMessageFormEnabled(isEnabled) {
@@ -4743,8 +4990,47 @@ async function loadMessageInbox() {
     return [];
   }
 
-  renderMessageInbox(data || []);
-  return data || [];
+  const conversations = data || [];
+  await hydrateConversationPreviews(conversations);
+  renderMessageInbox(conversations);
+  return conversations;
+}
+
+async function hydrateConversationPreviews(conversations) {
+  if (!conversations || conversations.length === 0) return;
+
+  const conversationIds = conversations
+    .map((conversation) => conversation.id)
+    .filter(Boolean);
+
+  if (conversationIds.length === 0) return;
+
+  const { data, error } =
+    await supabaseClient
+      .from("messages")
+      .select("conversation_id, body, created_at")
+      .in("conversation_id", conversationIds)
+      .order("created_at", { ascending: false });
+
+  if (error) {
+    console.log(error);
+    return;
+  }
+
+  const previewsById = {};
+
+  (data || []).forEach((message) => {
+    const conversationId = String(message.conversation_id);
+
+    if (previewsById[conversationId]) return;
+
+    previewsById[conversationId] = safeText(message.body);
+  });
+
+  conversations.forEach((conversation) => {
+    conversation.last_message_preview =
+      previewsById[String(conversation.id)] || "";
+  });
 }
 
 function renderMessageInbox(conversations) {
@@ -4767,6 +5053,10 @@ function renderMessageInbox(conversations) {
   const fragment = document.createDocumentFragment();
 
   conversations.forEach((conversation) => {
+    const unreadCount =
+      messageUnreadCountsByConversationId[
+        String(conversation.id)
+      ] || 0;
     const link = document.createElement("a");
     link.href = `./messages.html?conversation=${encodeURIComponent(
       conversation.id
@@ -4776,16 +5066,41 @@ function renderMessageInbox(conversations) {
         ? "message-thread active"
         : "message-thread";
 
+    if (unreadCount > 0) {
+      link.classList.add("unread");
+    }
+
+    const topRow = document.createElement("div");
+    topRow.className = "message-thread-top";
+
     const title = document.createElement("strong");
     title.textContent = getConversationTitle(conversation);
-    link.appendChild(title);
+    topRow.appendChild(title);
+
+    if (unreadCount > 0) {
+      const badge = document.createElement("span");
+      badge.className = "message-unread-badge";
+      badge.textContent =
+        unreadCount > 9 ? "9+" : String(unreadCount);
+      topRow.appendChild(badge);
+    }
+
+    link.appendChild(topRow);
 
     const subtitle = getConversationSubtitle(conversation);
 
     if (subtitle) {
       const meta = document.createElement("span");
+      meta.className = "message-thread-meta";
       meta.textContent = subtitle;
       link.appendChild(meta);
+    }
+
+    if (conversation.last_message_preview) {
+      const preview = document.createElement("p");
+      preview.className = "message-thread-preview";
+      preview.textContent = conversation.last_message_preview;
+      link.appendChild(preview);
     }
 
     fragment.appendChild(link);
@@ -4803,6 +5118,7 @@ async function loadConversation(conversationId) {
 
   if (!conversationId) {
     setMessageFormEnabled(false);
+    resetConversationHeader();
     renderEmptyState(
       messagesContainer,
       "Choose a conversation",
@@ -4840,11 +5156,13 @@ async function loadConversation(conversationId) {
       "Conversation unavailable",
       "This conversation does not exist or you do not have access."
     );
+    resetConversationHeader();
     setMessageFormEnabled(false);
     return null;
   }
 
   setMessageFormEnabled(true);
+  updateConversationHeader(conversation, session.user.id);
   panel.dataset.conversationId = conversation.id;
   panel.dataset.userId = conversation.user_id || "";
   panel.dataset.businessOwnerId =
@@ -4867,12 +5185,28 @@ async function loadConversation(conversationId) {
     return conversation;
   }
 
-  renderConversationMessages(messages || [], session.user.id);
+  await markConversationNotificationsRead(
+    session.user.id,
+    conversation.id
+  );
+  messageUnreadCountsByConversationId[
+    String(conversation.id)
+  ] = 0;
+  updateMessageThreadUnreadBadge(conversation.id, 0);
+  renderConversationMessages(
+    messages || [],
+    session.user.id,
+    conversation
+  );
   setupMessageForm(conversation.id);
   return conversation;
 }
 
-function renderConversationMessages(messages, sessionUserId) {
+function renderConversationMessages(
+  messages,
+  sessionUserId,
+  conversation
+) {
   const messagesContainer =
     document.getElementById("conversationMessages");
 
@@ -4897,6 +5231,15 @@ function renderConversationMessages(messages, sessionUserId) {
       String(message.sender_id) === String(sessionUserId)
         ? "message-bubble message-bubble--own"
         : "message-bubble";
+
+    const sender = document.createElement("strong");
+    sender.className = "message-sender-label";
+    sender.textContent = getMessageSenderLabel(
+      message,
+      conversation,
+      sessionUserId
+    );
+    bubble.appendChild(sender);
 
     const body = document.createElement("p");
     body.textContent = safeText(message.body);
@@ -5029,8 +5372,7 @@ async function sendConversationMessage(conversationId, body) {
       ]);
 
   if (error) {
-    console.log(error);
-    showToast(error.message);
+    showSafeError(error, "Message could not be sent.");
     return false;
   }
 
@@ -5038,6 +5380,50 @@ async function sendConversationMessage(conversationId, body) {
   await loadConversation(conversation.id);
   await loadMessageInbox();
   return true;
+}
+
+async function refreshMessagesPage() {
+  const refreshButton =
+    document.getElementById("messagesRefreshBtn");
+
+  if (refreshButton) {
+    refreshButton.disabled = true;
+  }
+
+  try {
+    const {
+      data: { session },
+    } = await supabaseClient.auth.getSession();
+
+    if (!session) {
+      window.location.href = "./auth.html";
+      return;
+    }
+
+    messageUnreadCountsByConversationId =
+      await loadMessageUnreadCounts(session.user.id);
+    await loadMessageInbox();
+    await loadConversation(getConversationIdFromUrl());
+  } catch (error) {
+    console.log(error);
+    showToast(error.message || "Messages could not refresh");
+  } finally {
+    if (refreshButton) {
+      refreshButton.disabled = false;
+    }
+  }
+}
+
+function setupMessagesRefreshButton() {
+  const refreshButton =
+    document.getElementById("messagesRefreshBtn");
+
+  if (!refreshButton || refreshButton.dataset.bound === "true") {
+    return;
+  }
+
+  refreshButton.dataset.bound = "true";
+  refreshButton.addEventListener("click", refreshMessagesPage);
 }
 
 async function setupMessagesPage() {
@@ -5056,6 +5442,9 @@ async function setupMessagesPage() {
     return;
   }
 
+  setupMessagesRefreshButton();
+  messageUnreadCountsByConversationId =
+    await loadMessageUnreadCounts(session.user.id);
   await loadMessageInbox();
   await loadConversation(getConversationIdFromUrl());
 }
@@ -5071,11 +5460,15 @@ function setupBusinessForms() {
     document.getElementById("businessEventClearBtn");
 
   if (venueForm) {
-    venueForm.addEventListener("submit", saveBusinessVenue);
+    venueForm.addEventListener("submit", (event) =>
+      runGuardedFormSubmit(event, saveBusinessVenue)
+    );
   }
 
   if (eventForm) {
-    eventForm.addEventListener("submit", saveBusinessEvent);
+    eventForm.addEventListener("submit", (event) =>
+      runGuardedFormSubmit(event, saveBusinessEvent)
+    );
   }
 
   if (venueClearButton) {
@@ -5102,9 +5495,7 @@ async function initBusinessDashboard() {
   ensureBusinessAnalyticsSection();
   renderBusinessAnalytics(getEmptyBusinessAnalytics());
 
-  const {
-    data: { session },
-  } = await supabaseClient.auth.getSession();
+  const session = await getSafeSession();
 
   if (!session) {
     window.location.href = "./auth.html";
