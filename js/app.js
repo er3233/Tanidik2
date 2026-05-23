@@ -124,6 +124,228 @@ function setImageIfPresent(id, image, fallback) {
   );
 }
 
+function createGalleryPhotoLink(photo) {
+  const imageUrl = safeText(photo.image_url || photo.image);
+
+  if (!imageUrl) return null;
+
+  const link = document.createElement("a");
+  link.href = imageUrl;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.className = "venue-gallery-item";
+
+  const image = document.createElement("img");
+  image.src = getImage(imageUrl);
+  image.alt = "Venue gallery photo";
+  image.loading = "lazy";
+  image.addEventListener(
+    "error",
+    () => {
+      image.src = PLACEHOLDER_IMAGE;
+    },
+    { once: true }
+  );
+
+  link.appendChild(image);
+  return link;
+}
+
+function renderVenueGallery(photos) {
+  const gallery = document.getElementById("venueGallery");
+
+  if (!gallery) return;
+
+  gallery.innerHTML = "";
+
+  const validPhotos = (photos || []).filter((photo) =>
+    safeText(photo.image_url || photo.image)
+  );
+
+  if (validPhotos.length === 0) {
+    gallery.hidden = true;
+    return;
+  }
+
+  gallery.hidden = false;
+
+  validPhotos.forEach((photo) => {
+    const item = createGalleryPhotoLink(photo);
+
+    if (item) {
+      gallery.appendChild(item);
+    }
+  });
+}
+
+function setupVenueMenuToggle() {
+  const toggle = document.getElementById("venueMenuToggle");
+  const panel = document.getElementById("venueMenu");
+
+  if (!toggle || !panel || toggle.dataset.bound === "true") {
+    return;
+  }
+
+  toggle.dataset.bound = "true";
+  toggle.addEventListener("click", () => {
+    const isOpen = !panel.hidden;
+    panel.hidden = isOpen;
+    toggle.classList.toggle("is-active", !isOpen);
+    toggle.setAttribute("aria-expanded", String(!isOpen));
+  });
+}
+
+function formatMenuPrice(item) {
+  if (item.price === null || item.price === undefined || item.price === "") {
+    return "";
+  }
+
+  const amount = Number(item.price);
+
+  if (Number.isNaN(amount)) {
+    return "";
+  }
+
+  return `${amount.toFixed(2)} ${safeText(item.currency) || "TRY"}`;
+}
+
+function createVenueMenuItem(item) {
+  const card = document.createElement("article");
+  card.className = "venue-menu-item";
+
+  if (item.image_url) {
+    card.classList.add("venue-menu-item--with-image");
+    const image = document.createElement("img");
+    image.src = getImage(item.image_url);
+    image.alt = safeText(item.name);
+    image.loading = "lazy";
+    card.appendChild(image);
+  }
+
+  const content = document.createElement("div");
+
+  const header = document.createElement("div");
+  header.className = "venue-menu-item-header";
+
+  const title = document.createElement("h4");
+  title.textContent = safeText(item.name);
+  header.appendChild(title);
+
+  const price = formatMenuPrice(item);
+
+  if (price) {
+    const priceElement = document.createElement("strong");
+    priceElement.textContent = price;
+    header.appendChild(priceElement);
+  }
+
+  content.appendChild(header);
+
+  if (item.description) {
+    const description = document.createElement("p");
+    description.textContent = safeText(item.description);
+    content.appendChild(description);
+  }
+
+  card.appendChild(content);
+  return card;
+}
+
+function renderVenueMenu(menuData) {
+  const panel = document.getElementById("venueMenu");
+
+  if (!panel) return;
+
+  panel.innerHTML = "";
+
+  const categories = menuData.categories || [];
+  const items = menuData.items || [];
+
+  if (categories.length === 0 && items.length === 0) {
+    renderEmptyState(panel, "No menu yet.", "Menu items will appear here when available.");
+    return;
+  }
+
+  categories.forEach((category) => {
+    const group = document.createElement("section");
+    group.className = "venue-menu-group";
+
+    const title = document.createElement("h3");
+    title.textContent = safeText(category.name);
+    group.appendChild(title);
+
+    const groupItems = items.filter(
+      (item) => String(item.category_id || "") === String(category.id)
+    );
+
+    if (groupItems.length === 0) {
+      renderEmptyState(group, "No items yet.");
+    } else {
+      groupItems.forEach((item) => {
+        group.appendChild(createVenueMenuItem(item));
+      });
+    }
+
+    panel.appendChild(group);
+  });
+
+  const uncategorized = items.filter((item) => !item.category_id);
+
+  if (uncategorized.length > 0) {
+    const group = document.createElement("section");
+    group.className = "venue-menu-group";
+
+    const title = document.createElement("h3");
+    title.textContent = "Menu";
+    group.appendChild(title);
+
+    uncategorized.forEach((item) => {
+      group.appendChild(createVenueMenuItem(item));
+    });
+
+    panel.appendChild(group);
+  }
+}
+
+async function loadVenueMenu(venueId) {
+  if (!venueId) return { categories: [], items: [] };
+
+  try {
+    const [categoriesResult, itemsResult] = await Promise.all([
+      supabaseClient
+        .from("venue_menu_categories")
+        .select("*")
+        .eq("venue_id", venueId)
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true }),
+      supabaseClient
+        .from("venue_menu_items")
+        .select("*")
+        .eq("venue_id", venueId)
+        .eq("is_available", true)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true }),
+    ]);
+
+    if (categoriesResult.error || itemsResult.error) {
+      console.warn(
+        "Venue menu could not be loaded.",
+        categoriesResult.error || itemsResult.error
+      );
+      return { categories: [], items: [] };
+    }
+
+    return {
+      categories: categoriesResult.data || [],
+      items: itemsResult.data || [],
+    };
+  } catch (error) {
+    console.warn("Venue menu could not be loaded.", error);
+    return { categories: [], items: [] };
+  }
+}
+
 function renderDetailUnavailable(title, message) {
   const detail =
     document.querySelector(".venue-details") ||
@@ -2934,6 +3156,7 @@ async function loadVenueDetails() {
   if (!venueName) return;
 
   setupVenueMobilePanels();
+  setupVenueMenuToggle();
 
   const params = new URLSearchParams(
     window.location.search
@@ -2979,6 +3202,9 @@ async function loadVenueDetails() {
   setTextIfPresent("venueCity", venue.city);
   setTextIfPresent("venueCategory", getVenueCategoryLabel(venue));
   setTextIfPresent("venueDescription", venue.description);
+
+  renderVenueGallery(await loadVenueGalleryPhotos(venue.id));
+  renderVenueMenu(await loadVenueMenu(venue.id));
 
   renderVenueLocation(venue);
 
@@ -3217,11 +3443,98 @@ function getAdminFile(id) {
   return element.files[0];
 }
 
+function getAdminFiles(id) {
+  const element = document.getElementById(id);
+
+  if (!element || !element.files || !element.files.length) {
+    return [];
+  }
+
+  return Array.from(element.files);
+}
+
 function clearAdminFile(id) {
   const element = document.getElementById(id);
 
   if (element) {
     element.value = "";
+  }
+}
+
+function getVenueGalleryUrls(inputId) {
+  return getAdminValue(inputId)
+    .split(/\r?\n|,/)
+    .map((url) => safeText(url).trim())
+    .filter(Boolean);
+}
+
+async function uploadVenueGalleryFiles(inputId) {
+  const files = getAdminFiles(inputId);
+
+  if (files.length === 0) return [];
+
+  const urls = [];
+
+  for (const file of files) {
+    const uploadedUrl = await uploadAdminImage(
+      file,
+      "venue-gallery"
+    );
+
+    if (!uploadedUrl) {
+      return [];
+    }
+
+    urls.push(uploadedUrl);
+  }
+
+  return urls;
+}
+
+async function saveVenueGalleryPhotos(venueId, imageUrls) {
+  if (!venueId || !imageUrls || imageUrls.length === 0) {
+    return;
+  }
+
+  const rows = imageUrls.map((imageUrl, index) => ({
+    venue_id: venueId,
+    image_url: imageUrl,
+    sort_order: index,
+  }));
+
+  try {
+    const { error } = await supabaseClient
+      .from("venue_photos")
+      .insert(rows);
+
+    if (error) {
+      console.warn("Venue gallery photos were not saved.", error);
+    }
+  } catch (error) {
+    console.warn("Venue gallery photos were not saved.", error);
+  }
+}
+
+async function loadVenueGalleryPhotos(venueId) {
+  if (!venueId) return [];
+
+  try {
+    const { data, error } = await supabaseClient
+      .from("venue_photos")
+      .select("id, image_url, sort_order, created_at")
+      .eq("venue_id", venueId)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.warn("Venue gallery photos could not be loaded.", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.warn("Venue gallery photos could not be loaded.", error);
+    return [];
   }
 }
 
@@ -4298,6 +4611,8 @@ function clearBusinessVenueForm() {
   );
   setAdminValue("businessVenueImage", "");
   clearAdminFile("businessVenueImageFile");
+  setAdminValue("businessVenueGalleryUrls", "");
+  clearAdminFile("businessVenueGalleryFiles");
   setAdminValue("businessVenueAddress", "");
   setAdminValue("businessVenueLatitude", "");
   setAdminValue("businessVenueLongitude", "");
@@ -4396,6 +4711,371 @@ function renderBusinessVenues(venues) {
   });
 
   list.appendChild(fragment);
+}
+
+function populateBusinessMenuVenueSelect() {
+  const select = document.getElementById("businessMenuVenueSelect");
+
+  if (!select) return;
+
+  const currentValue = select.value;
+  select.innerHTML = "";
+
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = "Choose Venue";
+  select.appendChild(placeholder);
+
+  businessDashboardState.venues.forEach((venue) => {
+    const option = document.createElement("option");
+    option.value = venue.id;
+    option.textContent = safeText(venue.name);
+    select.appendChild(option);
+  });
+
+  if (
+    currentValue &&
+    businessDashboardState.venues.some(
+      (venue) => String(venue.id) === String(currentValue)
+    )
+  ) {
+    select.value = currentValue;
+  }
+}
+
+function getSelectedBusinessMenuVenueId() {
+  const venueId = getAdminValue("businessMenuVenueSelect");
+
+  if (!venueId || !ownsVenueRecord(venueId)) {
+    return "";
+  }
+
+  return venueId;
+}
+
+function resetBusinessMenuForms() {
+  setAdminValue("businessMenuCategoryName", "");
+  setAdminValue("businessMenuCategorySort", "0");
+  setAdminValue("businessMenuItemCategory", "");
+  setAdminValue("businessMenuItemName", "");
+  setAdminValue("businessMenuItemDescription", "");
+  setAdminValue("businessMenuItemPrice", "");
+  setAdminValue("businessMenuItemCurrency", "TRY");
+  setAdminValue("businessMenuItemImage", "");
+  setAdminValue("businessMenuItemSort", "0");
+
+  const categoryActive =
+    document.getElementById("businessMenuCategoryActive");
+  const itemAvailable =
+    document.getElementById("businessMenuItemAvailable");
+
+  if (categoryActive) categoryActive.checked = true;
+  if (itemAvailable) itemAvailable.checked = true;
+}
+
+async function loadVenueMenuForBusiness(venueId) {
+  if (!venueId || !ownsVenueRecord(venueId)) {
+    return { categories: [], items: [] };
+  }
+
+  try {
+    const [categoriesResult, itemsResult] = await Promise.all([
+      supabaseClient
+        .from("venue_menu_categories")
+        .select("*")
+        .eq("venue_id", venueId)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true }),
+      supabaseClient
+        .from("venue_menu_items")
+        .select("*")
+        .eq("venue_id", venueId)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true }),
+    ]);
+
+    if (categoriesResult.error || itemsResult.error) {
+      showSafeError(
+        categoriesResult.error || itemsResult.error,
+        "Menu could not be loaded."
+      );
+      return { categories: [], items: [] };
+    }
+
+    return {
+      categories: categoriesResult.data || [],
+      items: itemsResult.data || [],
+    };
+  } catch (error) {
+    showSafeError(error, "Menu could not be loaded.");
+    return { categories: [], items: [] };
+  }
+}
+
+function populateBusinessMenuCategorySelect(categories) {
+  const select = document.getElementById("businessMenuItemCategory");
+
+  if (!select) return;
+
+  const currentValue = select.value;
+  select.innerHTML = "";
+
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = "No category";
+  select.appendChild(placeholder);
+
+  (categories || []).forEach((category) => {
+    const option = document.createElement("option");
+    option.value = category.id;
+    option.textContent = safeText(category.name);
+    select.appendChild(option);
+  });
+
+  if (
+    currentValue &&
+    (categories || []).some(
+      (category) => String(category.id) === String(currentValue)
+    )
+  ) {
+    select.value = currentValue;
+  }
+}
+
+function createBusinessMenuRow(title, meta, onDelete) {
+  const item = document.createElement("div");
+  item.className = "business-menu-row";
+
+  const content = document.createElement("div");
+
+  const heading = document.createElement("h3");
+  heading.textContent = safeText(title);
+  content.appendChild(heading);
+
+  if (meta) {
+    const detail = document.createElement("p");
+    detail.textContent = meta;
+    content.appendChild(detail);
+  }
+
+  item.appendChild(content);
+
+  if (onDelete) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "admin-delete-btn";
+    button.textContent = "Delete";
+    button.addEventListener("click", onDelete);
+    item.appendChild(button);
+  }
+
+  return item;
+}
+
+function renderBusinessVenueMenu(menuData) {
+  const list = document.getElementById("businessVenueMenuList");
+
+  if (!list) return;
+
+  list.innerHTML = "";
+  populateBusinessMenuCategorySelect(menuData.categories || []);
+
+  if (
+    (!menuData.categories || menuData.categories.length === 0) &&
+    (!menuData.items || menuData.items.length === 0)
+  ) {
+    renderEmptyState(
+      list,
+      "No menu yet.",
+      "Create categories and items for the selected venue."
+    );
+    return;
+  }
+
+  const categoriesGroup = document.createElement("section");
+  categoriesGroup.className = "business-menu-group";
+
+  const categoriesTitle = document.createElement("h3");
+  categoriesTitle.textContent = "Categories";
+  categoriesGroup.appendChild(categoriesTitle);
+
+  (menuData.categories || []).forEach((category) => {
+    categoriesGroup.appendChild(
+      createBusinessMenuRow(
+        category.name,
+        `${category.is_active ? "Active" : "Hidden"} · Sort ${category.sort_order || 0}`,
+        () => deleteMenuCategory(category.id)
+      )
+    );
+  });
+
+  list.appendChild(categoriesGroup);
+
+  const itemsGroup = document.createElement("section");
+  itemsGroup.className = "business-menu-group";
+
+  const itemsTitle = document.createElement("h3");
+  itemsTitle.textContent = "Items";
+  itemsGroup.appendChild(itemsTitle);
+
+  (menuData.items || []).forEach((item) => {
+    const price = formatMenuPrice(item);
+    const availability = item.is_available ? "Available" : "Hidden";
+    itemsGroup.appendChild(
+      createBusinessMenuRow(
+        item.name,
+        [price, availability, `Sort ${item.sort_order || 0}`]
+          .filter(Boolean)
+          .join(" · "),
+        () => deleteMenuItem(item.id)
+      )
+    );
+  });
+
+  list.appendChild(itemsGroup);
+}
+
+async function refreshBusinessVenueMenu() {
+  const venueId = getSelectedBusinessMenuVenueId();
+  const list = document.getElementById("businessVenueMenuList");
+
+  if (!list) return;
+
+  if (!venueId) {
+    populateBusinessMenuCategorySelect([]);
+    renderEmptyState(
+      list,
+      "Choose a venue.",
+      "Select an owned venue to manage its menu."
+    );
+    return;
+  }
+
+  renderBusinessVenueMenu(await loadVenueMenuForBusiness(venueId));
+}
+
+async function createMenuCategory(event) {
+  event.preventDefault();
+
+  const venueId = getSelectedBusinessMenuVenueId();
+
+  if (!venueId) {
+    showToast("Choose one of your venues");
+    return;
+  }
+
+  const name = getAdminValue("businessMenuCategoryName");
+
+  if (!name) {
+    showToast("Category name required");
+    return;
+  }
+
+  const activeInput =
+    document.getElementById("businessMenuCategoryActive");
+
+  const { error } = await supabaseClient
+    .from("venue_menu_categories")
+    .insert([{
+      venue_id: venueId,
+      name,
+      sort_order: Number(getAdminValue("businessMenuCategorySort")) || 0,
+      is_active: activeInput ? activeInput.checked : true,
+    }]);
+
+  if (error) {
+    showSafeError(error, "Category could not be saved.");
+    return;
+  }
+
+  setAdminValue("businessMenuCategoryName", "");
+  setAdminValue("businessMenuCategorySort", "0");
+  showToast("Category saved");
+  await refreshBusinessVenueMenu();
+}
+
+async function createMenuItem(event) {
+  event.preventDefault();
+
+  const venueId = getSelectedBusinessMenuVenueId();
+
+  if (!venueId) {
+    showToast("Choose one of your venues");
+    return;
+  }
+
+  const name = getAdminValue("businessMenuItemName");
+
+  if (!name) {
+    showToast("Item name required");
+    return;
+  }
+
+  const priceValue = getAdminValue("businessMenuItemPrice");
+  const categoryId = getAdminValue("businessMenuItemCategory");
+  const availableInput =
+    document.getElementById("businessMenuItemAvailable");
+
+  const { error } = await supabaseClient
+    .from("venue_menu_items")
+    .insert([{
+      venue_id: venueId,
+      category_id: categoryId || null,
+      name,
+      description: getAdminValue("businessMenuItemDescription"),
+      price: priceValue ? Number(priceValue) : null,
+      currency: getAdminValue("businessMenuItemCurrency") || "TRY",
+      image_url: getAdminValue("businessMenuItemImage"),
+      is_available: availableInput ? availableInput.checked : true,
+      sort_order: Number(getAdminValue("businessMenuItemSort")) || 0,
+    }]);
+
+  if (error) {
+    showSafeError(error, "Menu item could not be saved.");
+    return;
+  }
+
+  setAdminValue("businessMenuItemName", "");
+  setAdminValue("businessMenuItemDescription", "");
+  setAdminValue("businessMenuItemPrice", "");
+  setAdminValue("businessMenuItemImage", "");
+  setAdminValue("businessMenuItemSort", "0");
+  showToast("Menu item saved");
+  await refreshBusinessVenueMenu();
+}
+
+async function deleteMenuCategory(categoryId) {
+  if (!categoryId || !confirm("Delete this category?")) return;
+
+  const { error } = await supabaseClient
+    .from("venue_menu_categories")
+    .delete()
+    .eq("id", categoryId);
+
+  if (error) {
+    showSafeError(error, "Category could not be deleted.");
+    return;
+  }
+
+  showToast("Category deleted");
+  await refreshBusinessVenueMenu();
+}
+
+async function deleteMenuItem(itemId) {
+  if (!itemId || !confirm("Delete this menu item?")) return;
+
+  const { error } = await supabaseClient
+    .from("venue_menu_items")
+    .delete()
+    .eq("id", itemId);
+
+  if (error) {
+    showSafeError(error, "Menu item could not be deleted.");
+    return;
+  }
+
+  showToast("Menu item deleted");
+  await refreshBusinessVenueMenu();
 }
 
 function renderBusinessEvents(events) {
@@ -5224,16 +5904,20 @@ async function refreshBusinessDashboard() {
     businessDashboardState.reservations = [];
     renderBusinessAnalytics(getEmptyBusinessAnalytics());
     populateBusinessDashboardSelects();
+    populateBusinessMenuVenueSelect();
     renderBusinessVenues([]);
     renderBusinessEvents([]);
     renderBusinessReservations([]);
     renderBusinessReservationSchedule([]);
+    await refreshBusinessVenueMenu();
     return;
   }
 
   businessDashboardState.venues = await loadBusinessVenues();
   populateBusinessDashboardSelects();
+  populateBusinessMenuVenueSelect();
   renderBusinessVenues(businessDashboardState.venues);
+  await refreshBusinessVenueMenu();
 
   businessDashboardState.events = await loadBusinessEvents();
   renderBusinessEvents(businessDashboardState.events);
@@ -5292,6 +5976,22 @@ async function saveBusinessVenue(event) {
 
   if (imageFile && !uploadedImage) return;
 
+  const galleryUrls = getVenueGalleryUrls(
+    "businessVenueGalleryUrls"
+  );
+  const galleryFiles = getAdminFiles("businessVenueGalleryFiles");
+  const uploadedGalleryUrls = galleryFiles.length
+    ? await uploadVenueGalleryFiles("businessVenueGalleryFiles")
+    : [];
+  const galleryImageUrls = [
+    ...galleryUrls,
+    ...uploadedGalleryUrls,
+  ];
+
+  if (galleryFiles.length && uploadedGalleryUrls.length === 0) {
+    return;
+  }
+
   const payload = {
     business_id: businessId,
     name: getAdminValue("businessVenueName"),
@@ -5307,20 +6007,36 @@ async function saveBusinessVenue(event) {
     description: getAdminValue("businessVenueDescription"),
   };
 
-  const request = id
-    ? supabaseClient
-        .from("venues")
-        .update(payload)
-        .eq("id", id)
-        .in("business_id", getBusinessDashboardBusinessIds())
-    : supabaseClient.from("venues").insert([payload]);
+  let error = null;
+  let savedVenueId = id;
 
-  const { error } = await request;
+  if (id) {
+    ({ error } = await supabaseClient
+      .from("venues")
+      .update(payload)
+      .eq("id", id)
+      .in("business_id", getBusinessDashboardBusinessIds()));
+  } else if (galleryImageUrls.length === 0) {
+    ({ error } = await supabaseClient
+      .from("venues")
+      .insert([payload]));
+  } else {
+    const { data, error: insertError } = await supabaseClient
+      .from("venues")
+      .insert([payload])
+      .select("id")
+      .single();
+
+    error = insertError;
+    savedVenueId = data ? data.id : "";
+  }
 
   if (error) {
     showSafeError(error, "Venue could not be saved.");
     return;
   }
+
+  await saveVenueGalleryPhotos(savedVenueId, galleryImageUrls);
 
   showToast(id ? "Venue updated" : "Venue created");
   clearBusinessVenueForm();
@@ -6334,6 +7050,37 @@ function setupBusinessForms() {
   }
 }
 
+function setupBusinessMenuManager() {
+  const venueSelect =
+    document.getElementById("businessMenuVenueSelect");
+  const categoryForm =
+    document.getElementById("businessMenuCategoryForm");
+  const itemForm =
+    document.getElementById("businessMenuItemForm");
+
+  if (venueSelect && venueSelect.dataset.bound !== "true") {
+    venueSelect.dataset.bound = "true";
+    venueSelect.addEventListener("change", () => {
+      resetBusinessMenuForms();
+      refreshBusinessVenueMenu();
+    });
+  }
+
+  if (categoryForm && categoryForm.dataset.bound !== "true") {
+    categoryForm.dataset.bound = "true";
+    categoryForm.addEventListener("submit", (event) => {
+      runGuardedFormSubmit(event, createMenuCategory);
+    });
+  }
+
+  if (itemForm && itemForm.dataset.bound !== "true") {
+    itemForm.dataset.bound = "true";
+    itemForm.addEventListener("submit", (event) => {
+      runGuardedFormSubmit(event, createMenuItem);
+    });
+  }
+}
+
 function setupBusinessMobilePanels() {
   const buttons =
     document.querySelectorAll("[data-business-panel]");
@@ -6405,6 +7152,7 @@ async function initBusinessDashboard() {
   businessDashboardState.session = session;
   setupBusinessMobilePanels();
   setupBusinessForms();
+  setupBusinessMenuManager();
   await refreshBusinessDashboard();
 }
 

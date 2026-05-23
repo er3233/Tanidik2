@@ -154,6 +154,13 @@
 
       <button
         type="button"
+        data-business-panel="menu"
+      >
+        Menu
+      </button>
+
+      <button
+        type="button"
         data-business-panel="analytics"
       >
         Analytics
@@ -261,6 +268,19 @@
           type="file"
           id="businessVenueImageFile"
           accept="image/*"
+          class="admin-file-input"
+        />
+
+        <textarea
+          id="businessVenueGalleryUrls"
+          placeholder="Gallery photo URLs, one per line"
+        ></textarea>
+
+        <input
+          type="file"
+          id="businessVenueGalleryFiles"
+          accept="image/*"
+          multiple
           class="admin-file-input"
         />
 
@@ -392,6 +412,131 @@
       <div
         id="businessEventsList"
         class="business-list"
+      >
+      </div>
+
+    </section>
+
+    <section
+      class="business-section dashboard-section dashboard-section--forms business-mobile-panel"
+      data-panel="menu"
+    >
+
+      <h2>
+        Venue Menu
+      </h2>
+
+      <p class="reservation-dashboard-copy">
+        Manage categories and items for one of your venues.
+      </p>
+
+      <select id="businessMenuVenueSelect">
+        <option value="">Choose Venue</option>
+      </select>
+
+      <form
+        id="businessMenuCategoryForm"
+        class="admin-form business-menu-form"
+      >
+        <input
+          type="text"
+          id="businessMenuCategoryName"
+          placeholder="Category name"
+          required
+        />
+
+        <input
+          type="number"
+          id="businessMenuCategorySort"
+          placeholder="Sort order"
+          value="0"
+        />
+
+        <label class="menu-toggle-field">
+          <input
+            type="checkbox"
+            id="businessMenuCategoryActive"
+            checked
+          />
+          Active
+        </label>
+
+        <button
+          type="submit"
+          class="btn"
+        >
+          Save Category
+        </button>
+      </form>
+
+      <form
+        id="businessMenuItemForm"
+        class="admin-form business-menu-form"
+      >
+        <select id="businessMenuItemCategory">
+          <option value="">No category</option>
+        </select>
+
+        <input
+          type="text"
+          id="businessMenuItemName"
+          placeholder="Item name"
+          required
+        />
+
+        <textarea
+          id="businessMenuItemDescription"
+          placeholder="Description"
+        ></textarea>
+
+        <input
+          type="number"
+          id="businessMenuItemPrice"
+          placeholder="Price"
+          step="0.01"
+          min="0"
+        />
+
+        <input
+          type="text"
+          id="businessMenuItemCurrency"
+          placeholder="Currency"
+          value="TRY"
+        />
+
+        <input
+          type="text"
+          id="businessMenuItemImage"
+          placeholder="Image URL"
+        />
+
+        <input
+          type="number"
+          id="businessMenuItemSort"
+          placeholder="Sort order"
+          value="0"
+        />
+
+        <label class="menu-toggle-field">
+          <input
+            type="checkbox"
+            id="businessMenuItemAvailable"
+            checked
+          />
+          Available
+        </label>
+
+        <button
+          type="submit"
+          class="btn"
+        >
+          Save Item
+        </button>
+      </form>
+
+      <div
+        id="businessVenueMenuList"
+        class="business-menu-list"
       >
       </div>
 
