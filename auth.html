@@ -56,6 +56,8 @@
 
   <main class="auth-container">
 
+    <div class="auth-stars" aria-hidden="true"></div>
+
     <section class="auth-hero" aria-label="TANIDIK login">
       <span class="auth-kicker">
         Premium Nightlife
@@ -71,18 +73,9 @@
     </section>
 
     <section class="auth-stage" aria-label="Account access">
-      <div class="auth-tentacles" aria-hidden="true">
-        <span class="auth-tentacle auth-tentacle--left auth-tentacle--one"></span>
-        <span class="auth-tentacle auth-tentacle--left auth-tentacle--two"></span>
-        <span class="auth-tentacle auth-tentacle--left auth-tentacle--three"></span>
-        <span class="auth-tentacle auth-tentacle--left auth-tentacle--four"></span>
-        <span class="auth-tentacle auth-tentacle--right auth-tentacle--five"></span>
-        <span class="auth-tentacle auth-tentacle--right auth-tentacle--six"></span>
-        <span class="auth-tentacle auth-tentacle--right auth-tentacle--seven"></span>
-        <span class="auth-tentacle auth-tentacle--right auth-tentacle--eight"></span>
-      </div>
 
       <div class="auth-card">
+
         <div class="auth-tab-header" aria-label="Login or sign up">
           <span class="auth-tab auth-tab--active">
             Login
@@ -126,6 +119,18 @@
             placeholder="Enter your password"
             autocomplete="current-password"
           />
+
+          <label for="confirmPassword" id="confirmPasswordLabel" style="display:none">
+            Confirm Password
+          </label>
+
+          <input
+            type="password"
+            id="confirmPassword"
+            placeholder="Confirm your password"
+            autocomplete="new-password"
+            style="display:none"
+          />
         </div>
 
         <p
@@ -157,6 +162,48 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
   <script src="./js/app.js"></script>
+
+  <script>
+    (function () {
+      var tabs         = document.querySelectorAll('.auth-tab');
+      var pwInput      = document.getElementById('password');
+      var confirmInput = document.getElementById('confirmPassword');
+      var confirmLabel = document.getElementById('confirmPasswordLabel');
+      var authMsg      = document.getElementById('authMessage');
+      var registerBtn  = document.getElementById('registerBtn');
+
+      function showConfirm(show) {
+        confirmInput.style.display = show ? '' : 'none';
+        confirmLabel.style.display = show ? '' : 'none';
+        if (!show) { confirmInput.value = ''; authMsg.textContent = ''; }
+      }
+
+      tabs[0].addEventListener('click', function () {
+        tabs[0].classList.add('auth-tab--active');
+        tabs[1].classList.remove('auth-tab--active');
+        pwInput.setAttribute('autocomplete', 'current-password');
+        showConfirm(false);
+      });
+
+      tabs[1].addEventListener('click', function () {
+        tabs[1].classList.add('auth-tab--active');
+        tabs[0].classList.remove('auth-tab--active');
+        pwInput.setAttribute('autocomplete', 'new-password');
+        showConfirm(true);
+      });
+
+      // Capture phase fires before app.js bubbling handler — validate before Supabase call
+      if (registerBtn) {
+        registerBtn.addEventListener('click', function (e) {
+          if (confirmInput.style.display !== 'none' &&
+              pwInput.value !== confirmInput.value) {
+            e.stopImmediatePropagation();
+            authMsg.textContent = 'Passwords do not match.';
+          }
+        }, true);
+      }
+    })();
+  </script>
 
   <div id="toast" class="toast"></div>
 

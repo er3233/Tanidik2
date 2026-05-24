@@ -415,6 +415,74 @@
 
 <script src="./js/app.js"></script>
 
+<script>
+(function () {
+  /* Sections open by default */
+  var autoOpen = ['profile-info-panel', 'profile-actions-section', 'profile-reservations-section'];
+
+  /* Wrap every .dashboard-section's content in collapsible body */
+  document.querySelectorAll('.dashboard-section').forEach(function (sec) {
+    var h2 = sec.querySelector(':scope > h2');
+    if (!h2) return;
+
+    /* Chevron */
+    var chev = document.createElement('span');
+    chev.className = 'section-chevron';
+    chev.setAttribute('aria-hidden', 'true');
+    chev.textContent = '›';
+    h2.appendChild(chev);
+
+    /* Build section-body wrapper */
+    var body  = document.createElement('div');
+    body.className = 'section-body';
+    var inner = document.createElement('div');
+    inner.className = 'section-body-inner';
+    body.appendChild(inner);
+
+    /* Move all DOM nodes after h2 into inner */
+    var toMove = [], n = h2.nextSibling;
+    while (n) { toMove.push(n); n = n.nextSibling; }
+    toMove.forEach(function (node) { inner.appendChild(node); });
+    sec.appendChild(body);
+
+    /* Default open? */
+    if (autoOpen.some(function (c) { return sec.classList.contains(c); })) {
+      sec.classList.add('is-expanded');
+    }
+
+    h2.addEventListener('click', function () { sec.classList.toggle('is-expanded'); });
+  });
+
+  /* profile-info-panel has no h2 — inject one */
+  var info = document.querySelector('.profile-info-panel:not(.dashboard-section)');
+  if (info) {
+    info.classList.add('dashboard-section');
+
+    var h2    = document.createElement('h2');
+    var chev  = document.createElement('span');
+    chev.className = 'section-chevron';
+    chev.setAttribute('aria-hidden', 'true');
+    chev.textContent = '›';
+    h2.textContent = 'Overview';
+    h2.appendChild(chev);
+    h2.style.cursor = 'pointer';
+
+    var body  = document.createElement('div');
+    body.className = 'section-body';
+    var inner = document.createElement('div');
+    inner.className = 'section-body-inner';
+    body.appendChild(inner);
+
+    Array.from(info.children).forEach(function (el) { inner.appendChild(el); });
+    info.appendChild(h2);
+    info.appendChild(body);
+    info.classList.add('is-expanded');
+
+    h2.addEventListener('click', function () { info.classList.toggle('is-expanded'); });
+  }
+})();
+</script>
+
 <div id="toast" class="toast"></div>
 
 </body>
