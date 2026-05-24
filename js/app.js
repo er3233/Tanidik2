@@ -8563,6 +8563,10 @@ async function startDirectMessageFromSearch(userId) {
     return;
   }
 
+  console.log("Starting direct message from search", {
+    targetUserId: userId,
+  });
+
   const buttons = [
     ...document.querySelectorAll(".user-search-message-btn"),
   ];
@@ -8609,6 +8613,11 @@ async function getOrCreateDirectConversation(targetUserId) {
     return "";
   }
 
+  console.log("Calling direct conversation RPC", {
+    rpc: "get_or_create_direct_conversation",
+    targetUserId,
+  });
+
   let data = null;
   let error = null;
 
@@ -8624,14 +8633,32 @@ async function getOrCreateDirectConversation(targetUserId) {
   }
 
   if (error) {
-    console.warn("Direct conversation unavailable.", error);
+    console.warn("Direct conversation unavailable.", {
+      rpc: "get_or_create_direct_conversation",
+      targetUserId,
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      error,
+    });
     showToast(error.message || "Conversation unavailable");
     return "";
   }
 
+  console.log("Direct conversation RPC result", {
+    rpc: "get_or_create_direct_conversation",
+    targetUserId,
+    data,
+  });
+
   const conversationId = getConversationIdFromRpcResult(data);
 
   if (!conversationId || !isValidUuid(conversationId)) {
+    console.warn("Direct conversation RPC returned no valid id.", {
+      targetUserId,
+      data,
+    });
     showToast("Conversation unavailable");
     return "";
   }

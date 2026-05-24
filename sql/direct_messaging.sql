@@ -121,10 +121,12 @@ with check (
 
 drop function if exists public.get_or_create_direct_conversation(uuid);
 
-create function public.get_or_create_direct_conversation(
+create or replace function public.get_or_create_direct_conversation(
   p_target_user_id uuid
 )
-returns uuid
+returns table (
+  conversation_id uuid
+)
 language plpgsql
 security definer
 set search_path = public
@@ -132,6 +134,8 @@ as $$
 declare
   v_current_user_id uuid := auth.uid();
   v_conversation_id uuid;
+  v_participant_one_id uuid;
+  v_participant_two_id uuid;
 begin
   if v_current_user_id is null then
     raise exception 'Not authenticated';
@@ -145,47 +149,79 @@ begin
     raise exception 'Cannot start a conversation with yourself';
   end if;
 
+  if not exists (
+    select 1
+    from auth.users u
+    where u.id = p_target_user_id
+  ) then
+    raise exception 'Target user not found';
+  end if;
+
+  v_participant_one_id := least(v_current_user_id, p_target_user_id);
+  v_participant_two_id := greatest(v_current_user_id, p_target_user_id);
+
   select id
   into v_conversation_id
   from public.message_conversations
   where conversation_type = 'direct'
     and coalesce(participant_one_id, least(user_id, business_owner_id)) =
-      least(v_current_user_id, p_target_user_id)
+      v_participant_one_id
     and coalesce(participant_two_id, greatest(user_id, business_owner_id)) =
-      greatest(v_current_user_id, p_target_user_id)
+      v_participant_two_id
   limit 1;
 
   if v_conversation_id is not null then
-    return v_conversation_id;
+    conversation_id := v_conversation_id;
+    return next;
+    return;
   end if;
 
-  insert into public.message_conversations (
-    conversation_type,
-    user_id,
-    business_owner_id,
-    participant_one_id,
-    participant_two_id,
-    reservation_id,
-    venue_id,
-    created_at,
-    updated_at
-  )
-  values (
-    'direct',
-    least(v_current_user_id, p_target_user_id),
-    greatest(v_current_user_id, p_target_user_id),
-    least(v_current_user_id, p_target_user_id),
-    greatest(v_current_user_id, p_target_user_id),
-    null,
-    null,
-    now(),
-    now()
-  )
-  returning id into v_conversation_id;
+  begin
+    insert into public.message_conversations (
+      conversation_type,
+      user_id,
+      business_owner_id,
+      participant_one_id,
+      participant_two_id,
+      reservation_id,
+      venue_id,
+      created_at,
+      updated_at
+    )
+    values (
+      'direct',
+      v_participant_one_id,
+      v_participant_two_id,
+      v_participant_one_id,
+      v_participant_two_id,
+      null,
+      null,
+      now(),
+      now()
+    )
+    returning id into v_conversation_id;
+  exception
+    when unique_violation then
+      select id
+      into v_conversation_id
+      from public.message_conversations
+      where conversation_type = 'direct'
+        and participant_one_id = v_participant_one_id
+        and participant_two_id = v_participant_two_id
+      limit 1;
+  end;
 
-  return v_conversation_id;
+  if v_conversation_id is null then
+    raise exception 'Direct conversation could not be created';
+  end if;
+
+  conversation_id := v_conversation_id;
+  return next;
 end;
 $$;
+
+revoke all on function public.get_or_create_direct_conversation(uuid)
+from public;
 
 grant execute on function public.get_or_create_direct_conversation(uuid)
 to authenticated;
