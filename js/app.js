@@ -2170,6 +2170,115 @@ function validateSelectedReservationSlotBeforeSubmit() {
   return true;
 }
 
+async function getVenueReservationInitialStatus(venueId) {
+  if (!venueId) return "pending";
+
+  try {
+    const { data, error } = await supabaseClient
+      .from("venue_booking_rules")
+      .select("auto_approve")
+      .eq("venue_id", venueId)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    return data && data.auto_approve ? "approved" : "pending";
+  } catch (error) {
+    console.warn("Reservation auto approval unavailable.", {
+      venueId,
+      error,
+    });
+    return "pending";
+  }
+}
+
+function isReservationCapacityRpcUnavailable(error) {
+  const code = safeText(error && error.code).toUpperCase();
+  const message = safeText(error && error.message).toLowerCase();
+  const details = safeText(error && error.details).toLowerCase();
+  const combined = `${message} ${details}`;
+
+  return (
+    code === "PGRST202" ||
+    code === "42883" ||
+    combined.includes("could not find the function") ||
+    combined.includes("function public.create_reservation_with_capacity_check") ||
+    combined.includes("does not exist") ||
+    combined.includes("schema cache")
+  );
+}
+
+function getReservationCapacityErrorMessage(error) {
+  const message = safeText(error && error.message).toLowerCase();
+  const details = safeText(error && error.details).toLowerCase();
+  const hint = safeText(error && error.hint).toLowerCase();
+  const combined = `${message} ${details} ${hint}`;
+
+  if (combined.includes("login required")) {
+    return "Login required";
+  }
+
+  if (
+    combined.includes("unavailable on the selected date") ||
+    combined.includes("blackout")
+  ) {
+    return "This venue is unavailable on the selected date.";
+  }
+
+  if (
+    combined.includes("closed on the selected date") ||
+    combined.includes("closed day")
+  ) {
+    return "This venue is closed on the selected date.";
+  }
+
+  if (
+    combined.includes("outside operating hours") ||
+    combined.includes("outside hours")
+  ) {
+    return "Reservation time is outside operating hours.";
+  }
+
+  if (
+    combined.includes("not an available slot") ||
+    combined.includes("not available slot")
+  ) {
+    return "Please choose an available reservation time.";
+  }
+
+  if (
+    combined.includes("guest capacity") ||
+    combined.includes("enough guest capacity")
+  ) {
+    return "That time does not have enough guest capacity.";
+  }
+
+  if (
+    combined.includes("slot is full") ||
+    combined.includes("slot full") ||
+    combined.includes("reservation slot is full")
+  ) {
+    return "That reservation slot is full.";
+  }
+
+  return "Reservation could not be requested.";
+}
+
+async function createReservationWithCapacityCheck(payload) {
+  const { data, error } = await supabaseClient.rpc(
+    "create_reservation_with_capacity_check",
+    {
+      p_venue_id: Number(payload.venue_id),
+      p_reservation_date: payload.reservation_date,
+      p_reservation_time: payload.reservation_time,
+      p_party_size: Number(payload.party_size),
+      p_note: payload.note || null,
+    }
+  );
+
+  return { data, error };
+}
+
 async function setupReservationForm(venueId) {
   const reservationForm =
     document.getElementById("reservationForm");
@@ -2283,24 +2392,64 @@ async function setupReservationForm(venueId) {
         reservation_time: timeInput.value,
         party_size: partySize,
         note: noteInput ? noteInput.value.trim() : "",
-        status: "pending",
       };
 
-      const { error } =
-        await supabaseClient
-          .from("reservations")
-          .insert([payload]);
+      let createdReservation = null;
+      const rpcResult =
+        await createReservationWithCapacityCheck(payload);
 
-      if (error) {
-        showSafeError(
-          error,
-          "Reservation could not be requested."
+      if (rpcResult.error) {
+        if (
+          !isReservationCapacityRpcUnavailable(rpcResult.error)
+        ) {
+          const friendlyMessage =
+            getReservationCapacityErrorMessage(rpcResult.error);
+          setVenueSlotMessage(friendlyMessage, "error");
+          showToast(friendlyMessage);
+          return;
+        }
+
+        console.warn(
+          "Reservation capacity RPC unavailable; falling back to direct insert.",
+          rpcResult.error
         );
-        return;
+
+        const initialStatus =
+          await getVenueReservationInitialStatus(venueId);
+        const fallbackPayload = {
+          ...payload,
+          status: initialStatus,
+        };
+
+        const { data, error } =
+          await supabaseClient
+            .from("reservations")
+            .insert([fallbackPayload])
+            .select("*")
+            .maybeSingle();
+
+        if (error) {
+          showSafeError(
+            error,
+            "Reservation could not be requested."
+          );
+          return;
+        }
+
+        createdReservation = data;
+      } else {
+        createdReservation = Array.isArray(rpcResult.data)
+          ? rpcResult.data[0]
+          : rpcResult.data;
       }
 
+      const createdVenueId =
+        createdReservation && createdReservation.venue_id
+          ? createdReservation.venue_id
+          : venueId;
+
       showToast("Reservation requested");
-      await notifyBusinessOwnerReservationRequest(venueId);
+      await notifyBusinessOwnerReservationRequest(createdVenueId);
       reservationForm.reset();
       venueReservationSlotState = {
         venueId,
@@ -2311,7 +2460,7 @@ async function setupReservationForm(venueId) {
       };
       renderVenueAvailableSlots([]);
       setVenueSlotMessage("");
-      await loadUserReservations(venueId);
+      await loadUserReservations(createdVenueId);
     } catch (error) {
       console.log(error);
       showToast(error.message || "Reservation unavailable");
