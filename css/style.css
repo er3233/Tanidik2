@@ -1591,7 +1591,8 @@ body::after {
 }
 
 .business-page .dashboard-section--forms,
-.business-page .dashboard-section--reservations {
+.business-page .dashboard-section--reservations,
+.business-page .dashboard-section--booking-settings {
   grid-column: 1 / -1;
 }
 
@@ -2401,7 +2402,8 @@ body::after {
 }
 
 .business-page #businessMenuVenueSelect,
-.business-page #businessStoreVenueSelect {
+.business-page #businessStoreVenueSelect,
+.business-page #businessBookingVenueSelect {
   width: min(420px, 100%);
   margin-bottom: 16px;
   padding: 16px;
@@ -2409,6 +2411,162 @@ body::after {
   border-radius: 16px;
   background: rgba(255,255,255,0.055);
   color: white;
+}
+
+.business-page .dashboard-section--booking-settings {
+  border-color: rgba(240,192,96,0.14);
+  background:
+    linear-gradient(135deg, rgba(240,192,96,0.07), transparent 42%),
+    linear-gradient(180deg, rgba(255,255,255,0.056), rgba(255,255,255,0.026)),
+    var(--glass);
+}
+
+.business-page .booking-settings-venue {
+  display: grid;
+  gap: 8px;
+  margin: 18px 0 6px;
+  color: var(--silver);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.business-page .booking-settings-status {
+  margin: 14px 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(240,192,96,0.2);
+  border-radius: 16px;
+  background: rgba(240,192,96,0.08);
+  color: var(--gold);
+}
+
+.business-page .booking-settings-status[data-status="error"] {
+  border-color: rgba(248,113,113,0.28);
+  background: rgba(248,113,113,0.09);
+  color: #fecaca;
+}
+
+.business-page .booking-settings-form,
+.business-page .booking-settings-block {
+  display: grid;
+  gap: 18px;
+}
+
+.business-page .booking-settings-block {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 22px;
+  background: rgba(0,0,0,0.16);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.035);
+}
+
+.business-page .booking-settings-block h3 {
+  margin: 0;
+  color: var(--gold);
+  font-size: 1rem;
+}
+
+.business-page .booking-hours-list {
+  display: grid;
+  gap: 10px;
+}
+
+.business-page .booking-hours-row {
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) minmax(110px, auto) repeat(2, minmax(120px, 1fr));
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
+  background: rgba(255,255,255,0.035);
+}
+
+.business-page .booking-hours-row strong {
+  color: white;
+}
+
+.business-page .booking-hours-row label,
+.business-page .booking-rules-grid label,
+.business-page .booking-blackout-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.business-page .booking-hours-row input,
+.business-page .booking-rules-grid input,
+.business-page .booking-blackout-form input {
+  min-height: 46px;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.055);
+  color: white;
+}
+
+.business-page .booking-hours-row input:disabled {
+  opacity: 0.48;
+}
+
+.business-page .booking-rules-grid,
+.business-page .booking-blackout-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: end;
+}
+
+.business-page .booking-toggle-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.04);
+  color: var(--silver);
+}
+
+.business-page .booking-toggle-field input {
+  width: auto;
+  min-height: auto;
+  accent-color: var(--gold);
+}
+
+.business-page .booking-settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.business-page .booking-blackout-list {
+  display: grid;
+  gap: 12px;
+}
+
+.business-page .booking-blackout-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
+  background: rgba(255,255,255,0.035);
+}
+
+.business-page .booking-blackout-item strong {
+  color: white;
+}
+
+.business-page .booking-blackout-item p,
+.business-page .booking-empty-note {
+  margin: 4px 0 0;
+  color: var(--text-muted);
 }
 
 .business-menu-form,
@@ -3432,6 +3590,108 @@ body::after {
   grid-column: 1 / -1;
 }
 
+.venue-slot-picker,
+.venue-slot-message {
+  grid-column: 1 / -1;
+}
+
+.venue-slot-picker {
+  display: grid;
+  gap: 12px;
+}
+
+.venue-slot-picker:empty {
+  display: none;
+}
+
+.venue-slot-picker-label {
+  color: var(--gold2);
+  font-family: var(--fm);
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.venue-slot-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.venue-slot-button {
+  min-height: 72px;
+  display: grid;
+  gap: 4px;
+  align-content: center;
+  justify-items: start;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.025)),
+    rgba(0,0,0,0.18);
+  color: var(--plat);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform var(--motion-fast) var(--ease-press),
+    border-color var(--motion-fast) var(--ease-premium),
+    background var(--motion-fast) var(--ease-premium),
+    box-shadow var(--motion-fast) var(--ease-premium);
+}
+
+.venue-slot-button strong {
+  color: white;
+  font-size: 0.98rem;
+}
+
+.venue-slot-button span,
+.venue-slot-button em {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-style: normal;
+  line-height: 1.35;
+}
+
+.venue-slot-button.is-available:hover,
+.venue-slot-button.is-selected {
+  transform: translateY(-1px);
+  border-color: rgba(240,192,96,0.42);
+  background:
+    linear-gradient(135deg, rgba(240,192,96,0.16), rgba(255,255,255,0.04)),
+    rgba(0,0,0,0.18);
+  box-shadow: 0 16px 36px rgba(0,0,0,0.24), 0 0 18px rgba(240,192,96,0.09);
+}
+
+.venue-slot-button.is-selected strong {
+  color: var(--gold);
+}
+
+.venue-slot-button.is-unavailable,
+.venue-slot-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+.venue-slot-button.is-unavailable em {
+  color: #fecaca;
+}
+
+.venue-slot-message {
+  margin: -4px 0 2px;
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.venue-slot-message:empty {
+  display: none;
+}
+
+.venue-slot-message[data-status="error"] {
+  color: #fecaca;
+}
+
 .reservation-form input,
 .reservation-form textarea {
   width: 100%;
@@ -3487,10 +3747,6 @@ body::after {
 
 .venue-detail-page .public-section--reservations .reservation-form {
   border-radius: 24px;
-}
-
-.venue-detail-page .public-section--reservations .reservation-field {
-  gap: 10px;
 }
 
 .venue-detail-page .public-section--reservations .reservation-form input,
@@ -4971,11 +5227,29 @@ p.reservation-note {
   }
 
   .business-page #businessMenuVenueSelect,
-  .business-page #businessStoreVenueSelect {
+  .business-page #businessStoreVenueSelect,
+  .business-page #businessBookingVenueSelect {
     width: 100%;
   }
 
   .business-menu-row {
+    grid-template-columns: 1fr;
+  }
+
+  .business-page .booking-settings-block {
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  .business-page .booking-hours-row,
+  .business-page .booking-rules-grid,
+  .business-page .booking-blackout-form,
+  .business-page .booking-blackout-item {
+    grid-template-columns: 1fr;
+  }
+
+  .business-page .booking-settings-actions {
+    display: grid;
     grid-template-columns: 1fr;
   }
 
@@ -5312,6 +5586,10 @@ p.reservation-note {
     padding: 13px;
     border-radius: 18px;
     background: rgba(0,0,0,0.2);
+  }
+
+  .venue-slot-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .venue-detail-page .public-section--reservations .reservation-form input,

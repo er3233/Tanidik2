@@ -27,6 +27,15 @@ const VENUE_CATEGORIES = [
   ["other", "Other"],
 ];
 const DEFAULT_VENUE_CATEGORY = "other";
+const BOOKING_WEEKDAYS = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
 
 const email = document.getElementById("email");
 const password = document.getElementById("password");
@@ -54,6 +63,13 @@ let businessDashboardState = {
   venues: [],
   events: [],
   reservations: [],
+};
+let venueReservationSlotState = {
+  venueId: null,
+  date: "",
+  slots: [],
+  selectedSlotTime: "",
+  fallbackMode: true,
 };
 
 function getBusinessStatus(business) {
@@ -1797,11 +1813,315 @@ async function loadUserReservations(venueId) {
   renderUserReservations(data || []);
 }
 
+function setVenueSlotMessage(message, type = "info") {
+  const messageElement =
+    document.getElementById("venueSlotMessage");
+
+  if (!messageElement) return;
+
+  messageElement.textContent = message || "";
+  messageElement.dataset.status = type;
+  messageElement.style.display = message ? "" : "none";
+}
+
+function getVenueSlotTimeValue(slot) {
+  return normalizeReservationTime(
+    slot && (slot.slot_time || slot.time || slot.reservation_time)
+  );
+}
+
+function getVenueSlotMetaLabel(slot) {
+  const reservationCount =
+    Number(slot && slot.reservation_count) || 0;
+  const maxReservations =
+    Number(slot && slot.max_reservations) || 0;
+  const guestCount = Number(slot && slot.guest_count) || 0;
+  const maxGuests = Number(slot && slot.max_guests) || 0;
+  const parts = [];
+
+  if (maxReservations > 0) {
+    parts.push(`${reservationCount}/${maxReservations} bookings`);
+  } else if (reservationCount > 0) {
+    parts.push(`${reservationCount} bookings`);
+  }
+
+  if (maxGuests > 0) {
+    parts.push(`${guestCount}/${maxGuests} guests`);
+  } else if (guestCount > 0) {
+    parts.push(`${guestCount} guests`);
+  }
+
+  return parts.join(" - ");
+}
+
+function isVenueSlotAvailableForParty(slot, partySize = 0) {
+  if (!slot || slot.is_available === false) return false;
+
+  const maxGuests = Number(slot.max_guests) || 0;
+  const guestCount = Number(slot.guest_count) || 0;
+
+  if (maxGuests > 0 && partySize > 0) {
+    return guestCount + partySize <= maxGuests;
+  }
+
+  return true;
+}
+
+async function loadVenueAvailableSlots(venueId, reservationDate) {
+  const slotContainer =
+    document.getElementById("venueAvailableSlots");
+
+  if (!slotContainer || !venueId || !reservationDate) {
+    renderVenueAvailableSlots([]);
+    return [];
+  }
+
+  venueReservationSlotState = {
+    venueId,
+    date: reservationDate,
+    slots: [],
+    selectedSlotTime: "",
+    fallbackMode: true,
+  };
+  setVenueSlotMessage("Loading available times...");
+
+  try {
+    const { data, error } = await supabaseClient.rpc(
+      "get_venue_available_slots",
+      {
+        p_venue_id: Number(venueId),
+        p_date: reservationDate,
+      }
+    );
+
+    if (error) throw error;
+
+    const slots = Array.isArray(data)
+      ? data.filter((slot) => getVenueSlotTimeValue(slot))
+      : [];
+
+    venueReservationSlotState = {
+      venueId,
+      date: reservationDate,
+      slots,
+      selectedSlotTime: "",
+      fallbackMode: slots.length === 0,
+    };
+
+    renderVenueAvailableSlots(slots);
+    return slots;
+  } catch (error) {
+    console.warn("Available reservation slots unavailable.", error);
+    venueReservationSlotState = {
+      venueId,
+      date: reservationDate,
+      slots: [],
+      selectedSlotTime: "",
+      fallbackMode: true,
+    };
+    renderVenueAvailableSlots([]);
+    setVenueSlotMessage(
+      "Slot settings are not available for this venue yet."
+    );
+    return [];
+  }
+}
+
+function renderVenueAvailableSlots(slots) {
+  const slotContainer =
+    document.getElementById("venueAvailableSlots");
+
+  if (!slotContainer) return;
+
+  slotContainer.innerHTML = "";
+
+  if (!slots || slots.length === 0) {
+    setVenueSlotMessage(
+      "Slot settings are not available for this venue yet."
+    );
+    return;
+  }
+
+  setVenueSlotMessage("Choose an available reservation time.");
+
+  const heading = document.createElement("span");
+  heading.className = "venue-slot-picker-label";
+  heading.textContent = "Available times";
+  slotContainer.appendChild(heading);
+
+  const grid = document.createElement("div");
+  grid.className = "venue-slot-grid";
+
+  slots.forEach((slot) => {
+    const slotTime = getVenueSlotTimeValue(slot);
+    if (!slotTime) return;
+
+    const button = document.createElement("button");
+    const isAvailable = slot.is_available !== false;
+    button.type = "button";
+    button.className = isAvailable
+      ? "venue-slot-button is-available"
+      : "venue-slot-button is-unavailable";
+    button.dataset.slotTime = slotTime;
+    button.disabled = !isAvailable;
+    button.setAttribute("aria-pressed", "false");
+
+    const time = document.createElement("strong");
+    time.textContent = getReservationTimeLabel(slotTime);
+    button.appendChild(time);
+
+    const metaLabel = getVenueSlotMetaLabel(slot);
+    if (metaLabel) {
+      const meta = document.createElement("span");
+      meta.textContent = metaLabel;
+      button.appendChild(meta);
+    }
+
+    if (!isAvailable) {
+      const full = document.createElement("em");
+      full.textContent = "Full";
+      button.appendChild(full);
+    }
+
+    button.addEventListener("click", () => {
+      selectVenueReservationSlot(slotTime);
+    });
+
+    grid.appendChild(button);
+  });
+
+  slotContainer.appendChild(grid);
+}
+
+function selectVenueReservationSlot(slotTime) {
+  const normalizedTime = normalizeReservationTime(slotTime);
+  const timeInput =
+    document.getElementById("reservationTime");
+
+  if (!normalizedTime || !timeInput) return;
+
+  const slot = venueReservationSlotState.slots.find(
+    (item) => getVenueSlotTimeValue(item) === normalizedTime
+  );
+
+  if (
+    venueReservationSlotState.slots.length > 0 &&
+    !isVenueSlotAvailableForParty(slot)
+  ) {
+    setVenueSlotMessage(
+      "That time is full. Please choose another slot.",
+      "error"
+    );
+    return;
+  }
+
+  timeInput.value = normalizedTime;
+  venueReservationSlotState.selectedSlotTime = normalizedTime;
+
+  document
+    .querySelectorAll(".venue-slot-button")
+    .forEach((button) => {
+      const isSelected = button.dataset.slotTime === normalizedTime;
+      button.classList.toggle("is-selected", isSelected);
+      button.setAttribute(
+        "aria-pressed",
+        isSelected ? "true" : "false"
+      );
+    });
+
+  setVenueSlotMessage("Reservation time selected.");
+}
+
+function validateSelectedReservationSlotBeforeSubmit() {
+  if (venueReservationSlotState.fallbackMode) return true;
+
+  const timeInput =
+    document.getElementById("reservationTime");
+  const partySizeInput =
+    document.getElementById("reservationPartySize");
+  const selectedTime = normalizeReservationTime(
+    timeInput ? timeInput.value : ""
+  );
+  const partySize = Number(
+    partySizeInput ? partySizeInput.value : 0
+  );
+
+  if (!selectedTime) {
+    setVenueSlotMessage("Choose an available reservation time.", "error");
+    return false;
+  }
+
+  const slot = venueReservationSlotState.slots.find(
+    (item) => getVenueSlotTimeValue(item) === selectedTime
+  );
+
+  if (!slot || !isVenueSlotAvailableForParty(slot, partySize)) {
+    setVenueSlotMessage(
+      "That time is no longer available. Please choose another slot.",
+      "error"
+    );
+    return false;
+  }
+
+  return true;
+}
+
 async function setupReservationForm(venueId) {
   const reservationForm =
     document.getElementById("reservationForm");
 
   if (!reservationForm) return;
+
+  const dateInput =
+    document.getElementById("reservationDate");
+  const timeInput =
+    document.getElementById("reservationTime");
+
+  if (dateInput && dateInput.dataset.slotsBound !== "true") {
+    dateInput.dataset.slotsBound = "true";
+    dateInput.addEventListener("change", () => {
+      if (timeInput) {
+        timeInput.value = "";
+      }
+
+      if (dateInput.value) {
+        loadVenueAvailableSlots(venueId, dateInput.value);
+      } else {
+        venueReservationSlotState = {
+          venueId,
+          date: "",
+          slots: [],
+          selectedSlotTime: "",
+          fallbackMode: true,
+        };
+        renderVenueAvailableSlots([]);
+        setVenueSlotMessage("");
+      }
+    });
+  }
+
+  if (timeInput && timeInput.dataset.slotsBound !== "true") {
+    timeInput.dataset.slotsBound = "true";
+    timeInput.addEventListener("change", () => {
+      const normalizedTime = normalizeReservationTime(timeInput.value);
+      venueReservationSlotState.selectedSlotTime = normalizedTime;
+      document
+        .querySelectorAll(".venue-slot-button")
+        .forEach((button) => {
+          const isSelected =
+            button.dataset.slotTime === normalizedTime;
+          button.classList.toggle("is-selected", isSelected);
+          button.setAttribute(
+            "aria-pressed",
+            isSelected ? "true" : "false"
+          );
+        });
+    });
+  }
+
+  if (dateInput && dateInput.value) {
+    await loadVenueAvailableSlots(venueId, dateInput.value);
+  }
 
   reservationForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -1843,6 +2163,10 @@ async function setupReservationForm(venueId) {
         return;
       }
 
+      if (!validateSelectedReservationSlotBeforeSubmit()) {
+        return;
+      }
+
       const payload = {
         venue_id: venueId,
         user_id: session.user.id,
@@ -1853,22 +2177,31 @@ async function setupReservationForm(venueId) {
         status: "pending",
       };
 
-    const { error } =
-      await supabaseClient
-        .from("reservations")
-        .insert([payload]);
+      const { error } =
+        await supabaseClient
+          .from("reservations")
+          .insert([payload]);
 
-    if (error) {
-      showSafeError(
-        error,
-        "Reservation could not be requested."
-      );
-      return;
-    }
+      if (error) {
+        showSafeError(
+          error,
+          "Reservation could not be requested."
+        );
+        return;
+      }
 
       showToast("Reservation requested");
       await notifyBusinessOwnerReservationRequest(venueId);
       reservationForm.reset();
+      venueReservationSlotState = {
+        venueId,
+        date: "",
+        slots: [],
+        selectedSlotTime: "",
+        fallbackMode: true,
+      };
+      renderVenueAvailableSlots([]);
+      setVenueSlotMessage("");
       await loadUserReservations(venueId);
     } catch (error) {
       console.log(error);
@@ -6477,6 +6810,13 @@ async function refreshBusinessDashboard() {
     renderBusinessEvents([]);
     renderBusinessReservations([]);
     renderBusinessReservationSchedule([]);
+    updateBusinessBookingVenueOptions();
+    renderBusinessOperatingHourRows([]);
+    renderBusinessBookingRules(null);
+    renderBusinessBlackoutDates([]);
+    setBusinessBookingStatus(
+      "Add an approved business and venue to manage booking settings."
+    );
     await refreshBusinessVenueMenu();
     await refreshBusinessVenueProducts();
     return;
@@ -6486,9 +6826,11 @@ async function refreshBusinessDashboard() {
   populateBusinessDashboardSelects();
   populateBusinessMenuVenueSelect();
   populateBusinessStoreVenueSelect();
+  updateBusinessBookingVenueOptions();
   renderBusinessVenues(businessDashboardState.venues);
   await refreshBusinessVenueMenu();
   await refreshBusinessVenueProducts();
+  await loadBusinessBookingSettings();
 
   businessDashboardState.events = await loadBusinessEvents();
   renderBusinessEvents(businessDashboardState.events);
@@ -8766,6 +9108,461 @@ async function setupMessagesPage() {
   await loadConversation(getConversationIdFromUrl());
 }
 
+function setBusinessBookingStatus(message, type = "info") {
+  const status =
+    document.getElementById("businessBookingSettingsStatus");
+
+  if (!status) return;
+
+  status.textContent = message || "";
+  status.dataset.status = type;
+  status.style.display = message ? "" : "none";
+}
+
+function getSelectedBusinessBookingVenueId() {
+  const select =
+    document.getElementById("businessBookingVenueSelect");
+
+  if (select && ownsVenueRecord(select.value)) {
+    return select.value;
+  }
+
+  const firstVenue = businessDashboardState.venues[0];
+  return firstVenue ? String(firstVenue.id) : "";
+}
+
+function updateBusinessBookingVenueOptions() {
+  const select =
+    document.getElementById("businessBookingVenueSelect");
+
+  if (!select) return;
+
+  const selectedValue = select.value;
+  select.innerHTML = '<option value="">Choose Venue</option>';
+
+  businessDashboardState.venues.forEach((venue) => {
+    const option = document.createElement("option");
+    option.value = venue.id;
+    option.textContent = safeText(venue.name) || `Venue #${venue.id}`;
+    select.appendChild(option);
+  });
+
+  if (ownsVenueRecord(selectedValue)) {
+    select.value = selectedValue;
+  } else if (businessDashboardState.venues[0]) {
+    select.value = businessDashboardState.venues[0].id;
+  }
+}
+
+function setBookingTimeInputsDisabled(row, isDisabled) {
+  row
+    .querySelectorAll("[data-booking-opens], [data-booking-closes]")
+    .forEach((input) => {
+      input.disabled = isDisabled;
+    });
+}
+
+function renderBusinessOperatingHourRows(hours) {
+  const container =
+    document.getElementById("businessOperatingHoursRows");
+
+  if (!container) return;
+
+  const hoursByDay = new Map(
+    (hours || []).map((row) => [
+      Number(row.day_of_week),
+      row,
+    ])
+  );
+
+  container.innerHTML = "";
+
+  BOOKING_WEEKDAYS.forEach((dayName, index) => {
+    const rowData = hoursByDay.get(index) || {};
+    const row = document.createElement("div");
+    row.className = "booking-hours-row";
+    row.dataset.dayOfWeek = String(index);
+
+    const day = document.createElement("strong");
+    day.textContent = dayName;
+    row.appendChild(day);
+
+    const closedLabel = document.createElement("label");
+    closedLabel.className = "booking-toggle-field booking-hours-closed";
+
+    const closedInput = document.createElement("input");
+    closedInput.type = "checkbox";
+    closedInput.dataset.bookingClosed = "true";
+    closedInput.checked = Boolean(rowData.is_closed);
+    closedLabel.appendChild(closedInput);
+    closedLabel.append("Closed");
+    row.appendChild(closedLabel);
+
+    const opensLabel = document.createElement("label");
+    opensLabel.textContent = "Opens";
+    const opensInput = document.createElement("input");
+    opensInput.type = "time";
+    opensInput.dataset.bookingOpens = "true";
+    opensInput.value = rowData.opens_at
+      ? String(rowData.opens_at).slice(0, 5)
+      : "18:00";
+    opensLabel.appendChild(opensInput);
+    row.appendChild(opensLabel);
+
+    const closesLabel = document.createElement("label");
+    closesLabel.textContent = "Closes";
+    const closesInput = document.createElement("input");
+    closesInput.type = "time";
+    closesInput.dataset.bookingCloses = "true";
+    closesInput.value = rowData.closes_at
+      ? String(rowData.closes_at).slice(0, 5)
+      : "23:00";
+    closesLabel.appendChild(closesInput);
+    row.appendChild(closesLabel);
+
+    setBookingTimeInputsDisabled(row, closedInput.checked);
+    closedInput.addEventListener("change", () => {
+      setBookingTimeInputsDisabled(row, closedInput.checked);
+    });
+
+    container.appendChild(row);
+  });
+}
+
+function renderBusinessBookingRules(rule) {
+  setAdminValue(
+    "businessSlotMinutes",
+    rule && rule.slot_minutes ? rule.slot_minutes : 60
+  );
+  setAdminValue(
+    "businessMaxReservationsPerSlot",
+    rule && rule.max_reservations_per_slot
+      ? rule.max_reservations_per_slot
+      : 10
+  );
+  setAdminValue(
+    "businessMaxGuestsPerSlot",
+    rule && rule.max_guests_per_slot
+      ? rule.max_guests_per_slot
+      : ""
+  );
+  setAdminValue(
+    "businessMinNoticeMinutes",
+    rule && Number.isFinite(Number(rule.min_notice_minutes))
+      ? rule.min_notice_minutes
+      : 60
+  );
+
+  const allowMultiple =
+    document.getElementById("businessAllowMultipleReservations");
+  const autoApprove =
+    document.getElementById("businessAutoApprove");
+
+  if (allowMultiple) {
+    allowMultiple.checked =
+      rule && typeof rule.allow_multiple_reservations === "boolean"
+        ? rule.allow_multiple_reservations
+        : true;
+  }
+
+  if (autoApprove) {
+    autoApprove.checked = Boolean(rule && rule.auto_approve);
+  }
+}
+
+function renderBusinessBlackoutDates(rows) {
+  const container =
+    document.getElementById("businessBlackoutDatesList");
+
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  if (!rows || !rows.length) {
+    const empty = document.createElement("p");
+    empty.className = "booking-empty-note";
+    empty.textContent = "No blackout dates yet.";
+    container.appendChild(empty);
+    return;
+  }
+
+  rows.forEach((blackout) => {
+    const item = document.createElement("div");
+    item.className = "booking-blackout-item";
+
+    const content = document.createElement("div");
+    const date = document.createElement("strong");
+    date.textContent = safeText(blackout.blackout_date);
+    content.appendChild(date);
+
+    if (blackout.reason) {
+      const reason = document.createElement("p");
+      reason.textContent = blackout.reason;
+      content.appendChild(reason);
+    }
+
+    item.appendChild(content);
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "admin-delete-btn";
+    button.textContent = "Delete";
+    button.addEventListener("click", () => {
+      deleteBusinessBlackoutDate(blackout.id);
+    });
+    item.appendChild(button);
+
+    container.appendChild(item);
+  });
+}
+
+function getBusinessOperatingHourPayloads(venueId) {
+  return Array.from(
+    document.querySelectorAll(".booking-hours-row")
+  ).map((row) => {
+    const isClosed = Boolean(
+      row.querySelector("[data-booking-closed]")?.checked
+    );
+    const opensAt =
+      row.querySelector("[data-booking-opens]")?.value || null;
+    const closesAt =
+      row.querySelector("[data-booking-closes]")?.value || null;
+
+    return {
+      venue_id: Number(venueId),
+      day_of_week: Number(row.dataset.dayOfWeek),
+      opens_at: isClosed ? null : opensAt,
+      closes_at: isClosed ? null : closesAt,
+      is_closed: isClosed,
+    };
+  });
+}
+
+function getBusinessBookingRulePayload(venueId) {
+  const maxGuests = Number(
+    getAdminValue("businessMaxGuestsPerSlot")
+  );
+  const allowMultiple =
+    document.getElementById("businessAllowMultipleReservations");
+  const autoApprove =
+    document.getElementById("businessAutoApprove");
+
+  return {
+    venue_id: Number(venueId),
+    slot_minutes:
+      Number(getAdminValue("businessSlotMinutes")) || 60,
+    max_reservations_per_slot:
+      Number(getAdminValue("businessMaxReservationsPerSlot")) || 10,
+    max_guests_per_slot: maxGuests > 0 ? maxGuests : null,
+    allow_multiple_reservations: allowMultiple
+      ? allowMultiple.checked
+      : true,
+    auto_approve: autoApprove ? autoApprove.checked : false,
+    min_notice_minutes:
+      Number(getAdminValue("businessMinNoticeMinutes")) || 0,
+  };
+}
+
+async function loadBusinessBookingSettings() {
+  const panel =
+    document.querySelector(".dashboard-section--booking-settings");
+
+  if (!panel) return;
+
+  const venueId = getSelectedBusinessBookingVenueId();
+
+  if (!venueId || !ownsVenueRecord(venueId)) {
+    renderBusinessOperatingHourRows([]);
+    renderBusinessBookingRules(null);
+    renderBusinessBlackoutDates([]);
+    setBusinessBookingStatus(
+      "Create an owned venue before editing booking settings."
+    );
+    return;
+  }
+
+  setBusinessBookingStatus("");
+
+  try {
+    const [hoursResult, rulesResult, blackoutResult] =
+      await Promise.all([
+        supabaseClient
+          .from("venue_operating_hours")
+          .select("*")
+          .eq("venue_id", venueId)
+          .order("day_of_week", { ascending: true }),
+        supabaseClient
+          .from("venue_booking_rules")
+          .select("*")
+          .eq("venue_id", venueId)
+          .maybeSingle(),
+        supabaseClient
+          .from("venue_blackout_dates")
+          .select("*")
+          .eq("venue_id", venueId)
+          .order("blackout_date", { ascending: true }),
+      ]);
+
+    if (hoursResult.error) throw hoursResult.error;
+    if (rulesResult.error) throw rulesResult.error;
+    if (blackoutResult.error) throw blackoutResult.error;
+
+    renderBusinessOperatingHourRows(hoursResult.data || []);
+    renderBusinessBookingRules(rulesResult.data || null);
+    renderBusinessBlackoutDates(blackoutResult.data || []);
+  } catch (error) {
+    console.warn("Booking settings could not be loaded.", error);
+    setBusinessBookingStatus(
+      "Booking settings could not be loaded.",
+      "error"
+    );
+  }
+}
+
+async function saveBusinessBookingSettings(event) {
+  event.preventDefault();
+
+  const venueId = getSelectedBusinessBookingVenueId();
+
+  if (!venueId || !ownsVenueRecord(venueId)) {
+    setBusinessBookingStatus(
+      "Choose an owned venue before saving.",
+      "error"
+    );
+    return;
+  }
+
+  const hoursPayload = getBusinessOperatingHourPayloads(venueId);
+  const rulesPayload = getBusinessBookingRulePayload(venueId);
+
+  try {
+    const hoursResult = await supabaseClient
+      .from("venue_operating_hours")
+      .upsert(hoursPayload, {
+        onConflict: "venue_id,day_of_week",
+      });
+
+    if (hoursResult.error) throw hoursResult.error;
+
+    const rulesResult = await supabaseClient
+      .from("venue_booking_rules")
+      .upsert(rulesPayload, {
+        onConflict: "venue_id",
+      });
+
+    if (rulesResult.error) throw rulesResult.error;
+
+    showToast("Booking settings saved.");
+    await loadBusinessBookingSettings();
+  } catch (error) {
+    console.warn("Booking settings could not be saved.", error);
+    setBusinessBookingStatus(
+      "Booking settings could not be saved.",
+      "error"
+    );
+  }
+}
+
+async function addBusinessBlackoutDate(event) {
+  event.preventDefault();
+
+  const venueId = getSelectedBusinessBookingVenueId();
+  const blackoutDate = getAdminValue("businessBlackoutDate");
+  const reason = getAdminValue("businessBlackoutReason");
+
+  if (!venueId || !ownsVenueRecord(venueId) || !blackoutDate) {
+    setBusinessBookingStatus(
+      "Choose a venue and date before adding a blackout.",
+      "error"
+    );
+    return;
+  }
+
+  try {
+    const result = await supabaseClient
+      .from("venue_blackout_dates")
+      .insert({
+        venue_id: Number(venueId),
+        blackout_date: blackoutDate,
+        reason: reason || null,
+      });
+
+    if (result.error) throw result.error;
+
+    setAdminValue("businessBlackoutDate", "");
+    setAdminValue("businessBlackoutReason", "");
+    showToast("Blackout date added.");
+    await loadBusinessBookingSettings();
+  } catch (error) {
+    console.warn("Blackout date could not be added.", error);
+    setBusinessBookingStatus(
+      "Blackout date could not be added.",
+      "error"
+    );
+  }
+}
+
+async function deleteBusinessBlackoutDate(blackoutId) {
+  if (!blackoutId) return;
+
+  try {
+    const result = await supabaseClient
+      .from("venue_blackout_dates")
+      .delete()
+      .eq("id", blackoutId);
+
+    if (result.error) throw result.error;
+
+    showToast("Blackout date deleted.");
+    await loadBusinessBookingSettings();
+  } catch (error) {
+    console.warn("Blackout date could not be deleted.", error);
+    setBusinessBookingStatus(
+      "Blackout date could not be deleted.",
+      "error"
+    );
+  }
+}
+
+function setupBusinessBookingSettings() {
+  const venueSelect =
+    document.getElementById("businessBookingVenueSelect");
+  const settingsForm =
+    document.getElementById("businessBookingSettingsForm");
+  const refreshButton =
+    document.getElementById("businessBookingSettingsRefreshBtn");
+  const blackoutForm =
+    document.getElementById("businessBlackoutDateForm");
+
+  if (venueSelect && venueSelect.dataset.bound !== "true") {
+    venueSelect.dataset.bound = "true";
+    venueSelect.addEventListener("change", () => {
+      loadBusinessBookingSettings();
+    });
+  }
+
+  if (settingsForm && settingsForm.dataset.bound !== "true") {
+    settingsForm.dataset.bound = "true";
+    settingsForm.addEventListener("submit", (event) => {
+      runGuardedFormSubmit(event, saveBusinessBookingSettings);
+    });
+  }
+
+  if (refreshButton && refreshButton.dataset.bound !== "true") {
+    refreshButton.dataset.bound = "true";
+    refreshButton.addEventListener("click", () => {
+      loadBusinessBookingSettings();
+    });
+  }
+
+  if (blackoutForm && blackoutForm.dataset.bound !== "true") {
+    blackoutForm.dataset.bound = "true";
+    blackoutForm.addEventListener("submit", (event) => {
+      runGuardedFormSubmit(event, addBusinessBlackoutDate);
+    });
+  }
+}
+
 function setupBusinessForms() {
   const venueForm =
     document.getElementById("businessVenueForm");
@@ -8938,6 +9735,7 @@ async function initBusinessDashboard() {
   setupBusinessForms();
   setupBusinessMenuManager();
   setupBusinessStoreManager();
+  setupBusinessBookingSettings();
   await refreshBusinessDashboard();
 }
 

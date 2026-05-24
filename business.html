@@ -140,6 +140,13 @@
 
       <button
         type="button"
+        data-business-panel="booking"
+      >
+        Booking
+      </button>
+
+      <button
+        type="button"
         data-business-panel="venues"
       >
         Venues
@@ -720,6 +727,176 @@
           <h2>
             No approved reservations this week yet.
           </h2>
+        </div>
+      </div>
+
+    </section>
+
+    <section
+      class="business-section dashboard-section dashboard-section--booking-settings business-mobile-panel"
+      data-panel="booking"
+    >
+
+      <h2>
+        Booking Settings
+      </h2>
+
+      <p class="reservation-dashboard-copy">
+        Manage reservation hours, slot capacity, approval behavior, and
+        unavailable dates for the selected venue.
+      </p>
+
+      <div class="booking-settings-venue">
+        <label for="businessBookingVenueSelect">
+          Venue
+        </label>
+        <select id="businessBookingVenueSelect">
+          <option value="">
+            Choose Venue
+          </option>
+        </select>
+      </div>
+
+      <div
+        id="businessBookingSettingsStatus"
+        class="booking-settings-status"
+        aria-live="polite"
+      >
+      </div>
+
+      <form
+        id="businessBookingSettingsForm"
+        class="booking-settings-form"
+      >
+        <div class="booking-settings-block">
+          <h3>
+            Operating Hours
+          </h3>
+
+          <div
+            id="businessOperatingHoursRows"
+            class="booking-hours-list"
+          >
+          </div>
+        </div>
+
+        <div class="booking-settings-block">
+          <h3>
+            Booking Rules
+          </h3>
+
+          <div class="booking-rules-grid">
+            <label>
+              Slot minutes
+              <input
+                type="number"
+                id="businessSlotMinutes"
+                min="5"
+                step="5"
+                value="60"
+              >
+            </label>
+
+            <label>
+              Max reservations per slot
+              <input
+                type="number"
+                id="businessMaxReservationsPerSlot"
+                min="1"
+                value="10"
+              >
+            </label>
+
+            <label>
+              Max guests per slot
+              <input
+                type="number"
+                id="businessMaxGuestsPerSlot"
+                min="1"
+                placeholder="Optional"
+              >
+            </label>
+
+            <label>
+              Min notice minutes
+              <input
+                type="number"
+                id="businessMinNoticeMinutes"
+                min="0"
+                step="15"
+                value="60"
+              >
+            </label>
+
+            <label class="booking-toggle-field">
+              <input
+                type="checkbox"
+                id="businessAllowMultipleReservations"
+                checked
+              >
+              Allow multiple reservations
+            </label>
+
+            <label class="booking-toggle-field">
+              <input
+                type="checkbox"
+                id="businessAutoApprove"
+              >
+              Auto approve reservations
+            </label>
+          </div>
+        </div>
+
+        <div class="booking-settings-actions">
+          <button type="submit" class="btn">
+            Save Booking Settings
+          </button>
+
+          <button
+            type="button"
+            id="businessBookingSettingsRefreshBtn"
+            class="secondary-btn"
+          >
+            Refresh
+          </button>
+        </div>
+      </form>
+
+      <div class="booking-settings-block booking-blackout-block">
+        <h3>
+          Blackout Dates
+        </h3>
+
+        <form
+          id="businessBlackoutDateForm"
+          class="booking-blackout-form"
+        >
+          <label>
+            Date
+            <input
+              type="date"
+              id="businessBlackoutDate"
+            >
+          </label>
+
+          <label>
+            Reason
+            <input
+              type="text"
+              id="businessBlackoutReason"
+              placeholder="Private event, holiday..."
+            >
+          </label>
+
+          <button type="submit" class="secondary-btn">
+            Add
+          </button>
+        </form>
+
+        <div
+          id="businessBlackoutDatesList"
+          class="booking-blackout-list"
+        >
         </div>
       </div>
 
