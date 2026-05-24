@@ -8238,7 +8238,8 @@ function getMessageSenderLabel(message, conversation, userId) {
   }
 
   if (isDirectConversation(conversation)) {
-    return "Profile";
+    return safeText(conversation.direct_participant_name) ||
+      "Profile";
   }
 
   if (
@@ -8389,6 +8390,15 @@ async function hydrateDirectConversationProfiles(conversations) {
     conversation.direct_participant_name =
       getProfileDisplayName(profile);
   });
+}
+
+async function hydrateDirectConversationProfile(conversation) {
+  if (!conversation || !isDirectConversation(conversation)) {
+    return conversation;
+  }
+
+  await hydrateDirectConversationProfiles([conversation]);
+  return conversation;
 }
 
 function createUserSearchStatus(message) {
@@ -8578,12 +8588,9 @@ async function startDirectMessageFromSearch(userId) {
   try {
     const opened = await openDirectConversation(userId);
 
-    if (!opened) {
-      showToast("Could not start conversation. Please try again.");
-      buttons.forEach((button) => {
-        button.disabled = false;
-      });
-    }
+    buttons.forEach((button) => {
+      button.disabled = false;
+    });
   } catch (error) {
     console.warn("Direct conversation could not be opened.", error);
     showToast("Could not start conversation. Please try again.");
@@ -8642,7 +8649,7 @@ async function getOrCreateDirectConversation(targetUserId) {
       hint: error.hint,
       error,
     });
-    showToast(error.message || "Conversation unavailable");
+    showToast(getDirectConversationErrorMessage(error));
     return "";
   }
 
@@ -8666,11 +8673,66 @@ async function getOrCreateDirectConversation(targetUserId) {
   return conversationId;
 }
 
+function getDirectConversationErrorMessage(error) {
+  const message = safeText(error && error.message).toLowerCase();
+
+  if (message.includes("not authenticated")) {
+    return "Please log in to start a conversation.";
+  }
+
+  if (message.includes("yourself")) {
+    return "You cannot message yourself.";
+  }
+
+  if (message.includes("target user")) {
+    return "That user could not be found.";
+  }
+
+  if (message.includes("permission") || message.includes("rls")) {
+    return "Conversation access is not available yet.";
+  }
+
+  return "Could not start conversation. Please try again.";
+}
+
 async function openDirectConversation(targetUserId) {
   const conversationId =
     await getOrCreateDirectConversation(targetUserId);
 
   if (!conversationId) return false;
+
+  const messagesPageReady =
+    document.getElementById("messagesList") &&
+    document.getElementById("conversationPanel");
+
+  if (messagesPageReady) {
+    const nextUrl =
+      `./messages.html?conversation=${encodeURIComponent(
+        conversationId
+      )}`;
+
+    window.history.pushState({}, "", nextUrl);
+    await loadMessageInbox();
+    await loadConversation(conversationId);
+
+    const searchPanel = document.getElementById("userSearchPanel");
+    const searchButton = document.getElementById("newMessageBtn");
+    const bodyInput = document.getElementById("messageBody");
+
+    if (searchPanel) {
+      searchPanel.hidden = true;
+    }
+
+    if (searchButton) {
+      searchButton.setAttribute("aria-expanded", "false");
+    }
+
+    if (bodyInput) {
+      bodyInput.focus();
+    }
+
+    return true;
+  }
 
   window.location.href =
     `./messages.html?conversation=${encodeURIComponent(
@@ -9049,7 +9111,7 @@ function resetConversationHeader() {
 
   const kicker = document.createElement("span");
   kicker.className = "messages-kicker";
-  kicker.textContent = "Reservation Thread";
+  kicker.textContent = "Message Thread";
   header.appendChild(kicker);
 
   const title = document.createElement("h2");
@@ -9058,7 +9120,7 @@ function resetConversationHeader() {
 
   const paragraph = document.createElement("p");
   paragraph.textContent =
-    "Choose a reservation conversation from your inbox.";
+    "Choose a direct message or reservation conversation from your inbox.";
   header.appendChild(paragraph);
 }
 
@@ -9123,6 +9185,16 @@ function setMessageFormEnabled(isEnabled) {
   if (button) {
     button.disabled = !isEnabled;
   }
+}
+
+function updateMessageComposerForConversation(conversation) {
+  const bodyInput = document.getElementById("messageBody");
+
+  if (!bodyInput) return;
+
+  bodyInput.placeholder = isDirectConversation(conversation)
+    ? "Write a message..."
+    : "Write a reservation message...";
 }
 
 async function openReservationConversation(reservationId) {
@@ -9251,7 +9323,7 @@ function renderMessageInbox(conversations) {
     renderEmptyState(
       list,
       "No messages yet",
-      "Reservation conversations will appear here."
+      "Direct messages and reservation conversations will appear here."
     );
     return;
   }
@@ -9325,12 +9397,13 @@ async function loadConversation(conversationId) {
 
   if (!conversationId) {
     setMessageFormEnabled(false);
+    updateMessageComposerForConversation(null);
     resetConversationHeader();
     resetConversationContextHeader();
     renderEmptyState(
       messagesContainer,
       "Choose a conversation",
-      "Open a reservation conversation from your inbox."
+      "Open a direct message or reservation conversation from your inbox."
     );
     return null;
   }
@@ -9370,7 +9443,9 @@ async function loadConversation(conversationId) {
     return null;
   }
 
+  await hydrateDirectConversationProfile(conversation);
   setMessageFormEnabled(true);
+  updateMessageComposerForConversation(conversation);
   updateConversationHeader(conversation, session.user.id);
   panel.dataset.conversationId = conversation.id;
   panel.dataset.userId = conversation.user_id || "";
@@ -9483,11 +9558,17 @@ function renderConversationMessages(
 function setupMessageForm(conversationId) {
   const form = document.getElementById("messageForm");
 
-  if (!form || form.dataset.bound === String(conversationId)) {
+  if (!form) {
     return;
   }
 
-  form.dataset.bound = String(conversationId);
+  form.dataset.conversationId = String(conversationId || "");
+
+  if (form.dataset.bound === "true") {
+    return;
+  }
+
+  form.dataset.bound = "true";
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -9510,7 +9591,7 @@ function setupMessageForm(conversationId) {
     try {
       const sent =
         await sendConversationMessage(
-          conversationId,
+          form.dataset.conversationId,
           body,
           attachmentFile
         );
@@ -9549,7 +9630,9 @@ async function notifyMessageRecipient(conversation, senderId) {
     await createNotification(
       recipientId,
       "message_new",
-      "New reservation message",
+      isDirectConversation(conversation)
+        ? "New direct message"
+        : "New reservation message",
       getConversationTitle(conversation),
       `./messages.html?conversation=${conversation.id}`
     );
@@ -9596,6 +9679,8 @@ async function sendConversationMessage(
     showToast("Conversation unavailable");
     return false;
   }
+
+  await hydrateDirectConversationProfile(conversation);
 
   const messageBody =
     body && body.trim() ? body.trim() : "Image attachment";
