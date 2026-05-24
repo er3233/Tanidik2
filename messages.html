@@ -270,6 +270,10 @@
 
     function isMobile() { return window.innerWidth < 769; }
 
+    if (isMobile() && /[?&]conversation=/.test(window.location.search)) {
+      layout.classList.add('chat-active');
+    }
+
     if (list) {
       list.addEventListener('click', function (e) {
         if (isMobile() && e.target.closest('.message-thread')) {
