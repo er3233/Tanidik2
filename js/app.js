@@ -8265,9 +8265,9 @@ function getProfileDisplayName(profile) {
 
   return (
     safeText(profile.full_name) ||
-    safeText(profile.username) ||
     safeText(profile.display_name) ||
     safeText(profile.name) ||
+    safeText(profile.username) ||
     safeText(profile.email) ||
     safeText(profile.user_email) ||
     "User"
@@ -8309,39 +8309,23 @@ function createUserProfileLink(userId, label = "View profile") {
 async function loadProfileRecordByUserId(userId) {
   if (!userId) return null;
 
-  const profileQueries = [
-    { table: "profiles", column: "id" },
-    { table: "profiles", column: "user_id" },
-    { table: "users", column: "id" },
-    { table: "users", column: "user_id" },
-  ];
+  try {
+    const { data, error } = await supabaseClient
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .maybeSingle();
 
-  for (const query of profileQueries) {
-    try {
-      const { data, error } = await supabaseClient
-        .from(query.table)
-        .select("*")
-        .eq(query.column, userId)
-        .maybeSingle();
-
-      if (error) {
-        console.warn(
-          `Public profile lookup unavailable on ${query.table}.${query.column}.`,
-          error
-        );
-        continue;
-      }
-
-      if (data) return data;
-    } catch (error) {
-      console.warn(
-        `Public profile lookup unavailable on ${query.table}.${query.column}.`,
-        error
-      );
+    if (error) {
+      console.warn("Public profile lookup unavailable.", error);
+      return null;
     }
-  }
 
-  return null;
+    return data || null;
+  } catch (error) {
+    console.warn("Public profile lookup unavailable.", error);
+    return null;
+  }
 }
 
 async function hydrateDirectConversationProfiles(conversations) {
