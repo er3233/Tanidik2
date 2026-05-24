@@ -1,0 +1,334 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Store | TANIDIK</title>
+  <meta name="description" content="Shop premium nightlife merchandise, VIP packages, and exclusive drops on TANIDIK." />
+  <meta name="theme-color" content="#050505" />
+  <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="./assets/icon-192.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="TANIDIK" />
+  <meta property="og:title" content="Store | TANIDIK" />
+  <meta property="og:description" content="Shop premium nightlife merchandise, VIP packages, and exclusive drops on TANIDIK." />
+  <meta property="og:url" content="https://tanidik2.vercel.app" />
+  <meta property="og:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Store | TANIDIK" />
+  <meta name="twitter:description" content="Shop premium nightlife merchandise, VIP packages, and exclusive drops on TANIDIK." />
+  <meta name="twitter:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+
+<body>
+
+  <nav class="navbar">
+    <h1>TANIDIK</h1>
+    <button class="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false">Menu</button>
+    <div class="nav-links">
+      <a href="./index.html">Home</a>
+      <a href="./discover.html">Discover</a>
+      <a href="./events.html">Events</a>
+      <a href="./store.html">Store</a>
+      <a href="./auth.html" id="authLink">Login</a>
+    </div>
+  </nav>
+
+  <main class="store-page">
+
+    <header class="store-header">
+      <span class="store-kicker">Exclusive Drops</span>
+      <h1>TANIDIK Store</h1>
+      <p>Premium merchandise, VIP packages &amp; nightlife essentials.</p>
+    </header>
+
+    <!-- Category filter pills (populated dynamically) -->
+    <div class="store-filters" id="storeFilters" role="group" aria-label="Product categories">
+      <button class="store-pill store-pill--active" data-category="all">All</button>
+    </div>
+
+    <!-- Product grid -->
+    <div class="store-grid" id="storeGrid" aria-live="polite"></div>
+
+  </main>
+
+  <!-- Floating cart button -->
+  <button
+    class="store-cart-fab"
+    id="storeCartFab"
+    type="button"
+    aria-label="Open cart"
+    aria-expanded="false"
+    aria-controls="storeCartDrawer"
+    hidden
+  >
+    <span class="store-cart-fab-icon" aria-hidden="true">◎</span>
+    <span class="store-cart-fab-count" id="storeCartCount">0</span>
+  </button>
+
+  <!-- Cart drawer -->
+  <aside class="store-cart-drawer" id="storeCartDrawer" aria-label="Shopping cart" hidden>
+    <div class="store-cart-inner">
+      <div class="store-cart-head">
+        <span class="store-kicker">Cart</span>
+        <h2>Your Selection</h2>
+        <button class="store-cart-close" id="storeCartClose" type="button" aria-label="Close cart">✕</button>
+      </div>
+      <div class="store-cart-items" id="storeCartItems"></div>
+      <div class="store-cart-footer">
+        <div class="store-cart-total">
+          <span>Total</span>
+          <strong id="storeCartTotal">₺0</strong>
+        </div>
+        <button class="store-checkout-btn" type="button">Checkout</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Cart backdrop -->
+  <div class="store-cart-backdrop" id="storeCartBackdrop" hidden></div>
+
+  <nav class="mobile-bottom-nav" aria-label="Primary mobile navigation">
+    <a href="./index.html" data-nav-page="index.html"><span aria-hidden="true">H</span>Home</a>
+    <a href="./discover.html" data-nav-page="discover.html"><span aria-hidden="true">D</span>Discover</a>
+    <a href="./store.html" data-nav-page="store.html"><span aria-hidden="true">S</span>Store</a>
+    <a href="./messages.html" data-nav-page="messages.html"><span aria-hidden="true">M</span>Messages</a>
+    <a href="./profile.html" data-nav-page="profile.html"><span aria-hidden="true">P</span>Profile</a>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="./js/app.js"></script>
+
+  <script>
+  (function () {
+    /* ── DOM refs ── */
+    var grid     = document.getElementById('storeGrid');
+    var filters  = document.getElementById('storeFilters');
+    var fab      = document.getElementById('storeCartFab');
+    var fabCount = document.getElementById('storeCartCount');
+    var drawer   = document.getElementById('storeCartDrawer');
+    var backdrop = document.getElementById('storeCartBackdrop');
+    var closeBtn = document.getElementById('storeCartClose');
+    var cartItems= document.getElementById('storeCartItems');
+    var cartTotal= document.getElementById('storeCartTotal');
+
+    /* ── State ── */
+    var ALL_PRODUCTS   = [];   // raw Supabase rows
+    var cart           = {};
+    var activeCategory = 'all';
+
+    /* ── Helpers ── */
+    function safeStr(v) { return v ? String(v) : ''; }
+
+    function fmtPrice(price, currency) {
+      if (price == null) return '';
+      var sym = (currency === 'USD') ? '$' : (currency === 'EUR') ? '€' : '₺';
+      return sym + Number(price).toLocaleString('tr-TR');
+    }
+
+    function showGrid(html) { grid.innerHTML = html; }
+
+    /* ── Category pills (dynamic) ── */
+    function buildPills(products) {
+      /* collect unique categories that have at least one product */
+      var seen = {};
+      var cats = [];
+      products.forEach(function (p) {
+        var cat = p.venue_product_categories;
+        if (cat && cat.id && !seen[cat.id]) {
+          seen[cat.id] = true;
+          cats.push({ id: String(cat.id), name: safeStr(cat.name) });
+        }
+      });
+
+      /* keep existing "All" pill, append the rest */
+      var existing = filters.querySelectorAll('.store-pill[data-category]:not([data-category="all"])');
+      existing.forEach(function (el) { el.remove(); });
+
+      cats.forEach(function (c) {
+        var btn = document.createElement('button');
+        btn.className = 'store-pill';
+        btn.dataset.category = c.id;
+        btn.textContent = c.name;
+        filters.appendChild(btn);
+      });
+
+      bindPills();
+    }
+
+    function bindPills() {
+      filters.querySelectorAll('.store-pill').forEach(function (pill) {
+        pill.addEventListener('click', function () {
+          filters.querySelectorAll('.store-pill').forEach(function (p) {
+            p.classList.remove('store-pill--active');
+          });
+          pill.classList.add('store-pill--active');
+          activeCategory = pill.dataset.category;
+          renderGrid();
+        });
+      });
+    }
+
+    /* ── Product grid ── */
+    function renderGrid() {
+      var filtered = activeCategory === 'all'
+        ? ALL_PRODUCTS
+        : ALL_PRODUCTS.filter(function (p) {
+            return p.venue_product_categories &&
+                   String(p.venue_product_categories.id) === activeCategory;
+          });
+
+      if (filtered.length === 0) {
+        showGrid('<p class="store-empty">Bu kategoride henüz ürün yok.</p>');
+        return;
+      }
+
+      grid.innerHTML = '';
+      filtered.forEach(function (p) {
+        var catName = (p.venue_product_categories && p.venue_product_categories.name)
+          ? safeStr(p.venue_product_categories.name) : '';
+        var imgHtml = p.image_url
+          ? '<img src="' + safeStr(p.image_url) + '" alt="' + safeStr(p.name) + '" loading="lazy" />'
+          : '<div class="store-card-img-placeholder"></div>';
+        var stockBadge = (p.stock_quantity != null && p.stock_quantity <= 5 && p.stock_quantity > 0)
+          ? '<span class="store-card-badge store-card-badge--low">Son ' + p.stock_quantity + '</span>' : '';
+
+        var card = document.createElement('article');
+        card.className = 'store-card';
+        card.innerHTML =
+          '<div class="store-card-img" aria-hidden="true">' +
+            stockBadge + imgHtml +
+          '</div>' +
+          '<div class="store-card-body">' +
+            (catName ? '<span class="store-card-cat">' + catName + '</span>' : '') +
+            '<h3 class="store-card-name">' + safeStr(p.name) + '</h3>' +
+            (p.description ? '<p class="store-card-desc">' + safeStr(p.description) + '</p>' : '') +
+            '<div class="store-card-footer">' +
+              '<span class="store-card-price">' + fmtPrice(p.price, p.currency) + '</span>' +
+              '<button class="store-add-btn" type="button" data-id="' + p.id + '">+ Sepet</button>' +
+            '</div>' +
+          '</div>';
+        grid.appendChild(card);
+      });
+
+      grid.querySelectorAll('.store-add-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          addToCart(btn.dataset.id);
+          btn.textContent = '✓';
+          btn.classList.add('store-add-btn--added');
+          setTimeout(function () {
+            btn.textContent = '+ Sepet';
+            btn.classList.remove('store-add-btn--added');
+          }, 1000);
+        });
+      });
+    }
+
+    /* ── Cart ── */
+    function addToCart(id) {
+      cart[id] = (cart[id] || 0) + 1;
+      updateCartUI();
+    }
+
+    function removeFromCart(id) {
+      delete cart[id];
+      updateCartUI();
+    }
+
+    function updateCartUI() {
+      var total = Object.keys(cart).reduce(function (s, id) { return s + cart[id]; }, 0);
+      fabCount.textContent = total;
+      fab.hidden = total === 0;
+      renderCartDrawer();
+    }
+
+    function renderCartDrawer() {
+      cartItems.innerHTML = '';
+      var sum = 0;
+      Object.keys(cart).forEach(function (id) {
+        var p = ALL_PRODUCTS.find(function (x) { return String(x.id) === String(id); });
+        if (!p) return;
+        var qty  = cart[id];
+        var line = (p.price || 0) * qty;
+        sum += line;
+        var row = document.createElement('div');
+        row.className = 'store-cart-row';
+        row.innerHTML =
+          '<div class="store-cart-row-info">' +
+            '<strong>' + safeStr(p.name) + '</strong>' +
+            '<span>×' + qty + ' &nbsp; ' + fmtPrice(line, p.currency) + '</span>' +
+          '</div>' +
+          '<button class="store-cart-remove" type="button" data-id="' + id + '" aria-label="Remove">✕</button>';
+        cartItems.appendChild(row);
+      });
+      cartTotal.textContent = fmtPrice(sum, 'TRY');
+      cartItems.querySelectorAll('.store-cart-remove').forEach(function (btn) {
+        btn.addEventListener('click', function () { removeFromCart(btn.dataset.id); });
+      });
+    }
+
+    /* ── Cart drawer open/close ── */
+    function openCart() {
+      drawer.hidden = false;
+      backdrop.hidden = false;
+      fab.setAttribute('aria-expanded', 'true');
+      requestAnimationFrame(function () {
+        drawer.classList.add('store-cart-drawer--open');
+        backdrop.classList.add('store-cart-backdrop--visible');
+      });
+    }
+
+    function closeCart() {
+      drawer.classList.remove('store-cart-drawer--open');
+      backdrop.classList.remove('store-cart-backdrop--visible');
+      fab.setAttribute('aria-expanded', 'false');
+      setTimeout(function () { drawer.hidden = true; backdrop.hidden = true; }, 260);
+    }
+
+    fab.addEventListener('click', openCart);
+    closeBtn.addEventListener('click', closeCart);
+    backdrop.addEventListener('click', closeCart);
+
+    /* Initial "All" pill binding */
+    bindPills();
+
+    /* ── Supabase fetch ── */
+    async function loadProducts() {
+      showGrid('<p class="store-empty">Yükleniyor…</p>');
+
+      try {
+        var result = await supabaseClient
+          .from('venue_products')
+          .select('*, venue_product_categories(id, name)')
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true })
+          .order('created_at', { ascending: true });
+
+        if (result.error) throw result.error;
+
+        ALL_PRODUCTS = result.data || [];
+
+        if (ALL_PRODUCTS.length === 0) {
+          showGrid('<p class="store-empty">Henüz ürün eklenmemiş.</p>');
+          return;
+        }
+
+        buildPills(ALL_PRODUCTS);
+        renderGrid();
+      } catch (err) {
+        console.warn('Store load error:', err);
+        showGrid('<p class="store-empty">Ürünler yüklenemedi. Lütfen tekrar deneyin.</p>');
+      }
+    }
+
+    loadProducts();
+  })();
+  </script>
+
+  <div id="toast" class="toast"></div>
+
+</body>
+</html>
