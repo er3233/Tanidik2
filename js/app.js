@@ -7777,6 +7777,11 @@ function isValidUuid(value) {
 
 let messageUnreadCountsByConversationId = {};
 let messageAttachmentsAvailable = null;
+let messageTypingAvailable = null;
+let messageTypingUpdateTimer = null;
+let messageTypingClearTimer = null;
+let messageTypingPollTimer = null;
+let messageSessionUserId = "";
 
 function getConversationIdFromNotificationLink(linkUrl) {
   if (!linkUrl) return "";
@@ -7911,6 +7916,19 @@ function updateMessagesBottomNavUnread(count) {
 async function markConversationReadState(userId, conversationId) {
   if (!userId || !conversationId) return;
 
+  try {
+    const { error: rpcError } = await supabaseClient.rpc(
+      "mark_conversation_read",
+      {
+        p_conversation_id: conversationId,
+      }
+    );
+
+    if (!rpcError) return;
+  } catch (error) {
+    console.warn("Read receipt RPC unavailable.", error);
+  }
+
   const { error } =
     await supabaseClient
       .from("message_conversation_reads")
@@ -7926,6 +7944,167 @@ async function markConversationReadState(userId, conversationId) {
   if (error) {
     console.warn(error);
   }
+}
+
+async function loadConversationReadStates(conversationId) {
+  if (!conversationId) return [];
+
+  try {
+    const { data, error } = await supabaseClient.rpc(
+      "get_conversation_read_state",
+      {
+        p_conversation_id: conversationId,
+      }
+    );
+
+    if (!error) return data || [];
+
+    console.warn("Read state RPC unavailable.", error);
+  } catch (error) {
+    console.warn("Read state RPC unavailable.", error);
+  }
+
+  try {
+    const { data, error } = await supabaseClient
+      .from("message_conversation_reads")
+      .select("user_id, last_read_at")
+      .eq("conversation_id", conversationId);
+
+    if (error) {
+      console.warn("Read state fallback unavailable.", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.warn("Read state fallback unavailable.", error);
+    return [];
+  }
+}
+
+function hasRecipientReadMessage(message, readStates, sessionUserId) {
+  if (
+    !message ||
+    String(message.sender_id) !== String(sessionUserId)
+  ) {
+    return false;
+  }
+
+  return (readStates || []).some((readState) => {
+    if (
+      !readState ||
+      String(readState.user_id) === String(sessionUserId) ||
+      !readState.last_read_at ||
+      !message.created_at
+    ) {
+      return false;
+    }
+
+    return (
+      new Date(readState.last_read_at).getTime() >=
+      new Date(message.created_at).getTime()
+    );
+  });
+}
+
+async function updateConversationTypingState(
+  conversationId,
+  userId,
+  isTyping
+) {
+  if (!conversationId || !userId || messageTypingAvailable === false) {
+    return;
+  }
+
+  try {
+    const { error } = await supabaseClient
+      .from("conversation_typing_states")
+      .upsert(
+        {
+          conversation_id: conversationId,
+          user_id: userId,
+          is_typing: Boolean(isTyping),
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "conversation_id,user_id" }
+      );
+
+    if (error) {
+      messageTypingAvailable = false;
+      console.warn("Typing indicators unavailable.", error);
+      return;
+    }
+
+    messageTypingAvailable = true;
+  } catch (error) {
+    messageTypingAvailable = false;
+    console.warn("Typing indicators unavailable.", error);
+  }
+}
+
+function renderTypingIndicator(isTyping) {
+  const indicator = document.getElementById(
+    "conversationTypingIndicator"
+  );
+
+  if (!indicator) return;
+
+  indicator.textContent = isTyping ? "Typing..." : "";
+}
+
+async function refreshConversationTypingIndicator(
+  conversationId,
+  userId
+) {
+  if (!conversationId || !userId || messageTypingAvailable === false) {
+    renderTypingIndicator(false);
+    return;
+  }
+
+  try {
+    const staleCutoff = new Date(Date.now() - 7000).toISOString();
+    const { data, error } = await supabaseClient
+      .from("conversation_typing_states")
+      .select("user_id, is_typing, updated_at")
+      .eq("conversation_id", conversationId)
+      .neq("user_id", userId)
+      .eq("is_typing", true)
+      .gte("updated_at", staleCutoff);
+
+    if (error) {
+      messageTypingAvailable = false;
+      renderTypingIndicator(false);
+      console.warn("Typing indicators unavailable.", error);
+      return;
+    }
+
+    messageTypingAvailable = true;
+    renderTypingIndicator(Boolean(data && data.length));
+  } catch (error) {
+    messageTypingAvailable = false;
+    renderTypingIndicator(false);
+    console.warn("Typing indicators unavailable.", error);
+  }
+}
+
+function startConversationTypingPoll(conversationId, userId) {
+  stopConversationTypingPoll();
+
+  if (!conversationId || !userId) return;
+
+  refreshConversationTypingIndicator(conversationId, userId);
+  messageTypingPollTimer = window.setInterval(() => {
+    refreshConversationTypingIndicator(conversationId, userId);
+  }, 3500);
+}
+
+function stopConversationTypingPoll() {
+  if (messageTypingPollTimer) {
+    window.clearInterval(messageTypingPollTimer);
+    messageTypingPollTimer = null;
+  }
+
+  renderTypingIndicator(false);
 }
 
 async function checkMessageAttachmentsTable() {
@@ -9271,7 +9450,7 @@ async function hydrateConversationPreviews(conversations) {
   const { data, error } =
     await supabaseClient
       .from("messages")
-      .select("conversation_id, body, created_at")
+      .select("conversation_id, body, created_at, sender_id")
       .in("conversation_id", conversationIds)
       .order("created_at", { ascending: false });
 
@@ -9281,6 +9460,8 @@ async function hydrateConversationPreviews(conversations) {
   }
 
   const previewsById = {};
+  const previewTimesById = {};
+  const previewSenderById = {};
 
   (data || []).forEach((message) => {
     const conversationId = String(message.conversation_id);
@@ -9288,11 +9469,17 @@ async function hydrateConversationPreviews(conversations) {
     if (previewsById[conversationId]) return;
 
     previewsById[conversationId] = safeText(message.body);
+    previewTimesById[conversationId] = message.created_at || "";
+    previewSenderById[conversationId] = message.sender_id || "";
   });
 
   conversations.forEach((conversation) => {
     conversation.last_message_preview =
       previewsById[String(conversation.id)] || "";
+    conversation.last_message_at =
+      previewTimesById[String(conversation.id)] || "";
+    conversation.last_message_sender_id =
+      previewSenderById[String(conversation.id)] || "";
   });
 }
 
@@ -9340,6 +9527,16 @@ function renderMessageInbox(conversations) {
     title.textContent = getConversationTitle(conversation);
     topRow.appendChild(title);
 
+    if (conversation.last_message_at) {
+      const time = document.createElement("time");
+      time.className = "message-thread-time";
+      time.dateTime = conversation.last_message_at;
+      time.textContent = formatNotificationDate(
+        conversation.last_message_at
+      );
+      topRow.appendChild(time);
+    }
+
     if (unreadCount > 0) {
       const badge = document.createElement("span");
       badge.className = "message-unread-badge";
@@ -9362,7 +9559,13 @@ function renderMessageInbox(conversations) {
     if (conversation.last_message_preview) {
       const preview = document.createElement("p");
       preview.className = "message-thread-preview";
-      preview.textContent = conversation.last_message_preview;
+      const isOwnPreview =
+        conversation.last_message_sender_id &&
+        String(conversation.last_message_sender_id) ===
+          String(messageSessionUserId || "");
+      preview.textContent = isOwnPreview
+        ? `You: ${conversation.last_message_preview}`
+        : conversation.last_message_preview;
       link.appendChild(preview);
     }
 
@@ -9382,6 +9585,7 @@ async function loadConversation(conversationId) {
   if (!conversationId) {
     setMessageFormEnabled(false);
     updateMessageComposerForConversation(null);
+    stopConversationTypingPoll();
     resetConversationHeader();
     resetConversationContextHeader();
     renderEmptyState(
@@ -9404,6 +9608,8 @@ async function loadConversation(conversationId) {
     return null;
   }
 
+  messageSessionUserId = session.user.id;
+
   const { data: conversation, error: conversationError } =
     await supabaseClient
       .from("message_conversations")
@@ -9424,6 +9630,7 @@ async function loadConversation(conversationId) {
     resetConversationHeader();
     resetConversationContextHeader();
     setMessageFormEnabled(false);
+    stopConversationTypingPoll();
     return null;
   }
 
@@ -9466,14 +9673,18 @@ async function loadConversation(conversationId) {
   updateMessagesBottomNavUnread(getTotalUnreadMessageCount());
   const attachmentsByMessageId =
     await loadMessageAttachments(conversation.id);
+  const readStates =
+    await loadConversationReadStates(conversation.id);
 
   renderConversationMessages(
     messages || [],
     session.user.id,
     conversation,
-    attachmentsByMessageId
+    attachmentsByMessageId,
+    readStates
   );
   setupMessageForm(conversation.id);
+  startConversationTypingPoll(conversation.id, session.user.id);
   return conversation;
 }
 
@@ -9481,7 +9692,8 @@ function renderConversationMessages(
   messages,
   sessionUserId,
   conversation,
-  attachmentsByMessageId = {}
+  attachmentsByMessageId = {},
+  readStates = []
 ) {
   const messagesContainer =
     document.getElementById("conversationMessages");
@@ -9494,28 +9706,48 @@ function renderConversationMessages(
     renderEmptyState(
       messagesContainer,
       "No messages yet",
-      "Send the first reservation message."
+      isDirectConversation(conversation)
+        ? "Send the first message."
+        : "Send the first reservation message."
     );
     return;
   }
 
   const fragment = document.createDocumentFragment();
+  const lastOwnMessage = [...messages]
+    .reverse()
+    .find(
+      (message) =>
+        String(message.sender_id) === String(sessionUserId)
+    );
+  let previousSenderId = "";
 
   messages.forEach((message) => {
     const bubble = document.createElement("div");
+    const isOwnMessage =
+      String(message.sender_id) === String(sessionUserId);
+    const isGrouped =
+      previousSenderId &&
+      String(previousSenderId) === String(message.sender_id);
     bubble.className =
-      String(message.sender_id) === String(sessionUserId)
+      isOwnMessage
         ? "message-bubble message-bubble--own"
         : "message-bubble";
 
-    const sender = document.createElement("strong");
-    sender.className = "message-sender-label";
-    sender.textContent = getMessageSenderLabel(
-      message,
-      conversation,
-      sessionUserId
-    );
-    bubble.appendChild(sender);
+    if (isGrouped) {
+      bubble.classList.add("message-bubble--grouped");
+    }
+
+    if (!isGrouped) {
+      const sender = document.createElement("strong");
+      sender.className = "message-sender-label";
+      sender.textContent = getMessageSenderLabel(
+        message,
+        conversation,
+        sessionUserId
+      );
+      bubble.appendChild(sender);
+    }
 
     if (safeText(message.body)) {
       const body = document.createElement("p");
@@ -9528,15 +9760,55 @@ function renderConversationMessages(
       attachmentsByMessageId[String(message.id)] || []
     );
 
+    const actions = document.createElement("div");
+    actions.className = "message-actions";
+
+    if (safeText(message.body)) {
+      const copyButton = document.createElement("button");
+      copyButton.type = "button";
+      copyButton.className = "message-action-btn";
+      copyButton.textContent = "Copy";
+      copyButton.addEventListener("click", () => {
+        copyMessageText(message.body);
+      });
+      actions.appendChild(copyButton);
+    }
+
+    if (actions.children.length > 0) {
+      bubble.appendChild(actions);
+    }
+
     const meta = document.createElement("span");
-    meta.textContent = formatNotificationDate(message.created_at);
+    meta.className = "message-meta";
+    const hasBeenRead =
+      lastOwnMessage &&
+      String(lastOwnMessage.id) === String(message.id) &&
+      hasRecipientReadMessage(message, readStates, sessionUserId);
+    meta.textContent = hasBeenRead
+      ? `${formatNotificationDate(message.created_at)} - Seen`
+      : formatNotificationDate(message.created_at);
     bubble.appendChild(meta);
 
     fragment.appendChild(bubble);
+    previousSenderId = message.sender_id;
   });
 
   messagesContainer.appendChild(fragment);
   messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+async function copyMessageText(text) {
+  const value = safeText(text);
+
+  if (!value) return;
+
+  try {
+    await navigator.clipboard.writeText(value);
+    showToast("Message copied");
+  } catch (error) {
+    console.warn("Message copy unavailable.", error);
+    showToast("Copy unavailable");
+  }
 }
 
 function setupMessageForm(conversationId) {
@@ -9547,6 +9819,44 @@ function setupMessageForm(conversationId) {
   }
 
   form.dataset.conversationId = String(conversationId || "");
+
+  const bodyInput = document.getElementById("messageBody");
+
+  if (
+    bodyInput &&
+    bodyInput.dataset.typingBound !== "true"
+  ) {
+    bodyInput.dataset.typingBound = "true";
+    bodyInput.addEventListener("input", () => {
+      const activeConversationId = form.dataset.conversationId;
+
+      if (!activeConversationId || !messageSessionUserId) return;
+
+      if (messageTypingUpdateTimer) {
+        window.clearTimeout(messageTypingUpdateTimer);
+      }
+
+      messageTypingUpdateTimer = window.setTimeout(() => {
+        updateConversationTypingState(
+          activeConversationId,
+          messageSessionUserId,
+          Boolean(bodyInput.value.trim())
+        );
+      }, 250);
+
+      if (messageTypingClearTimer) {
+        window.clearTimeout(messageTypingClearTimer);
+      }
+
+      messageTypingClearTimer = window.setTimeout(() => {
+        updateConversationTypingState(
+          activeConversationId,
+          messageSessionUserId,
+          false
+        );
+      }, 3500);
+    });
+  }
 
   if (form.dataset.bound === "true") {
     return;
@@ -9585,6 +9895,11 @@ function setupMessageForm(conversationId) {
       }
 
       if (sent) {
+        updateConversationTypingState(
+          form.dataset.conversationId,
+          messageSessionUserId,
+          false
+        );
         clearAdminFile("messageAttachmentImage");
       }
     } catch (error) {
@@ -9622,6 +9937,27 @@ async function notifyMessageRecipient(conversation, senderId) {
     );
   } catch (error) {
     console.log(error);
+  }
+}
+
+async function notifyMessageRecipientByEmail(messageId) {
+  if (!messageId || !supabaseClient.functions) return;
+
+  try {
+    const { error } = await supabaseClient.functions.invoke(
+      "send-message-email-notification",
+      {
+        body: {
+          message_id: messageId,
+        },
+      }
+    );
+
+    if (error) {
+      console.warn("Message email notification unavailable.", error);
+    }
+  } catch (error) {
+    console.warn("Message email notification unavailable.", error);
   }
 }
 
@@ -9669,7 +10005,7 @@ async function sendConversationMessage(
   const messageBody =
     body && body.trim() ? body.trim() : "Image attachment";
 
-  const { error } =
+  const { data: insertedMessage, error } =
     await supabaseClient
       .from("messages")
       .insert([
@@ -9678,42 +10014,18 @@ async function sendConversationMessage(
           sender_id: session.user.id,
           body: messageBody,
         },
-      ]);
+      ])
+      .select("id")
+      .maybeSingle();
 
   if (error) {
     showSafeError(error, "Message could not be sent.");
     return false;
   }
 
+  let messageId = insertedMessage ? insertedMessage.id : "";
+
   if (attachmentFile) {
-    let messageId = "";
-
-    try {
-      const { data: latestMessage, error: latestError } =
-        await supabaseClient
-          .from("messages")
-          .select("id")
-          .eq("conversation_id", conversation.id)
-          .eq("sender_id", session.user.id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-      if (latestError) {
-        console.warn(
-          "Message id could not be loaded for attachment.",
-          latestError
-        );
-      } else if (latestMessage) {
-        messageId = latestMessage.id;
-      }
-    } catch (latestError) {
-      console.warn(
-        "Message id could not be loaded for attachment.",
-        latestError
-      );
-    }
-
     if (messageId) {
       await saveMessageAttachment({
         messageId,
@@ -9729,6 +10041,7 @@ async function sendConversationMessage(
   }
 
   await notifyMessageRecipient(conversation, session.user.id);
+  notifyMessageRecipientByEmail(messageId);
   await loadConversation(conversation.id);
   await loadMessageInbox();
   return true;
@@ -9863,6 +10176,7 @@ async function setupMessagesPage() {
     return;
   }
 
+  messageSessionUserId = session.user.id;
   setupMessagesRefreshButton();
   setupUserSearchForMessages();
   await checkMessageAttachmentsTable();
