@@ -1867,6 +1867,71 @@ function isVenueSlotAvailableForParty(slot, partySize = 0) {
   return true;
 }
 
+async function getVenueBookingSettingsForDate(venueId, reservationDate) {
+  if (!venueId || !reservationDate) return null;
+
+  const dayOfWeek =
+    new Date(`${reservationDate}T12:00:00`).getDay();
+
+  try {
+    const [hoursResult, rulesResult, blackoutResult] =
+      await Promise.all([
+        supabaseClient
+          .from("venue_operating_hours")
+          .select("day_of_week, opens_at, closes_at, is_closed")
+          .eq("venue_id", venueId)
+          .eq("day_of_week", dayOfWeek)
+          .maybeSingle(),
+        supabaseClient
+          .from("venue_booking_rules")
+          .select("venue_id")
+          .eq("venue_id", venueId)
+          .maybeSingle(),
+        supabaseClient
+          .from("venue_blackout_dates")
+          .select("id, reason")
+          .eq("venue_id", venueId)
+          .eq("blackout_date", reservationDate)
+          .maybeSingle(),
+      ]);
+
+    if (hoursResult.error) throw hoursResult.error;
+    if (rulesResult.error) throw rulesResult.error;
+    if (blackoutResult.error) throw blackoutResult.error;
+
+    return {
+      hours: hoursResult.data || null,
+      rules: rulesResult.data || null,
+      blackout: blackoutResult.data || null,
+    };
+  } catch (error) {
+    console.warn("Venue booking settings diagnostic failed.", {
+      venueId,
+      reservationDate,
+      error,
+    });
+    return null;
+  }
+}
+
+function getVenueEmptySlotMessage(settings) {
+  if (settings && settings.blackout) {
+    return "This venue is unavailable on the selected date.";
+  }
+
+  if (settings && settings.hours) {
+    if (
+      settings.hours.is_closed ||
+      !settings.hours.opens_at ||
+      !settings.hours.closes_at
+    ) {
+      return "This venue is closed on the selected date.";
+    }
+  }
+
+  return "Slot settings are not available for this venue yet.";
+}
+
 async function loadVenueAvailableSlots(venueId, reservationDate) {
   const slotContainer =
     document.getElementById("venueAvailableSlots");
@@ -1875,6 +1940,11 @@ async function loadVenueAvailableSlots(venueId, reservationDate) {
     renderVenueAvailableSlots([]);
     return [];
   }
+
+  console.log("Loading venue reservation slots", {
+    venueId,
+    reservationDate,
+  });
 
   venueReservationSlotState = {
     venueId,
@@ -1886,6 +1956,18 @@ async function loadVenueAvailableSlots(venueId, reservationDate) {
   setVenueSlotMessage("Loading available times...");
 
   try {
+    const bookingSettings =
+      await getVenueBookingSettingsForDate(
+        venueId,
+        reservationDate
+      );
+
+    console.log("Venue booking settings diagnostic", {
+      venueId,
+      reservationDate,
+      bookingSettings,
+    });
+
     const { data, error } = await supabaseClient.rpc(
       "get_venue_available_slots",
       {
@@ -1894,7 +1976,21 @@ async function loadVenueAvailableSlots(venueId, reservationDate) {
       }
     );
 
-    if (error) throw error;
+    console.log("Venue available slots RPC result", {
+      venueId,
+      reservationDate,
+      data,
+      error,
+    });
+
+    if (error) {
+      console.warn("Venue available slots RPC error", {
+        venueId,
+        reservationDate,
+        error,
+      });
+      throw error;
+    }
 
     const slots = Array.isArray(data)
       ? data.filter((slot) => getVenueSlotTimeValue(slot))
@@ -1908,10 +2004,17 @@ async function loadVenueAvailableSlots(venueId, reservationDate) {
       fallbackMode: slots.length === 0,
     };
 
-    renderVenueAvailableSlots(slots);
+    renderVenueAvailableSlots(
+      slots,
+      getVenueEmptySlotMessage(bookingSettings)
+    );
     return slots;
   } catch (error) {
-    console.warn("Available reservation slots unavailable.", error);
+    console.warn("Available reservation slots unavailable.", {
+      venueId,
+      reservationDate,
+      error,
+    });
     venueReservationSlotState = {
       venueId,
       date: reservationDate,
@@ -1927,7 +2030,10 @@ async function loadVenueAvailableSlots(venueId, reservationDate) {
   }
 }
 
-function renderVenueAvailableSlots(slots) {
+function renderVenueAvailableSlots(
+  slots,
+  emptyMessage = "Slot settings are not available for this venue yet."
+) {
   const slotContainer =
     document.getElementById("venueAvailableSlots");
 
@@ -1936,9 +2042,7 @@ function renderVenueAvailableSlots(slots) {
   slotContainer.innerHTML = "";
 
   if (!slots || slots.length === 0) {
-    setVenueSlotMessage(
-      "Slot settings are not available for this venue yet."
-    );
+    setVenueSlotMessage(emptyMessage);
     return;
   }
 
@@ -2080,6 +2184,11 @@ async function setupReservationForm(venueId) {
   if (dateInput && dateInput.dataset.slotsBound !== "true") {
     dateInput.dataset.slotsBound = "true";
     dateInput.addEventListener("change", () => {
+      console.log("Reservation date changed", {
+        venueId,
+        reservationDate: dateInput.value,
+      });
+
       if (timeInput) {
         timeInput.value = "";
       }
