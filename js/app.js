@@ -8412,6 +8412,7 @@ function normalizeDirectMessageUser(row) {
     username: safeText(row.username),
     email: getProfileEmail(row),
     avatar: getProfileAvatar(row),
+    matchLabel: safeText(row.match_label),
   };
 }
 
@@ -8434,36 +8435,32 @@ function dedupeDirectMessageUsers(rows, sessionUserId) {
 async function searchUsersForDirectMessage(query) {
   const searchTerm = safeText(query).trim();
 
-  if (searchTerm.length < 2) return [];
+  if (searchTerm.length < 3) return [];
 
   const session = await getSafeSession();
   const sessionUserId = session && session.user ? session.user.id : "";
   const escapedTerm = searchTerm.replace(/[%_]/g, "\\$&");
   const searchPattern = `%${escapedTerm}%`;
-  const searchFilters = [
-    `full_name.ilike.${searchPattern}`,
-    `username.ilike.${searchPattern}`,
-    `email.ilike.${searchPattern}`,
-  ];
   const fallbackFilters = [
     `full_name.ilike.${searchPattern}`,
     `username.ilike.${searchPattern}`,
   ];
 
   try {
-    const { data, error } = await supabaseClient
-      .from("profiles")
-      .select("*")
-      .or(searchFilters.join(","))
-      .limit(12);
+    const { data, error } = await supabaseClient.rpc(
+      "search_message_users",
+      {
+        p_query: searchTerm,
+      }
+    );
 
     if (!error) {
       return dedupeDirectMessageUsers(data || [], sessionUserId);
     }
 
-    console.warn("User email search unavailable.", error);
+    console.warn("Message user directory search unavailable.", error);
   } catch (error) {
-    console.warn("User email search unavailable.", error);
+    console.warn("Message user directory search unavailable.", error);
   }
 
   try {
@@ -8493,7 +8490,11 @@ function renderUserSearchResults(users) {
   results.innerHTML = "";
 
   if (!users || users.length === 0) {
-    results.appendChild(createUserSearchStatus("No users found."));
+    results.appendChild(
+      createUserSearchStatus(
+        "No user found. Ask them to complete their profile or check the email."
+      )
+    );
     return;
   }
 
@@ -8532,9 +8533,11 @@ function renderUserSearchResults(users) {
     content.appendChild(name);
 
     const meta = document.createElement("span");
-    meta.textContent = user.username
-      ? `@${user.username}`
-      : user.email || "TANIDIK member";
+    meta.textContent =
+      user.matchLabel ||
+      (user.username
+        ? `@${user.username}`
+        : user.email || "TANIDIK member");
     content.appendChild(meta);
 
     const button = document.createElement("button");
@@ -9717,10 +9720,10 @@ function setupUserSearchForMessages() {
       clearTimeout(searchTimer);
     }
 
-    if (query.length < 2) {
+    if (query.length < 3) {
       results.innerHTML = "";
       results.appendChild(
-        createUserSearchStatus("Type at least 2 characters.")
+        createUserSearchStatus("Type at least 3 characters.")
       );
       return;
     }
