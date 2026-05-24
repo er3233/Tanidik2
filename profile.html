@@ -119,7 +119,7 @@
     >
       <button
         type="button"
-        data-profile-panel="reservations"
+        onclick="window.location.href='./my-reservations.html'"
       >
         My Reservations
       </button>
@@ -133,7 +133,7 @@
 
       <button
         type="button"
-        data-profile-panel="reviews"
+        onclick="window.location.href='./my-reviews.html'"
       >
         My Reviews
       </button>
@@ -226,15 +226,15 @@
       </h2>
 
       <p class="reservation-dashboard-copy">
-        Your review count is tracked here. Open venue pages to add or update
-        reviews.
+        Open your full review history and jump back into venues you have
+        rated.
       </p>
 
       <a
-        href="./discover.html"
+        href="./my-reviews.html"
         class="secondary-btn"
       >
-        Discover Venues
+        View My Reviews
       </a>
     </section>
 
@@ -317,19 +317,20 @@
     >
 
       <h2>
-        Recent Reservations
+        My Reservations
       </h2>
 
       <p class="reservation-dashboard-copy">
-        Track upcoming requests, statuses, and pending cancellations in one
-        place.
+        Track upcoming requests, statuses, and pending cancellations on your
+        reservations page.
       </p>
 
-      <div
-        id="profileReservationsList"
-        class="reservation-list"
+      <a
+        href="./my-reservations.html"
+        class="secondary-btn"
       >
-      </div>
+        View My Reservations
+      </a>
 
     </section>
 
@@ -342,6 +343,20 @@
       </h2>
 
       <div class="profile-action-grid">
+        <a
+          href="./my-reservations.html"
+          class="secondary-btn"
+        >
+          My Reservations
+        </a>
+
+        <a
+          href="./my-reviews.html"
+          class="secondary-btn"
+        >
+          My Reviews
+        </a>
+
         <a
           id="businessDashboardLink"
           href="./business.html"

@@ -2841,7 +2841,6 @@ async function loadProfileStats(userId) {
   }
 
   await loadProfileNotifications(userId);
-  await loadProfileReservations(userId);
   await loadProfileBusinessApplications(userId);
   await setupBusinessProfileLink(userId);
 }
@@ -3168,7 +3167,7 @@ function setupBusinessApplicationForm(userId) {
   });
 }
 
-async function loadProfileReservations(userId) {
+async function loadProfileReservations(userId, options = {}) {
   const reservationsList =
     document.getElementById("profileReservationsList");
 
@@ -3179,13 +3178,17 @@ async function loadProfileReservations(userId) {
     "Loading reservations..."
   );
 
-  const { data: reservations, error } =
-    await supabaseClient
+  let query = supabaseClient
       .from("reservations")
       .select("*")
       .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(8);
+      .order("created_at", { ascending: false });
+
+  if (options.limit !== null) {
+    query = query.limit(options.limit || 8);
+  }
+
+  const { data: reservations, error } = await query;
 
   if (error) {
     showSafeError(error, "Reservations could not be loaded.");
@@ -3248,13 +3251,172 @@ async function loadProfileReservations(userId) {
         {
           allowCancel: true,
           showVenue: true,
-          onCancel: () => loadProfileStats(userId),
+          onCancel:
+            options.onCancel ||
+            (() => loadProfileReservations(userId, options)),
         }
       )
     );
   });
 
   reservationsList.appendChild(fragment);
+}
+
+function renderProfileReviews(reviews, venuesById = new Map()) {
+  const reviewsList =
+    document.getElementById("profileReviewsList");
+
+  if (!reviewsList) return;
+
+  reviewsList.innerHTML = "";
+
+  if (!reviews || reviews.length === 0) {
+    renderEmptyState(
+      reviewsList,
+      "No reviews yet.",
+      "Reviews you leave on venue pages will appear here."
+    );
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+
+  reviews.forEach((review) => {
+    const venue = venuesById.get(String(review.venue_id));
+    const card = document.createElement("article");
+    card.className = "review-card profile-review-card";
+
+    const header = document.createElement("div");
+    header.className = "review-card-header";
+
+    const title = document.createElement("h3");
+    title.textContent =
+      safeText(venue && venue.name) ||
+      `Venue #${safeText(review.venue_id)}`;
+    header.appendChild(title);
+
+    const rating = document.createElement("span");
+    rating.className = "review-rating";
+    rating.textContent = `${review.rating || 0} / 5`;
+    header.appendChild(rating);
+
+    card.appendChild(header);
+
+    const date = document.createElement("p");
+    date.className = "review-date";
+    date.textContent = formatReviewDate(review.created_at);
+    card.appendChild(date);
+
+    if (review.review) {
+      const text = document.createElement("p");
+      text.textContent = review.review;
+      card.appendChild(text);
+    }
+
+    const actions = document.createElement("div");
+    actions.className = "reservation-actions";
+
+    if (review.venue_id) {
+      const link = document.createElement("a");
+      link.href = `./venue.html?id=${review.venue_id}`;
+      link.className = "secondary-btn";
+      link.textContent = "View Venue";
+      actions.appendChild(link);
+    }
+
+    if (actions.children.length > 0) {
+      card.appendChild(actions);
+    }
+
+    fragment.appendChild(card);
+  });
+
+  reviewsList.appendChild(fragment);
+}
+
+async function loadProfileReviews(userId) {
+  const reviewsList =
+    document.getElementById("profileReviewsList");
+
+  if (!reviewsList) return;
+
+  renderEmptyState(reviewsList, "Loading reviews...");
+
+  const { data: reviews, error } =
+    await supabaseClient
+      .from("venue_reviews")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+
+  if (error) {
+    showSafeError(error, "Reviews could not be loaded.");
+    return;
+  }
+
+  const venueIds = [
+    ...new Set(
+      (reviews || [])
+        .map((review) => review.venue_id)
+        .filter(Boolean)
+    ),
+  ];
+  let venuesById = new Map();
+
+  if (venueIds.length > 0) {
+    const { data: venues, error: venuesError } =
+      await supabaseClient
+        .from("venues")
+        .select("id, name")
+        .in("id", venueIds);
+
+    if (venuesError) {
+      console.warn("Review venue names could not be loaded.", venuesError);
+    } else {
+      venuesById = new Map(
+        (venues || []).map((venue) => [
+          String(venue.id),
+          venue,
+        ])
+      );
+    }
+  }
+
+  renderProfileReviews(reviews || [], venuesById);
+}
+
+async function initMyReservationsPage() {
+  const page =
+    document.getElementById("myReservationsPage");
+
+  if (!page) return;
+
+  const session = await getSafeSession();
+
+  if (!session) {
+    window.location.href = "./auth.html";
+    return;
+  }
+
+  await loadProfileReservations(session.user.id, {
+    limit: null,
+  });
+}
+
+async function initMyReviewsPage() {
+  const page =
+    document.getElementById("myReviewsPage");
+
+  if (!page) return;
+
+  const session = await getSafeSession();
+
+  if (!session) {
+    window.location.href = "./auth.html";
+    return;
+  }
+
+  await loadProfileReviews(session.user.id);
 }
 
 async function setupBusinessProfileLink(userId) {
@@ -6329,9 +6491,23 @@ function renderBusinessReservations(reservations) {
     ["rejected", "Rejected"],
     ["cancelled", "Cancelled"],
   ];
+  const dateFilters = [
+    ["all", "All Dates"],
+    ["today", "Today"],
+    ["upcoming", "Upcoming"],
+  ];
   const activeStatus =
     window.businessReservationStatusFilter || "all";
-  const counts = reservations.reduce((items, reservation) => {
+  const activeDateFilter =
+    window.businessReservationDateFilter || "all";
+  const dateFilteredReservations = reservations.filter(
+    (reservation) =>
+      doesReservationMatchBusinessDateFilter(
+        reservation,
+        activeDateFilter
+      )
+  );
+  const counts = dateFilteredReservations.reduce((items, reservation) => {
     const status = getReservationStatusValue(
       reservation.status
     );
@@ -6348,6 +6524,23 @@ function renderBusinessReservations(reservations) {
 
   const filters = document.createElement("div");
   filters.className = "reservation-status-filters";
+
+  dateFilters.forEach(([value, label]) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className =
+      value === activeDateFilter
+        ? "reservation-status-filter active-filter"
+        : "reservation-status-filter";
+    button.textContent = label;
+    button.addEventListener("click", () => {
+      window.businessReservationDateFilter = value;
+      renderBusinessReservations(
+        businessDashboardState.reservations
+      );
+    });
+    filters.appendChild(button);
+  });
 
   statuses.forEach(([value, label]) => {
     const button = document.createElement("button");
@@ -6370,8 +6563,8 @@ function renderBusinessReservations(reservations) {
 
   const visibleReservations =
     activeStatus === "all"
-      ? reservations
-      : reservations.filter(
+      ? dateFilteredReservations
+      : dateFilteredReservations.filter(
           (reservation) =>
             getReservationStatusValue(reservation.status) ===
             activeStatus
@@ -6393,11 +6586,13 @@ function renderBusinessReservations(reservations) {
       : statuses.filter(([value]) => value === activeStatus);
 
   groupedStatuses.forEach(([statusValue, statusLabel]) => {
-    const groupReservations = visibleReservations.filter(
-      (reservation) =>
-        getReservationStatusValue(reservation.status) ===
-        statusValue
-    );
+    const groupReservations = visibleReservations
+      .filter(
+        (reservation) =>
+          getReservationStatusValue(reservation.status) ===
+          statusValue
+      )
+      .sort(compareBusinessReservationsByDateTime);
 
     if (activeStatus === "all" && groupReservations.length === 0) {
       return;
@@ -6466,6 +6661,60 @@ function normalizeReservationDate(value) {
   return `${year}-${month}-${day}`;
 }
 
+function getTodayReservationDateKey() {
+  return normalizeReservationDate(new Date());
+}
+
+function doesReservationMatchBusinessDateFilter(
+  reservation,
+  filterValue
+) {
+  if (!filterValue || filterValue === "all") return true;
+
+  const date = normalizeReservationDate(
+    getScheduleReservationDate(reservation)
+  );
+
+  if (!date) return false;
+
+  const today = getTodayReservationDateKey();
+
+  if (filterValue === "today") {
+    return date === today;
+  }
+
+  if (filterValue === "upcoming") {
+    return date >= today;
+  }
+
+  return true;
+}
+
+function compareBusinessReservationsByDateTime(a, b) {
+  const aDate = normalizeReservationDate(
+    getScheduleReservationDate(a)
+  );
+  const bDate = normalizeReservationDate(
+    getScheduleReservationDate(b)
+  );
+  const aTime = normalizeReservationTime(
+    getScheduleReservationTime(a)
+  );
+  const bTime = normalizeReservationTime(
+    getScheduleReservationTime(b)
+  );
+  const aKey = `${aDate || "9999-12-31"}T${aTime || "99:99"}`;
+  const bKey = `${bDate || "9999-12-31"}T${bTime || "99:99"}`;
+
+  if (aKey === bKey) {
+    return String(b.created_at || "").localeCompare(
+      String(a.created_at || "")
+    );
+  }
+
+  return aKey.localeCompare(bKey);
+}
+
 function normalizeReservationTime(value) {
   const time = safeText(value).trim();
 
@@ -6497,11 +6746,13 @@ function getReservationTimeLabel(time) {
   return `${displayHour}:${minuteValue} ${period}`;
 }
 
-function isApprovedScheduleReservation(reservation) {
+function isVisibleScheduleReservation(reservation) {
   const normalizedStatus = String(
     reservation.status || ""
   ).trim().toLowerCase();
-  const isApprovedReservation = [
+
+  return [
+    "pending",
     "approved",
     "approve",
     "accepted",
@@ -6510,8 +6761,6 @@ function isApprovedScheduleReservation(reservation) {
     "onaylandı",
     "onaylandi",
   ].includes(normalizedStatus);
-
-  return isApprovedReservation;
 }
 
 function getScheduleReservationDate(reservation) {
@@ -6615,12 +6864,12 @@ function buildBusinessReservationSchedule(reservations) {
     normalizeReservationDate(date)
   );
   const slots = getScheduleTimeSlots();
-  const approvedReservations = (reservations || []).filter(
-    isApprovedScheduleReservation
+  const scheduleReservations = (reservations || []).filter(
+    isVisibleScheduleReservation
   );
   const entriesByDateTime = {};
 
-  approvedReservations.forEach((reservation) => {
+  scheduleReservations.forEach((reservation) => {
     const date = normalizeReservationDate(
       getScheduleReservationDate(reservation)
     );
@@ -6645,6 +6894,10 @@ function buildBusinessReservationSchedule(reservations) {
       customerName: getScheduleCustomerName(reservation),
       venueName: getScheduleVenueName(reservation),
       partySize: Number(reservation.party_size) || 0,
+      status: getReservationStatusValue(reservation.status),
+      displayTime: normalizeReservationTime(
+        getScheduleReservationTime(reservation)
+      ),
     });
   });
 
@@ -6656,13 +6909,18 @@ function buildBusinessReservationSchedule(reservations) {
   };
 }
 
-function createReservationScheduleBadge() {
-  return createStatusBadge("approved");
+function createReservationScheduleBadge(status) {
+  return createStatusBadge(status || "approved");
 }
 
 function createReservationScheduleBooking(entries) {
   const item = document.createElement("div");
-  item.className = "reservation-schedule-item";
+  const hasPending = entries.some(
+    (entry) => entry.status === "pending"
+  );
+  item.className = hasPending
+    ? "reservation-schedule-item status-pending"
+    : "reservation-schedule-item";
 
   if (entries.length === 1) {
     const booking = entries[0];
@@ -6674,11 +6932,15 @@ function createReservationScheduleBooking(entries) {
     venue.textContent = booking.venueName;
     item.appendChild(venue);
 
+    const time = document.createElement("span");
+    time.textContent = getReservationTimeLabel(booking.displayTime);
+    item.appendChild(time);
+
     const party = document.createElement("span");
     party.textContent = `${booking.partySize || 0} guests`;
     item.appendChild(party);
 
-    item.appendChild(createReservationScheduleBadge());
+    item.appendChild(createReservationScheduleBadge(booking.status));
     return item;
   }
 
@@ -6686,8 +6948,13 @@ function createReservationScheduleBooking(entries) {
     (sum, entry) => sum + (Number(entry.partySize) || 0),
     0
   );
+  const pendingCount = entries.filter(
+    (entry) => entry.status === "pending"
+  ).length;
   const heading = document.createElement("strong");
-  heading.textContent = `${entries.length} bookings`;
+  heading.textContent = pendingCount
+    ? `${entries.length} bookings - ${pendingCount} pending`
+    : `${entries.length} bookings`;
   item.appendChild(heading);
 
   const guests = document.createElement("span");
@@ -6707,7 +6974,11 @@ function createReservationScheduleBooking(entries) {
   ].join(", ");
   item.appendChild(venues);
 
-  item.appendChild(createReservationScheduleBadge());
+  item.appendChild(
+    createReservationScheduleBadge(
+      pendingCount ? "pending" : "approved"
+    )
+  );
   return item;
 }
 
@@ -6797,6 +7068,14 @@ function createBusinessReservationCard(reservation) {
     getBusinessDashboardVenueName(reservation.venue_id);
   header.appendChild(title);
   header.appendChild(createStatusBadge(reservation.status));
+
+  if (isPendingReservation(reservation)) {
+    const newBadge = document.createElement("span");
+    newBadge.className = "reservation-new-badge";
+    newBadge.textContent = "New";
+    header.appendChild(newBadge);
+  }
+
   content.appendChild(header);
 
   const meta = document.createElement("div");
@@ -6817,6 +7096,12 @@ function createBusinessReservationCard(reservation) {
     createReservationMeta(
       "Party",
       `${reservation.party_size || 0}`
+    )
+  );
+  meta.appendChild(
+    createReservationMeta(
+      "Status",
+      getReservationStatusLabel(reservation.status)
     )
   );
   content.appendChild(meta);
@@ -10001,6 +10286,15 @@ function setActiveNav() {
   const currentPage =
     window.location.pathname.split("/").pop() ||
     "index.html";
+  const navPageAliases = {
+    "my-reservations.html": "profile.html",
+    "my-reviews.html": "profile.html",
+    "user.html": "profile.html",
+    "venue.html": "discover.html",
+    "event.html": "events.html",
+  };
+  const activePage =
+    navPageAliases[currentPage] || currentPage;
 
   const navLinks =
     document.querySelectorAll(
@@ -10012,10 +10306,12 @@ function setActiveNav() {
     const navPage = link.dataset.navPage;
 
     if (
-      href === `./${currentPage}` ||
-      navPage === currentPage
+      href === `./${activePage}` ||
+      navPage === activePage
     ) {
       link.classList.add("active");
+    } else {
+      link.classList.remove("active");
     }
   });
 }
@@ -10065,6 +10361,8 @@ runSafeInitializer("initAdminPanel", initAdminPanel);
 runSafeInitializer("initBusinessDashboard", initBusinessDashboard);
 runSafeInitializer("setupMessagesPage", setupMessagesPage);
 runSafeInitializer("setupPublicUserProfile", setupPublicUserProfile);
+runSafeInitializer("initMyReservationsPage", initMyReservationsPage);
+runSafeInitializer("initMyReviewsPage", initMyReviewsPage);
 runSafeInitializer("setActiveNav", setActiveNav);
 runSafeInitializer("setupMobileNav", setupMobileNav);
 runSafeInitializer("registerServiceWorker", registerServiceWorker);

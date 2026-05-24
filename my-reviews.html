@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+  <title>My Reviews | TANIDIK</title>
+  <meta
+    name="description"
+    content="View your TANIDIK venue reviews."
+  />
+  <meta name="theme-color" content="#050505" />
+  <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="./assets/icon-192.png" />
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+
+<body>
+  <nav class="navbar">
+    <h1>TANIDIK</h1>
+    <button
+      class="nav-toggle"
+      type="button"
+      aria-label="Toggle navigation"
+      aria-expanded="false"
+    >
+      Menu
+    </button>
+    <div class="nav-links">
+      <a href="./index.html">Home</a>
+      <a href="./discover.html">Discover</a>
+      <a href="./events.html">Events</a>
+      <a href="./favorites.html">Favorites</a>
+      <a href="./profile.html" id="authLink">Profile</a>
+    </div>
+  </nav>
+
+  <main
+    id="myReviewsPage"
+    class="profile-dashboard profile-library-page"
+  >
+    <header class="dashboard-header">
+      <span class="dashboard-kicker">Profile</span>
+      <h1>My Reviews</h1>
+      <p class="page-message">
+        See every venue you have rated and revisit places from your history.
+      </p>
+      <a
+        href="./profile.html"
+        class="secondary-btn profile-back-link"
+      >
+        Back to Profile
+      </a>
+    </header>
+
+    <section class="profile-reviews-section dashboard-section">
+      <div
+        id="profileReviewsList"
+        class="profile-review-list"
+      >
+      </div>
+    </section>
+  </main>
+
+  <nav class="mobile-bottom-nav" aria-label="Primary mobile navigation">
+    <a href="./index.html" data-nav-page="index.html"><span aria-hidden="true">H</span>Home</a>
+    <a href="./discover.html" data-nav-page="discover.html"><span aria-hidden="true">D</span>Discover</a>
+    <a href="./business.html" data-nav-page="business.html"><span aria-hidden="true">B</span>Business</a>
+    <a href="./messages.html" data-nav-page="messages.html"><span aria-hidden="true">M</span>Messages</a>
+    <a href="./profile.html" data-nav-page="profile.html"><span aria-hidden="true">P</span>Profile</a>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="./js/app.js"></script>
+  <div id="toast" class="toast"></div>
+</body>
+
+</html>
