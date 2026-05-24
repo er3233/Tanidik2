@@ -3645,14 +3645,62 @@ body::after {
   grid-column: 1 / -1;
 }
 
+.venue-availability-summary,
 .venue-slot-picker,
 .venue-slot-message {
   grid-column: 1 / -1;
 }
 
+.venue-availability-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(240,192,96,0.15);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(240,192,96,0.09), transparent 48%),
+    rgba(0,0,0,0.18);
+}
+
+.venue-availability-summary:empty {
+  display: none;
+}
+
+.venue-availability-summary[data-status="warning"] {
+  border-color: rgba(248,113,113,0.32);
+  background:
+    linear-gradient(135deg, rgba(248,113,113,0.1), transparent 48%),
+    rgba(0,0,0,0.2);
+}
+
+.venue-availability-summary-item {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.04);
+}
+
+.venue-availability-summary-item span {
+  color: var(--gold2);
+  font-family: var(--fm);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.venue-availability-summary-item strong {
+  color: white;
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
 .venue-slot-picker {
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 .venue-slot-picker:empty {
@@ -3670,18 +3718,18 @@ body::after {
 .venue-slot-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
 .venue-slot-button {
-  min-height: 72px;
+  min-height: 88px;
   display: grid;
-  gap: 4px;
+  gap: 6px;
   align-content: center;
   justify-items: start;
-  padding: 12px;
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 16px;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 18px;
   background:
     linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.025)),
     rgba(0,0,0,0.18);
@@ -3697,45 +3745,75 @@ body::after {
 
 .venue-slot-button strong {
   color: white;
-  font-size: 0.98rem;
+  font-size: 1.06rem;
 }
 
-.venue-slot-button span,
-.venue-slot-button em {
+.venue-slot-button span {
   color: var(--text-muted);
   font-size: 0.76rem;
   font-style: normal;
   line-height: 1.35;
 }
 
+.venue-slot-button .venue-slot-state {
+  display: inline-grid;
+  place-items: center;
+  width: fit-content;
+  min-height: 24px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(34,197,94,0.13);
+  color: #bbf7d0;
+  font-family: var(--fm);
+  font-size: 9px;
+  font-style: normal;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
 .venue-slot-button.is-available:hover,
 .venue-slot-button.is-selected {
   transform: translateY(-1px);
-  border-color: rgba(240,192,96,0.42);
+  border-color: rgba(240,192,96,0.54);
   background:
-    linear-gradient(135deg, rgba(240,192,96,0.16), rgba(255,255,255,0.04)),
+    linear-gradient(135deg, rgba(240,192,96,0.2), rgba(255,255,255,0.055)),
     rgba(0,0,0,0.18);
-  box-shadow: 0 16px 36px rgba(0,0,0,0.24), 0 0 18px rgba(240,192,96,0.09);
+  box-shadow: 0 18px 40px rgba(0,0,0,0.26), 0 0 22px rgba(240,192,96,0.13);
 }
 
 .venue-slot-button.is-selected strong {
   color: var(--gold);
 }
 
+.venue-slot-button.is-selected {
+  outline: 2px solid rgba(240,192,96,0.32);
+  outline-offset: 2px;
+}
+
 .venue-slot-button.is-unavailable,
 .venue-slot-button:disabled {
   cursor: not-allowed;
-  opacity: 0.52;
+  opacity: 0.72;
+  border-color: rgba(248,113,113,0.22);
+  background:
+    linear-gradient(135deg, rgba(248,113,113,0.08), rgba(255,255,255,0.018)),
+    rgba(0,0,0,0.2);
 }
 
-.venue-slot-button.is-unavailable em {
+.venue-slot-button.is-unavailable .venue-slot-state {
+  background: rgba(248,113,113,0.13);
   color: #fecaca;
 }
 
 .venue-slot-message {
-  margin: -4px 0 2px;
-  color: var(--text-muted);
-  font-size: 0.84rem;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(240,192,96,0.14);
+  border-radius: 16px;
+  background: rgba(240,192,96,0.055);
+  color: var(--silver);
+  font-size: 0.9rem;
   line-height: 1.5;
 }
 
@@ -3744,6 +3822,8 @@ body::after {
 }
 
 .venue-slot-message[data-status="error"] {
+  border-color: rgba(248,113,113,0.28);
+  background: rgba(248,113,113,0.09);
   color: #fecaca;
 }
 
@@ -5672,8 +5752,25 @@ p.reservation-note {
     background: rgba(0,0,0,0.2);
   }
 
+  .venue-availability-summary {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .venue-availability-summary-item {
+    grid-template-columns: minmax(76px, auto) 1fr;
+    align-items: center;
+    gap: 10px;
+  }
+
   .venue-slot-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .venue-slot-button {
+    min-height: 94px;
+    padding: 13px;
   }
 
   .venue-detail-page .public-section--reservations .reservation-form input,

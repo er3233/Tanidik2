@@ -1932,6 +1932,90 @@ function getVenueEmptySlotMessage(settings) {
   return "Slot settings are not available for this venue yet.";
 }
 
+function formatVenueAvailabilityDate(value) {
+  if (!value) return "Select a date";
+
+  const date = new Date(`${value}T12:00:00`);
+
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleDateString([], {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function getVenueOpenHoursLabel(settings) {
+  const hours = settings && settings.hours;
+
+  if (!hours) return "Booking hours not set yet";
+
+  if (hours.is_closed || !hours.opens_at || !hours.closes_at) {
+    return "Closed on this date";
+  }
+
+  return `${getReservationTimeLabel(
+    normalizeReservationTime(hours.opens_at)
+  )} - ${getReservationTimeLabel(
+    normalizeReservationTime(hours.closes_at)
+  )}`;
+}
+
+function updateVenueAvailabilitySummary(
+  reservationDate,
+  slots = [],
+  settings = null,
+  emptyMessage = ""
+) {
+  const summary =
+    document.getElementById("venueAvailabilitySummary");
+
+  if (!summary) return;
+
+  const availableCount = (slots || []).filter(
+    (slot) => slot && slot.is_available !== false
+  ).length;
+  const fullCount = (slots || []).filter(
+    (slot) => slot && slot.is_available === false
+  ).length;
+  const hasSlots = Boolean(slots && slots.length);
+  const statusLabel = hasSlots
+    ? `${availableCount} available - ${fullCount} full`
+    : emptyMessage || "Choose a date to see availability";
+
+  summary.innerHTML = "";
+  summary.dataset.status =
+    !hasSlots &&
+    (
+      statusLabel.toLowerCase().includes("closed") ||
+      statusLabel.toLowerCase().includes("unavailable")
+    )
+      ? "warning"
+      : "info";
+
+  const items = [
+    ["Date", formatVenueAvailabilityDate(reservationDate)],
+    ["Hours", getVenueOpenHoursLabel(settings)],
+    ["Slots", statusLabel],
+  ];
+
+  items.forEach(([label, value]) => {
+    const item = document.createElement("div");
+    item.className = "venue-availability-summary-item";
+
+    const labelElement = document.createElement("span");
+    labelElement.textContent = label;
+    item.appendChild(labelElement);
+
+    const valueElement = document.createElement("strong");
+    valueElement.textContent = value;
+    item.appendChild(valueElement);
+
+    summary.appendChild(item);
+  });
+}
+
 async function loadVenueAvailableSlots(venueId, reservationDate) {
   const slotContainer =
     document.getElementById("venueAvailableSlots");
@@ -1954,6 +2038,12 @@ async function loadVenueAvailableSlots(venueId, reservationDate) {
     fallbackMode: true,
   };
   setVenueSlotMessage("Loading available times...");
+  updateVenueAvailabilitySummary(
+    reservationDate,
+    [],
+    null,
+    "Loading availability..."
+  );
 
   try {
     const bookingSettings =
@@ -2004,9 +2094,18 @@ async function loadVenueAvailableSlots(venueId, reservationDate) {
       fallbackMode: slots.length === 0,
     };
 
+    const emptyMessage = getVenueEmptySlotMessage(bookingSettings);
+
+    updateVenueAvailabilitySummary(
+      reservationDate,
+      slots,
+      bookingSettings,
+      emptyMessage
+    );
+
     renderVenueAvailableSlots(
       slots,
-      getVenueEmptySlotMessage(bookingSettings)
+      emptyMessage
     );
     return slots;
   } catch (error) {
@@ -2023,6 +2122,12 @@ async function loadVenueAvailableSlots(venueId, reservationDate) {
       fallbackMode: true,
     };
     renderVenueAvailableSlots([]);
+    updateVenueAvailabilitySummary(
+      reservationDate,
+      [],
+      null,
+      "Booking hours not set yet"
+    );
     setVenueSlotMessage(
       "Slot settings are not available for this venue yet."
     );
@@ -2042,7 +2147,11 @@ function renderVenueAvailableSlots(
   slotContainer.innerHTML = "";
 
   if (!slots || slots.length === 0) {
-    setVenueSlotMessage(emptyMessage);
+    const messageStatus = emptyMessage.toLowerCase().includes("closed") ||
+      emptyMessage.toLowerCase().includes("unavailable")
+      ? "error"
+      : "info";
+    setVenueSlotMessage(emptyMessage, messageStatus);
     return;
   }
 
@@ -2062,6 +2171,7 @@ function renderVenueAvailableSlots(
 
     const button = document.createElement("button");
     const isAvailable = slot.is_available !== false;
+    const metaLabel = getVenueSlotMetaLabel(slot);
     button.type = "button";
     button.className = isAvailable
       ? "venue-slot-button is-available"
@@ -2074,7 +2184,11 @@ function renderVenueAvailableSlots(
     time.textContent = getReservationTimeLabel(slotTime);
     button.appendChild(time);
 
-    const metaLabel = getVenueSlotMetaLabel(slot);
+    const state = document.createElement("em");
+    state.className = "venue-slot-state";
+    state.textContent = isAvailable ? "Available" : "Full";
+    button.appendChild(state);
+
     if (metaLabel) {
       const meta = document.createElement("span");
       meta.textContent = metaLabel;
@@ -2082,9 +2196,12 @@ function renderVenueAvailableSlots(
     }
 
     if (!isAvailable) {
-      const full = document.createElement("em");
-      full.textContent = "Full";
-      button.appendChild(full);
+      button.setAttribute("aria-label", `${time.textContent} full`);
+    } else {
+      button.setAttribute(
+        "aria-label",
+        `${time.textContent} available`
+      );
     }
 
     button.addEventListener("click", () => {
@@ -2313,6 +2430,12 @@ async function setupReservationForm(venueId) {
           fallbackMode: true,
         };
         renderVenueAvailableSlots([]);
+        updateVenueAvailabilitySummary(
+          "",
+          [],
+          null,
+          "Choose a date to see availability"
+        );
         setVenueSlotMessage("");
       }
     });
