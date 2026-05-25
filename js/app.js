@@ -12,7 +12,28 @@ const PLACEHOLDER_IMAGE =
   "https://placehold.co/600x400/111111/FFFFFF?text=TANIDIK";
 
 const STORAGE_BUCKET = "tanidik-images";
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const MAX_IMAGE_SIZE = 4 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+];
+const MAX_VENUE_GALLERY_IMAGES = 10;
+const MAX_PRODUCT_GALLERY_IMAGES = 5;
+const MAX_PROFILE_AVATAR_IMAGES = 1;
+
+const businessMediaState = {
+  venueGallery: {
+    photos: [],
+    pendingFiles: [],
+    removedPhotoIds: [],
+  },
+  productGallery: {
+    photos: [],
+    pendingFiles: [],
+    removedPhotoIds: [],
+  },
+};
 const VENUE_CATEGORIES = [
   ["night_club", "Night Club"],
   ["bar", "Bar"],
@@ -63,6 +84,7 @@ let businessDashboardState = {
   venues: [],
   events: [],
   reservations: [],
+  storeOrders: [],
 };
 let venueReservationSlotState = {
   venueId: null,
@@ -71,6 +93,9 @@ let venueReservationSlotState = {
   selectedSlotTime: "",
   fallbackMode: true,
 };
+let venueStoreProductsState = [];
+let activeVenueStoreProduct = null;
+let activeVenueStoreProductTrigger = null;
 
 function getBusinessStatus(business) {
   return safeText(business.status).toLowerCase().trim();
@@ -228,6 +253,15 @@ function setupVenueStoreToggle() {
   });
 }
 
+function setupVenueStoreAllLink(venueId) {
+  const link = document.getElementById("venueStoreAllLink");
+
+  if (!link || !venueId) return;
+
+  link.href = `./store.html?venue=${encodeURIComponent(venueId)}`;
+  link.hidden = false;
+}
+
 function formatMenuPrice(item) {
   if (item.price === null || item.price === undefined || item.price === "") {
     return "";
@@ -242,9 +276,1270 @@ function formatMenuPrice(item) {
   return `${amount.toFixed(2)} ${safeText(item.currency) || "TRY"}`;
 }
 
+function escapeStoreHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  }[character]));
+}
+
+function getVenueStoreProductById(productId) {
+  return venueStoreProductsState.find(
+    (product) => String(product.id) === String(productId)
+  );
+}
+
+const STORE_CART_STOCK_FIELDS = [
+  "stock_quantity",
+  "stock",
+  "inventory",
+  "quantity",
+];
+
+function getStoreCartProductStockField(product) {
+  if (!product) return "";
+
+  return STORE_CART_STOCK_FIELDS.find((field) =>
+    Object.prototype.hasOwnProperty.call(product, field)
+  ) || "";
+}
+
+function getStoreCartProductStockValue(product) {
+  const field = getStoreCartProductStockField(product);
+
+  if (!field || !product) return null;
+
+  const value = product[field];
+
+  if (value === null || value === undefined || value === "") return null;
+
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function isStoreCartProductOutOfStock(product) {
+  const stockValue = getStoreCartProductStockValue(product);
+  return stockValue !== null && stockValue <= 0;
+}
+
+function focusSafely(element) {
+  if (!element || typeof element.focus !== "function") return;
+
+  try {
+    element.focus({ preventScroll: true });
+  } catch (error) {
+    element.focus();
+  }
+}
+
+function ensureVenueStoreCartDrawer() {
+  if (!document.getElementById("venueStore")) return null;
+
+  let fab = document.getElementById("storeCartFab");
+  let drawer = document.getElementById("storeCartDrawer");
+  let backdrop = document.getElementById("storeCartBackdrop");
+
+  if (!fab) {
+    fab = document.createElement("button");
+    fab.type = "button";
+    fab.id = "storeCartFab";
+    fab.className = "store-cart-fab";
+    fab.setAttribute("aria-label", "Sepeti aç");
+    fab.setAttribute("aria-expanded", "false");
+    fab.setAttribute("aria-controls", "storeCartDrawer");
+    fab.hidden = true;
+    fab.innerHTML =
+      '<span class="store-cart-fab-icon" aria-hidden="true">B</span>' +
+      '<span class="store-cart-fab-count" id="storeCartCount">0</span>';
+    document.body.appendChild(fab);
+  }
+
+  if (!drawer) {
+    drawer = document.createElement("aside");
+    drawer.id = "storeCartDrawer";
+    drawer.className = "store-cart-drawer";
+    drawer.setAttribute("aria-label", "Shopping cart");
+    drawer.hidden = true;
+    drawer.innerHTML =
+      '<div class="store-cart-inner">' +
+        '<div class="store-cart-head">' +
+          '<span class="store-kicker">Store Cart</span>' +
+          '<h2>Sepet</h2>' +
+          '<button class="store-cart-close" id="storeCartClose" type="button" aria-label="Sepeti kapat">×</button>' +
+        '</div>' +
+        '<div class="store-cart-items" id="storeCartItems"></div>' +
+        '<div class="store-cart-footer">' +
+          '<div class="store-cart-total">' +
+            '<span>Toplam</span>' +
+            '<strong id="storeCartTotal">₺0</strong>' +
+          '</div>' +
+          '<button class="store-checkout-btn" id="venueStoreCartViewBtn" type="button">Sepeti Gör</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(drawer);
+  }
+
+  if (!backdrop) {
+    backdrop = document.createElement("div");
+    backdrop.id = "storeCartBackdrop";
+    backdrop.className = "store-cart-backdrop";
+    backdrop.hidden = true;
+    document.body.appendChild(backdrop);
+  }
+
+  const closeButton = document.getElementById("storeCartClose");
+  const viewButton = document.getElementById("venueStoreCartViewBtn");
+
+  if (fab.dataset.venueCartBound !== "true") {
+    fab.dataset.venueCartBound = "true";
+    fab.addEventListener("click", openVenueStoreCart);
+  }
+
+  if (closeButton && closeButton.dataset.venueCartBound !== "true") {
+    closeButton.dataset.venueCartBound = "true";
+    closeButton.addEventListener("click", closeVenueStoreCart);
+  }
+
+  if (backdrop.dataset.venueCartBound !== "true") {
+    backdrop.dataset.venueCartBound = "true";
+    backdrop.addEventListener("click", closeVenueStoreCart);
+  }
+
+  if (viewButton && viewButton.dataset.venueCartBound !== "true") {
+    viewButton.dataset.venueCartBound = "true";
+    viewButton.addEventListener("click", () => {
+      window.location.href = "./store.html";
+    });
+  }
+
+  return { fab, drawer, backdrop };
+}
+
+function readStoreCartStorage() {
+  try {
+    const parsed = JSON.parse(
+      localStorage.getItem("tanidik_store_cart") || "{}"
+    );
+
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? parsed
+      : {};
+  } catch (error) {
+    return {};
+  }
+}
+
+function writeStoreCartStorage(cart) {
+  try {
+    localStorage.setItem("tanidik_store_cart", JSON.stringify(cart));
+  } catch (error) {
+    showToast("Sepet kaydedilemedi");
+  }
+}
+
+function formatStoreProductPrice(price, currency = "TRY") {
+  const amount = Number(price || 0);
+  const symbols = {
+    TRY: "₺",
+    USD: "$",
+    EUR: "€",
+  };
+
+  return `${symbols[currency] || currency}${amount.toLocaleString("tr-TR", {
+    minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function getVenueStoreProductCartPayload(product) {
+  if (!product || !product.id) return null;
+
+  const venue = product.venues || {};
+  const business = venue.businesses || {};
+
+  return {
+    id: safeText(product.id),
+    name: safeText(product.name),
+    price:
+      product.price === null ||
+      product.price === undefined ||
+      product.price === ""
+        ? null
+        : Number(product.price),
+    currency: safeText(product.currency) || "TRY",
+    image_url: safeText(product.image_url || product.image),
+    venue_id: safeText(product.venue_id || venue.id),
+    venue_name: safeText(venue.name),
+    business_id: safeText(product.business_id || venue.business_id || business.id),
+    owner_id: safeText(product.owner_id || product.business_owner_id || business.owner_id),
+    quantity: 1,
+  };
+}
+
+function getVenueStoreCartItems() {
+  const cart = readStoreCartStorage();
+
+  return Object.keys(cart)
+    .map((id) => {
+      const item = cart[id] || {};
+      const quantity = typeof item === "number" ? item : item.quantity;
+
+      return {
+        ...item,
+        id: safeText(item.id || id),
+        quantity: Math.max(0, Number(quantity || 0)),
+      };
+    })
+    .filter((item) => item.id && item.quantity > 0);
+}
+
+function updateVenueStoreCartUI() {
+  const refs = ensureVenueStoreCartDrawer();
+
+  if (!refs) return;
+
+  const items = getVenueStoreCartItems();
+  const count = items.reduce(
+    (total, item) => total + Number(item.quantity || 0),
+    0
+  );
+  const countElement = document.getElementById("storeCartCount");
+  const itemsElement = document.getElementById("storeCartItems");
+  const totalElement = document.getElementById("storeCartTotal");
+  let total = 0;
+
+  if (countElement) countElement.textContent = String(count);
+  refs.fab.hidden = count === 0;
+
+  if (!itemsElement || !totalElement) return;
+
+  itemsElement.innerHTML = "";
+
+  if (items.length === 0) {
+    itemsElement.innerHTML =
+      '<p class="store-cart-empty">Sepetiniz boş.</p>';
+    totalElement.textContent = formatStoreProductPrice(0);
+    return;
+  }
+
+  items.forEach((item) => {
+    const quantity = Number(item.quantity || 0);
+    const lineTotal = Number(item.price || 0) * quantity;
+    const row = document.createElement("div");
+    total += lineTotal;
+    row.className = "store-cart-row";
+    row.innerHTML =
+      (item.image_url
+        ? `<img class="store-cart-row-img" src="${escapeStoreHtml(item.image_url)}" alt="" loading="lazy" />`
+        : '<span class="store-cart-row-img store-cart-row-img--empty" aria-hidden="true"></span>') +
+      '<div class="store-cart-row-info">' +
+        `<strong>${escapeStoreHtml(item.name)}</strong>` +
+        (item.venue_name ? `<span>${escapeStoreHtml(item.venue_name)}</span>` : "") +
+        `<span>${escapeStoreHtml(formatStoreProductPrice(lineTotal, item.currency))}</span>` +
+      '</div>' +
+      '<div class="store-cart-qty" aria-label="Quantity controls">' +
+        `<button class="store-cart-qty-btn" type="button" data-action="decrease" data-id="${escapeStoreHtml(item.id)}" aria-label="Azalt">−</button>` +
+        `<span>${quantity}</span>` +
+        `<button class="store-cart-qty-btn" type="button" data-action="increase" data-id="${escapeStoreHtml(item.id)}" aria-label="Artır">+</button>` +
+      '</div>' +
+      `<button class="store-cart-remove" type="button" data-id="${escapeStoreHtml(item.id)}" aria-label="Kaldır">×</button>`;
+    itemsElement.appendChild(row);
+  });
+
+  totalElement.textContent = formatStoreProductPrice(total);
+
+  itemsElement.querySelectorAll(".store-cart-remove").forEach((button) => {
+    button.addEventListener("click", () => {
+      removeVenueStoreCartItem(button.dataset.id);
+    });
+  });
+
+  itemsElement.querySelectorAll(".store-cart-qty-btn").forEach((button) => {
+    button.addEventListener("click", () => {
+      adjustVenueStoreCartQuantity(
+        button.dataset.id,
+        button.dataset.action === "increase" ? 1 : -1
+      );
+    });
+  });
+}
+
+function setVenueStoreCartQuantity(productId, quantity) {
+  const cart = readStoreCartStorage();
+  const nextQuantity = Math.max(0, Number(quantity) || 0);
+  const product = getVenueStoreProductById(productId);
+  const stockValue = getStoreCartProductStockValue(product);
+
+  if (nextQuantity <= 0) {
+    delete cart[productId];
+  } else if (stockValue !== null && stockValue <= 0) {
+    showToast("Ürün stokta yok");
+    return;
+  } else if (stockValue !== null && nextQuantity > stockValue) {
+    showToast("Stok miktarı aşılamaz");
+    return;
+  } else {
+    const existing = cart[productId] || { id: productId };
+    cart[productId] = {
+      ...existing,
+      quantity: nextQuantity,
+    };
+  }
+
+  writeStoreCartStorage(cart);
+  updateVenueStoreCartUI();
+}
+
+function adjustVenueStoreCartQuantity(productId, delta) {
+  const item = getVenueStoreCartItems().find(
+    (cartItem) => String(cartItem.id) === String(productId)
+  );
+
+  setVenueStoreCartQuantity(
+    productId,
+    Number(item && item.quantity ? item.quantity : 0) + delta
+  );
+}
+
+function removeVenueStoreCartItem(productId) {
+  setVenueStoreCartQuantity(productId, 0);
+}
+
+function openVenueStoreCart() {
+  const refs = ensureVenueStoreCartDrawer();
+
+  if (!refs) return;
+
+  refs.drawer.hidden = false;
+  refs.backdrop.hidden = false;
+  refs.fab.setAttribute("aria-expanded", "true");
+  requestAnimationFrame(() => {
+    refs.drawer.classList.add("store-cart-drawer--open");
+    refs.backdrop.classList.add("store-cart-backdrop--visible");
+  });
+}
+
+function closeVenueStoreCart() {
+  const refs = ensureVenueStoreCartDrawer();
+
+  if (!refs) return;
+
+  refs.drawer.classList.remove("store-cart-drawer--open");
+  refs.backdrop.classList.remove("store-cart-backdrop--visible");
+  refs.fab.setAttribute("aria-expanded", "false");
+  setTimeout(() => {
+    refs.drawer.hidden = true;
+    refs.backdrop.hidden = true;
+  }, 260);
+}
+
+function addVenueStoreProductToCart(product) {
+  if (isStoreCartProductOutOfStock(product)) {
+    showToast("Ürün stokta yok");
+    return false;
+  }
+
+  const item = getVenueStoreProductCartPayload(product);
+
+  if (!item) {
+    showToast("Ürün sepete eklenemedi");
+    return false;
+  }
+
+  const cart = readStoreCartStorage();
+  const existing = cart[item.id] || item;
+  const existingQuantity =
+    typeof existing === "number" ? existing : existing.quantity;
+  const nextQuantity = Math.max(0, Number(existingQuantity || 0)) + 1;
+  const stockValue = getStoreCartProductStockValue(product);
+
+  if (stockValue !== null && nextQuantity > stockValue) {
+    showToast("Stok miktarı aşılamaz");
+    return false;
+  }
+
+  cart[item.id] = {
+    ...existing,
+    ...item,
+    quantity: nextQuantity,
+  };
+
+  writeStoreCartStorage(cart);
+  updateVenueStoreCartUI();
+  showToast("Ürün sepete eklendi");
+  openVenueStoreCart();
+  return true;
+}
+
+function addUniqueStoreProductImageUrl(urls, value) {
+  const url = safeText(value).trim();
+
+  if (url && !urls.includes(url)) {
+    urls.push(url);
+  }
+}
+
+function collectStoreProductImageUrls(value, urls) {
+  if (!value) return;
+
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectStoreProductImageUrls(item, urls));
+    return;
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+
+    if (!trimmed) return;
+
+    if (trimmed.charAt(0) === "[" || trimmed.charAt(0) === "{") {
+      try {
+        collectStoreProductImageUrls(JSON.parse(trimmed), urls);
+        return;
+      } catch (error) {
+        // Plain URL strings continue below.
+      }
+    }
+
+    if (trimmed.indexOf("data:") !== 0 && /[\n,]/.test(trimmed)) {
+      trimmed.split(/[\n,]/).forEach((item) => {
+        addUniqueStoreProductImageUrl(urls, item);
+      });
+      return;
+    }
+
+    addUniqueStoreProductImageUrl(urls, trimmed);
+    return;
+  }
+
+  if (typeof value === "object") {
+    [
+      "image_url",
+      "image",
+      "url",
+      "src",
+      "publicUrl",
+      "path",
+      "images",
+      "product_images",
+      "gallery",
+      "gallery_images",
+      "image_urls",
+    ].forEach((key) => {
+      collectStoreProductImageUrls(value[key], urls);
+    });
+  }
+}
+
+function getVenueStoreProductImageUrls(product, extraImages = []) {
+  const urls = [];
+
+  [
+    "image_url",
+    "image",
+    "images",
+    "product_images",
+    "gallery",
+    "gallery_images",
+    "image_urls",
+  ].forEach((key) => {
+    collectStoreProductImageUrls(product && product[key], urls);
+  });
+
+  collectStoreProductImageUrls(extraImages, urls);
+  return urls;
+}
+
+function ensureVenueStoreModal() {
+  if (!document.getElementById("venueStore")) return null;
+
+  let modalBackdrop = document.getElementById("storeModalBackdrop");
+  let modal = document.getElementById("storeModal");
+
+  if (!modalBackdrop) {
+    modalBackdrop = document.createElement("div");
+    modalBackdrop.id = "storeModalBackdrop";
+    modalBackdrop.className = "store-cart-backdrop store-modal-backdrop";
+    modalBackdrop.hidden = true;
+    document.body.appendChild(modalBackdrop);
+  }
+
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "storeModal";
+    modal.className = "store-modal";
+    modal.setAttribute("role", "dialog");
+    modal.setAttribute("aria-modal", "true");
+    modal.setAttribute("aria-labelledby", "storeModalName");
+    modal.hidden = true;
+    modal.innerHTML =
+      '<div class="store-modal-inner">' +
+        '<button class="store-modal-close" id="storeModalClose" type="button" aria-label="Ürün detayını kapat">×</button>' +
+        '<div class="store-modal-img" id="storeModalImg"></div>' +
+        '<div class="store-modal-body">' +
+          '<div class="store-modal-badges" id="storeModalBadges">' +
+            '<span class="store-modal-cat" id="storeModalCat"></span>' +
+            '<span class="store-modal-stock-badge" id="storeModalStockBadge"></span>' +
+          '</div>' +
+          '<h2 class="store-modal-name" id="storeModalName"></h2>' +
+          '<p class="store-modal-desc" id="storeModalDesc"></p>' +
+          '<div class="store-modal-meta">' +
+            '<div class="store-modal-meta-row"><span>Fiyat</span><strong id="storeModalPrice"></strong></div>' +
+            '<div class="store-modal-meta-row" id="storeModalStockRow"><span>Stok</span><strong id="storeModalStock"></strong></div>' +
+            '<div class="store-modal-meta-row" id="storeModalVenueRow"><span>İşletme</span><strong id="storeModalVenue"></strong></div>' +
+          '</div>' +
+          '<div class="store-modal-actions">' +
+            '<button class="store-modal-cta" id="storeModalAddToCart" type="button">Sepete ekle</button>' +
+            '<button class="store-modal-message-btn" id="storeModalMessageBtn" type="button">İşletmeye mesaj gönder</button>' +
+            '<button class="store-modal-share-btn" id="storeModalShareBtn" type="button">Paylaş</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(modal);
+  }
+
+  const closeButton = document.getElementById("storeModalClose");
+  const addButton = document.getElementById("storeModalAddToCart");
+  const messageButton = document.getElementById("storeModalMessageBtn");
+  const shareButton = document.getElementById("storeModalShareBtn");
+
+  if (closeButton && closeButton.dataset.venueModalBound !== "true") {
+    closeButton.dataset.venueModalBound = "true";
+    closeButton.addEventListener("click", closeVenueStoreProductModal);
+  }
+
+  if (modalBackdrop.dataset.venueModalBound !== "true") {
+    modalBackdrop.dataset.venueModalBound = "true";
+    modalBackdrop.addEventListener("click", closeVenueStoreProductModal);
+  }
+
+  if (addButton && addButton.dataset.venueModalBound !== "true") {
+    addButton.dataset.venueModalBound = "true";
+    addButton.addEventListener("click", () => {
+      if (!activeVenueStoreProduct) {
+        showToast("Ürün sepete eklenemedi");
+        return;
+      }
+
+      if (addVenueStoreProductToCart(activeVenueStoreProduct)) {
+        closeVenueStoreProductModal();
+      }
+    });
+  }
+
+  if (messageButton && messageButton.dataset.venueModalBound !== "true") {
+    messageButton.dataset.venueModalBound = "true";
+    messageButton.addEventListener("click", async () => {
+      if (!activeVenueStoreProduct) {
+        showToast("İşletmeye mesaj gönderilemedi");
+        return;
+      }
+
+      messageButton.disabled = true;
+      messageButton.textContent = "Açılıyor...";
+
+      try {
+        await openStoreProductConversation(activeVenueStoreProduct);
+      } catch (error) {
+        showToast("İşletmeye mesaj gönderilemedi");
+      } finally {
+        messageButton.disabled = false;
+        messageButton.textContent = "İşletmeye mesaj gönder";
+      }
+    });
+  }
+
+  if (shareButton && shareButton.dataset.venueModalBound !== "true") {
+    shareButton.dataset.venueModalBound = "true";
+    shareButton.addEventListener("click", async () => {
+      shareButton.disabled = true;
+
+      try {
+        await shareVenueStoreProduct(activeVenueStoreProduct);
+      } finally {
+        shareButton.disabled = false;
+      }
+    });
+  }
+
+  if (document.body.dataset.venueStoreModalEscBound !== "true") {
+    document.body.dataset.venueStoreModalEscBound = "true";
+    document.addEventListener("keydown", (event) => {
+      if (
+        event.key === "Escape" &&
+        modal &&
+        !modal.hidden &&
+        document.getElementById("venueStore")
+      ) {
+        closeVenueStoreProductModal();
+      }
+    });
+  }
+
+  return { modal, modalBackdrop };
+}
+
+function renderVenueStoreModalImage(imageUrl, productName) {
+  const imageSlot = document.getElementById("storeModalImg");
+
+  if (!imageSlot) return;
+
+  imageSlot.innerHTML = imageUrl
+    ? `<img src="${escapeStoreHtml(imageUrl)}" alt="${escapeStoreHtml(productName)}" class="store-modal-main-img" />`
+    : '<div class="store-modal-img-placeholder" aria-label="TANIDIK ürün görseli"></div>';
+
+  const image = imageSlot.querySelector("img");
+
+  if (image) {
+    image.addEventListener(
+      "error",
+      () => {
+        imageSlot.innerHTML =
+          '<div class="store-modal-img-placeholder" aria-label="TANIDIK ürün görseli"></div>';
+      },
+      { once: true }
+    );
+  }
+}
+
+function renderVenueStoreModalGallery(imageUrls, productName, activeIndex = 0) {
+  const imageSlot = document.getElementById("storeModalImg");
+  const urls = (imageUrls || []).filter(Boolean);
+  let currentIndex = Math.max(
+    0,
+    Math.min(Number(activeIndex) || 0, Math.max(urls.length - 1, 0))
+  );
+
+  if (!imageSlot) return;
+
+  if (urls.length === 0) {
+    renderVenueStoreModalImage("", productName);
+    return;
+  }
+
+  const hasControls = urls.length > 1;
+
+  imageSlot.innerHTML =
+    '<div class="store-modal-gallery">' +
+      '<div class="store-modal-gallery-main">' +
+        `<img src="${escapeStoreHtml(urls[currentIndex])}" class="store-modal-main-img" alt="${escapeStoreHtml(productName)}" />` +
+        (hasControls
+          ? '<button class="store-gallery-nav store-gallery-nav--prev" type="button" aria-label="Önceki">‹</button>' +
+            '<button class="store-gallery-nav store-gallery-nav--next" type="button" aria-label="Sonraki">›</button>'
+          : "") +
+      '</div>' +
+      (hasControls
+        ? '<div class="store-modal-thumbs" role="list" aria-label="Ürün görselleri">' +
+            urls.map((url, index) =>
+              '<button class="store-modal-thumb-btn' +
+              (index === currentIndex ? ' store-modal-thumb-btn--active' : '') +
+              `" type="button" data-idx="${index}" role="listitem" aria-current="${index === currentIndex ? "true" : "false"}">` +
+                `<img src="${escapeStoreHtml(url)}" class="store-modal-thumb" alt="" loading="lazy" />` +
+              '</button>'
+            ).join("") +
+          '</div>'
+        : "") +
+    '</div>';
+
+  const mainImage = imageSlot.querySelector(".store-modal-main-img");
+  const thumbButtons = [
+    ...imageSlot.querySelectorAll(".store-modal-thumb-btn"),
+  ];
+
+  function setActiveImage(index) {
+    currentIndex = (index + urls.length) % urls.length;
+
+    if (mainImage) {
+      mainImage.src = urls[currentIndex];
+      mainImage.alt = productName || "TANIDIK ürün görseli";
+    }
+
+    thumbButtons.forEach((button, buttonIndex) => {
+      const isActive = buttonIndex === currentIndex;
+      button.classList.toggle("store-modal-thumb-btn--active", isActive);
+      button.setAttribute("aria-current", isActive ? "true" : "false");
+    });
+  }
+
+  if (mainImage) {
+    mainImage.addEventListener(
+      "error",
+      () => {
+        renderVenueStoreModalImage("", productName);
+      },
+      { once: true }
+    );
+  }
+
+  thumbButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      setActiveImage(Number(button.dataset.idx) || 0);
+    });
+  });
+
+  const previous = imageSlot.querySelector(".store-gallery-nav--prev");
+  const next = imageSlot.querySelector(".store-gallery-nav--next");
+
+  if (previous) {
+    previous.addEventListener("click", () => setActiveImage(currentIndex - 1));
+  }
+
+  if (next) {
+    next.addEventListener("click", () => setActiveImage(currentIndex + 1));
+  }
+}
+
+function getVenueStoreProductShareUrl(product) {
+  const url = new URL(window.location.href);
+  url.searchParams.set("product", safeText(product && product.id));
+  return url.toString();
+}
+
+function copyStoreTextFallback(text) {
+  const input = document.createElement("textarea");
+  input.value = text;
+  input.setAttribute("readonly", "readonly");
+  input.style.position = "fixed";
+  input.style.left = "-9999px";
+  document.body.appendChild(input);
+  input.select();
+
+  let copied = false;
+
+  try {
+    copied = document.execCommand("copy");
+  } catch (error) {
+    copied = false;
+  }
+
+  input.remove();
+  return copied;
+}
+
+async function shareVenueStoreProduct(product) {
+  if (!product) {
+    showToast("Ürün linki hazırlanamadı");
+    return;
+  }
+
+  const shareUrl = getVenueStoreProductShareUrl(product);
+  const shareTitle = safeText(product.name) || "TANIDIK Store";
+
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: shareTitle,
+        text: `${shareTitle} - TANIDIK Store`,
+        url: shareUrl,
+      });
+      showToast("Paylaşım hazır");
+      return;
+    } catch (error) {
+      if (error && error.name === "AbortError") return;
+    }
+  }
+
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(shareUrl);
+      showToast("Ürün linki kopyalandı");
+      return;
+    }
+
+    showToast(
+      copyStoreTextFallback(shareUrl)
+        ? "Ürün linki kopyalandı"
+        : "Ürün linki kopyalanamadı"
+    );
+  } catch (error) {
+    showToast("Ürün linki kopyalanamadı");
+  }
+}
+
+function getVenueStoreProductStockLabel(product) {
+  const value = getStoreCartProductStockValue(product);
+
+  if (value === null) return "";
+
+  return value > 0 ? `${value} adet` : "Stokta yok";
+}
+
+async function loadVenueStoreProductGalleryImages(product) {
+  if (!product || !product.id) return [];
+
+  try {
+    const { data, error } = await supabaseClient
+      .from("venue_product_images")
+      .select("image_url, sort_order")
+      .eq("product_id", product.id)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
+
+    if (error) return [];
+
+    return data || [];
+  } catch (error) {
+    return [];
+  }
+}
+
+async function openVenueStoreProductModal(productOrId) {
+  const product = typeof productOrId === "object"
+    ? productOrId
+    : getVenueStoreProductById(productOrId);
+  const refs = ensureVenueStoreModal();
+
+  if (!product || !refs) return;
+
+  activeVenueStoreProduct = product;
+  activeVenueStoreProductTrigger = document.activeElement;
+
+  const categoryName = safeText(
+    product.venue_product_categories &&
+      product.venue_product_categories.name
+  );
+  const stockLabel = getVenueStoreProductStockLabel(product);
+  const outOfStock = isStoreCartProductOutOfStock(product);
+  const venueName = safeText(
+    product.venue_name ||
+      (product.venues && product.venues.name)
+  );
+  const modalCat = document.getElementById("storeModalCat");
+  const modalStockBadge = document.getElementById("storeModalStockBadge");
+  const modalBadges = document.getElementById("storeModalBadges");
+  const modalName = document.getElementById("storeModalName");
+  const modalDesc = document.getElementById("storeModalDesc");
+  const modalPrice = document.getElementById("storeModalPrice");
+  const modalStock = document.getElementById("storeModalStock");
+  const modalStockRow = document.getElementById("storeModalStockRow");
+  const modalVenue = document.getElementById("storeModalVenue");
+  const modalVenueRow = document.getElementById("storeModalVenueRow");
+  const modalClose = document.getElementById("storeModalClose");
+  const modalAddToCart = document.getElementById("storeModalAddToCart");
+
+  renderVenueStoreModalGallery(
+    getVenueStoreProductImageUrls(product),
+    safeText(product.name)
+  );
+
+  if (modalCat) {
+    modalCat.textContent = categoryName;
+    modalCat.hidden = !categoryName;
+  }
+
+  if (modalStockBadge) {
+    modalStockBadge.textContent = stockLabel;
+    modalStockBadge.hidden = !stockLabel;
+    modalStockBadge.classList.toggle(
+      "store-modal-badge--soldout",
+      outOfStock
+    );
+  }
+
+  if (modalBadges) modalBadges.hidden = !categoryName && !stockLabel;
+  if (modalName) modalName.textContent = safeText(product.name);
+  if (modalDesc) {
+    modalDesc.textContent =
+      safeText(product.description).trim() ||
+      "Bu ürün için açıklama yakında eklenecek.";
+  }
+  if (modalPrice) {
+    const hasPrice =
+      product.price !== null &&
+      product.price !== undefined &&
+      product.price !== "";
+    modalPrice.textContent = hasPrice
+      ? formatStoreProductPrice(product.price, product.currency || "TRY")
+      : "Fiyat yakında";
+  }
+
+  if (modalStock && modalStockRow) {
+    modalStock.textContent = stockLabel;
+    modalStockRow.hidden = !stockLabel;
+  }
+
+  if (modalAddToCart) {
+    modalAddToCart.disabled = outOfStock;
+    modalAddToCart.textContent = outOfStock ? "Stokta yok" : "Sepete ekle";
+  }
+
+  if (modalVenue && modalVenueRow) {
+    modalVenue.textContent = venueName;
+    modalVenueRow.hidden = !venueName;
+  }
+
+  refs.modal.hidden = false;
+  refs.modalBackdrop.hidden = false;
+  requestAnimationFrame(() => {
+    refs.modal.classList.add("store-modal--open");
+    refs.modalBackdrop.classList.add("store-cart-backdrop--visible");
+  });
+  document.body.style.overflow = "hidden";
+  setTimeout(() => focusSafely(modalClose), 0);
+
+  const tableImages = await loadVenueStoreProductGalleryImages(product);
+
+  if (
+    activeVenueStoreProduct &&
+    String(activeVenueStoreProduct.id) === String(product.id)
+  ) {
+    const allImages = getVenueStoreProductImageUrls(product, tableImages);
+
+    if (allImages.length > 0) {
+      renderVenueStoreModalGallery(allImages, safeText(product.name));
+    }
+  }
+}
+
+function closeVenueStoreProductModal() {
+  const modal = document.getElementById("storeModal");
+  const backdrop = document.getElementById("storeModalBackdrop");
+
+  if (!modal || modal.hidden) return;
+
+  modal.classList.remove("store-modal--open");
+  if (backdrop) {
+    backdrop.classList.remove("store-cart-backdrop--visible");
+  }
+  document.body.style.overflow = "";
+
+  setTimeout(() => {
+    modal.hidden = true;
+    if (backdrop) backdrop.hidden = true;
+    activeVenueStoreProduct = null;
+    focusSafely(activeVenueStoreProductTrigger);
+    activeVenueStoreProductTrigger = null;
+  }, 280);
+}
+
+function bindVenueStoreProductCards() {
+  document.querySelectorAll(".venue-product-card").forEach((card) => {
+    if (card.dataset.venueProductBound === "true") return;
+
+    card.dataset.venueProductBound = "true";
+    card.addEventListener("click", () => {
+      openVenueStoreProductModal(card.dataset.productId);
+    });
+    card.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      openVenueStoreProductModal(card.dataset.productId);
+    });
+  });
+}
+
+function openVenueStoreProductFromUrl() {
+  const productId = new URLSearchParams(window.location.search).get("product");
+
+  if (!productId) return;
+
+  const product = getVenueStoreProductById(productId);
+
+  if (product) {
+    openVenueStoreProductModal(product);
+  }
+}
+
+function initVenueStoreProductExperience() {
+  if (!document.getElementById("venueStore")) return;
+
+  ensureVenueStoreCartDrawer();
+  ensureVenueStoreModal();
+  bindVenueStoreProductCards();
+  updateVenueStoreCartUI();
+  openVenueStoreProductFromUrl();
+}
+
+function isStoreProductRecordVisible(product) {
+  if (!product || product.deleted_at) return false;
+
+  if (Object.prototype.hasOwnProperty.call(product, "is_active")) {
+    return product.is_active !== false;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(product, "active")) {
+    return product.active !== false;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(product, "status")) {
+    return !["inactive", "hidden", "disabled", "deleted"].includes(
+      safeText(product.status).toLowerCase().trim()
+    );
+  }
+
+  return true;
+}
+
+function isStoreProductMissingFieldError(error, field) {
+  const text = [
+    error && error.message,
+    error && error.details,
+    error && error.hint,
+    error && error.code,
+  ].filter(Boolean).join(" ").toLowerCase();
+
+  return Boolean(
+    field &&
+    text.includes(String(field).toLowerCase()) &&
+    (
+      text.includes("column") ||
+      text.includes("schema cache") ||
+      text.includes("not found")
+    )
+  );
+}
+
+async function fetchDiscoverStorePreviewProducts() {
+  const attempts = [
+    { field: "is_active", value: true },
+    { field: "active", value: true },
+    { field: "status", value: "active" },
+    null,
+  ];
+
+  for (const attempt of attempts) {
+    let query = supabaseClient
+      .from("venue_products")
+      .select("*, venue_product_categories(id, name), venues(id, name, business_id)")
+      .order("created_at", { ascending: false })
+      .limit(8);
+
+    if (attempt) {
+      query = query.eq(attempt.field, attempt.value);
+    }
+
+    const result = await query;
+
+    if (!result.error) {
+      return {
+        data: (result.data || []).filter(isStoreProductRecordVisible),
+        error: null,
+      };
+    }
+
+    if (!attempt || !isStoreProductMissingFieldError(result.error, attempt.field)) {
+      return result;
+    }
+  }
+
+  return { data: [], error: null };
+}
+
+function getDiscoverStoreProductCategory(product) {
+  return product && product.venue_product_categories
+    ? product.venue_product_categories
+    : null;
+}
+
+function getDiscoverStoreProductVenueName(product) {
+  return safeText(
+    product &&
+      (
+        product.venue_name ||
+        (product.venues && product.venues.name)
+      )
+  );
+}
+
+function createDiscoverStoreProductCard(product) {
+  const card = document.createElement("article");
+  const category = getDiscoverStoreProductCategory(product);
+  const venueName = getDiscoverStoreProductVenueName(product);
+  const imageUrl = safeText(product.image_url || product.image);
+
+  card.className = "discover-store-card";
+  card.dataset.productId = safeText(product.id);
+  card.tabIndex = 0;
+  card.setAttribute("role", "button");
+  card.setAttribute(
+    "aria-label",
+    `${safeText(product.name) || "Ürün"} mağaza detayını aç`
+  );
+
+  const imageWrap = document.createElement("div");
+  imageWrap.className = "discover-store-card-img";
+
+  if (imageUrl) {
+    const image = document.createElement("img");
+    image.src = getImage(imageUrl);
+    image.alt = safeText(product.name);
+    image.loading = "lazy";
+    image.addEventListener(
+      "error",
+      () => {
+        image.remove();
+        imageWrap.classList.add("discover-store-card-img--empty");
+      },
+      { once: true }
+    );
+    imageWrap.appendChild(image);
+  } else {
+    imageWrap.classList.add("discover-store-card-img--empty");
+  }
+
+  const body = document.createElement("div");
+  body.className = "discover-store-card-body";
+
+  if (category && category.name) {
+    const categoryLabel = document.createElement("span");
+    categoryLabel.className = "discover-store-card-cat";
+    categoryLabel.textContent = safeText(category.name);
+    body.appendChild(categoryLabel);
+  }
+
+  const title = document.createElement("h3");
+  title.textContent = safeText(product.name) || "TANIDIK Store ürünü";
+  body.appendChild(title);
+
+  const meta = document.createElement("div");
+  meta.className = "discover-store-card-meta";
+
+  const price = document.createElement("strong");
+  price.textContent =
+    product.price === null ||
+    product.price === undefined ||
+    product.price === ""
+      ? "Fiyat yakında"
+      : formatStoreProductPrice(product.price, product.currency || "TRY");
+  meta.appendChild(price);
+
+  if (venueName) {
+    const venue = document.createElement("span");
+    venue.textContent = venueName;
+    meta.appendChild(venue);
+  }
+
+  body.appendChild(meta);
+  card.appendChild(imageWrap);
+  card.appendChild(body);
+
+  card.addEventListener("click", () => {
+    window.location.href =
+      `./store.html?product=${encodeURIComponent(product.id)}`;
+  });
+  card.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    window.location.href =
+      `./store.html?product=${encodeURIComponent(product.id)}`;
+  });
+
+  return card;
+}
+
+function renderDiscoverStoreCategoryChips(products) {
+  const chips = document.getElementById("discoverStoreCategoryChips");
+
+  if (!chips) return;
+
+  chips.innerHTML = "";
+
+  const categories = [];
+  const seen = new Set();
+
+  (products || []).forEach((product) => {
+    const category = getDiscoverStoreProductCategory(product);
+    const id = safeText(category && category.id);
+
+    if (!id || seen.has(id)) return;
+
+    seen.add(id);
+    categories.push({
+      id,
+      name: safeText(category.name) || "Kategori",
+    });
+  });
+
+  if (categories.length === 0) {
+    chips.hidden = true;
+    return;
+  }
+
+  chips.hidden = false;
+
+  categories.slice(0, 6).forEach((category) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "discover-store-chip";
+    button.textContent = category.name;
+    button.addEventListener("click", () => {
+      window.location.href =
+        `./store.html?category=${encodeURIComponent(category.id)}`;
+    });
+    chips.appendChild(button);
+  });
+}
+
+function renderDiscoverStorePreview(products) {
+  const section = document.getElementById("discoverShopSection");
+  const preview = document.getElementById("discoverStorePreview");
+
+  if (!section || !preview) return;
+
+  preview.innerHTML = "";
+
+  if (!products || products.length === 0) {
+    renderEmptyState(
+      preview,
+      "Mağazada henüz ürün yok.",
+      "Yeni ürünler eklendiğinde burada görünecek."
+    );
+    renderDiscoverStoreCategoryChips([]);
+    return;
+  }
+
+  renderDiscoverStoreCategoryChips(products);
+
+  const fragment = document.createDocumentFragment();
+
+  products.slice(0, 8).forEach((product) => {
+    fragment.appendChild(createDiscoverStoreProductCard(product));
+  });
+
+  preview.appendChild(fragment);
+}
+
+async function initDiscoverStorePreview() {
+  const section = document.getElementById("discoverShopSection");
+  const preview = document.getElementById("discoverStorePreview");
+
+  if (!section || !preview) return;
+
+  renderEmptyState(preview, "Mağaza ürünleri yükleniyor...");
+
+  try {
+    const result = await fetchDiscoverStorePreviewProducts();
+
+    if (result.error) {
+      console.warn("Discover store preview could not be loaded.", result.error);
+      section.hidden = true;
+      return;
+    }
+
+    renderDiscoverStorePreview(result.data || []);
+  } catch (error) {
+    console.warn("Discover store preview could not be loaded.", error);
+    section.hidden = true;
+  }
+}
+
 function createVenueProductCard(product) {
   const card = document.createElement("article");
-  card.className = "venue-menu-item venue-product-card";
+  const stockValue = getStoreCartProductStockValue(product);
+  const outOfStock = isStoreCartProductOutOfStock(product);
+  card.className =
+    "venue-menu-item venue-product-card" +
+    (outOfStock ? " venue-product-card--out-of-stock" : "");
+  card.dataset.productId = safeText(product.id);
+  card.tabIndex = 0;
+  card.setAttribute("role", "button");
+  card.setAttribute(
+    "aria-label",
+    `${safeText(product.name) || "Ürün"} detayını aç`
+  );
 
   if (product.image_url) {
     card.classList.add("venue-menu-item--with-image");
@@ -279,14 +1574,12 @@ function createVenueProductCard(product) {
     content.appendChild(description);
   }
 
-  if (
-    product.stock_quantity !== null &&
-    product.stock_quantity !== undefined &&
-    product.stock_quantity !== ""
-  ) {
+  if (stockValue !== null) {
     const stock = document.createElement("span");
-    stock.className = "venue-product-stock";
-    stock.textContent = `${product.stock_quantity} in stock`;
+    stock.className =
+      "venue-product-stock" +
+      (outOfStock ? " venue-product-stock--out" : "");
+    stock.textContent = outOfStock ? "Stokta yok" : `${stockValue} in stock`;
     content.appendChild(stock);
   }
 
@@ -302,10 +1595,18 @@ function renderVenueStore(productData) {
   panel.innerHTML = "";
 
   const categories = productData.categories || [];
-  const products = productData.products || [];
+  const products = (productData.products || []).map((product) => ({
+    ...product,
+    venue_product_categories:
+      categories.find(
+        (category) => String(category.id) === String(product.category_id || "")
+      ) || null,
+  }));
+  venueStoreProductsState = products;
 
   if (categories.length === 0 && products.length === 0) {
     renderEmptyState(panel, "No products yet.", "Products will appear here when available.");
+    initVenueStoreProductExperience();
     return;
   }
 
@@ -348,6 +1649,8 @@ function renderVenueStore(productData) {
 
     panel.appendChild(group);
   }
+
+  initVenueStoreProductExperience();
 }
 
 async function loadVenueProducts(venueId) {
@@ -381,7 +1684,9 @@ async function loadVenueProducts(venueId) {
 
     return {
       categories: categoriesResult.data || [],
-      products: productsResult.data || [],
+      products: (productsResult.data || []).filter(
+        (product) => !product.deleted_at
+      ),
     };
   } catch (error) {
     console.warn("Venue products could not be loaded.", error);
@@ -661,6 +1966,38 @@ async function createNotification(
   }
 
   return false;
+}
+
+async function createStoreOrderNotification(
+  userId,
+  type,
+  title,
+  message = "",
+  linkUrl = "",
+  metadata = {}
+) {
+  if (!userId) return false;
+
+  try {
+    const { error } = await supabaseClient.rpc(
+      "create_store_order_notification",
+      {
+        target_user_id: userId,
+        notification_type: type,
+        notification_title: title,
+        notification_message: message,
+        notification_link_url: linkUrl,
+        notification_metadata:
+          metadata && typeof metadata === "object" ? metadata : {},
+      }
+    );
+
+    if (!error) return true;
+  } catch (error) {
+    // Optional SQL may not be installed; fall back to the existing notification helper.
+  }
+
+  return createNotification(userId, type, title, message, linkUrl);
 }
 
 function showMessage(message) {
@@ -2763,7 +4100,10 @@ async function checkUser() {
     userEmail.innerText = session.user.email;
     ensureBusinessApplicationSection();
     setupProfileMobilePanels();
+    setupProfileAvatarUpload();
+    setupProfileStoreOrdersLoader(session.user.id);
     setupBusinessApplicationForm(session.user.id);
+    await hydrateProfileAvatar(session);
     await loadProfileStats(session.user.id);
   }
 }
@@ -2822,9 +4162,35 @@ function setupProfileMobilePanels() {
         });
         button.classList.add("is-active");
         button.setAttribute("aria-expanded", "true");
+
+        if (panelName === "orders") {
+          loadProfileStoreOrdersFromSession();
+        }
       }
     });
   });
+}
+
+function setupProfileStoreOrdersLoader(userId) {
+  const list = document.getElementById("profileStoreOrdersList");
+
+  if (!list || list.dataset.profileOrdersLoaderBound === "true") {
+    return;
+  }
+
+  list.dataset.profileOrdersLoaderBound = "true";
+
+  const loadOrders = () => {
+    loadProfileStoreOrders(userId);
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", loadOrders, {
+      once: true,
+    });
+  } else {
+    loadOrders();
+  }
 }
 
 function ensureBusinessApplicationSection() {
@@ -2964,8 +4330,382 @@ async function loadProfileStats(userId) {
   }
 
   await loadProfileNotifications(userId);
+  await loadProfileStoreOrders(userId);
   await loadProfileBusinessApplications(userId);
   await setupBusinessProfileLink(userId);
+}
+
+const STORE_ORDER_STATUSES = [
+  "pending",
+  "accepted",
+  "rejected",
+  "completed",
+];
+
+function getStoreOrderStatusValue(status) {
+  const value = safeText(status).toLowerCase().trim() || "pending";
+
+  return STORE_ORDER_STATUSES.includes(value) ? value : "pending";
+}
+
+function getStoreOrderStatusLabel(status) {
+  const labels = {
+    pending: "Beklemede",
+    accepted: "Kabul edildi",
+    rejected: "Reddedildi",
+    completed: "Tamamlandı",
+  };
+  const value = getStoreOrderStatusValue(status);
+
+  return labels[value] || value;
+}
+
+function createStoreOrderStatusBadge(status) {
+  const badge = document.createElement("span");
+  const value = getStoreOrderStatusValue(status);
+
+  badge.className = `store-order-badge status-${value}`;
+  badge.textContent = getStoreOrderStatusLabel(value);
+
+  return badge;
+}
+
+const STORE_ORDER_STATUS_NOTIFICATION_TEXT = {
+  accepted: "Siparişiniz kabul edildi",
+  rejected: "Siparişiniz reddedildi",
+  completed: "Siparişiniz tamamlandı",
+};
+
+function getBusinessStoreOrderById(orderId) {
+  return (businessDashboardState.storeOrders || []).find(
+    (order) => String(order.id) === String(orderId)
+  );
+}
+
+async function fetchStoreOrderForNotification(orderId) {
+  if (!orderId) return null;
+
+  try {
+    const { data, error } = await supabaseClient
+      .from("store_orders")
+      .select("id, user_id, status")
+      .eq("id", orderId)
+      .maybeSingle();
+
+    if (error) return null;
+    return data || null;
+  } catch (error) {
+    return null;
+  }
+}
+
+async function notifyStoreOrderOwnerStatusChange(order, status) {
+  const nextStatus = getStoreOrderStatusValue(status);
+  const text = STORE_ORDER_STATUS_NOTIFICATION_TEXT[nextStatus];
+
+  if (!text) return false;
+
+  const targetOrder =
+    order && order.user_id
+      ? order
+      : await fetchStoreOrderForNotification(order && order.id);
+
+  if (!targetOrder || !targetOrder.user_id) return false;
+
+  return createStoreOrderNotification(
+    targetOrder.user_id,
+    `store_order_${nextStatus}`,
+    text,
+    text,
+    "./profile.html",
+    {
+      order_id: targetOrder.id,
+      status: nextStatus,
+    }
+  );
+}
+
+function formatStoreOrderAmount(value, currency = "TRY") {
+  const amount = Number(value || 0);
+  const symbols = {
+    TRY: "₺",
+    USD: "$",
+    EUR: "€",
+  };
+
+  return `${symbols[currency] || currency} ${amount.toLocaleString("tr-TR", {
+    minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function getStoreOrderItems(order) {
+  const items = order && order.store_order_items;
+
+  if (Array.isArray(items)) return items;
+  if (items) return [items];
+  return [];
+}
+
+function getStoreOrderTitle(order) {
+  const id = safeText(order && order.id);
+
+  return id ? `Sipariş #${id.slice(0, 8)}` : "Sipariş";
+}
+
+function createStoreOrderItemsList(items) {
+  const list = document.createElement("div");
+  list.className = "store-order-items";
+
+  if (!items || items.length === 0) {
+    const empty = document.createElement("span");
+    empty.textContent = "Ürün detayı yok.";
+    list.appendChild(empty);
+    return list;
+  }
+
+  items.forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "store-order-item";
+
+    const name = document.createElement("strong");
+    name.textContent = safeText(item.product_name) || "Store ürünü";
+    row.appendChild(name);
+
+    const meta = document.createElement("span");
+    meta.textContent =
+      `${Number(item.quantity || 0)} adet · ${formatStoreOrderAmount(
+        item.total_price
+      )}`;
+    row.appendChild(meta);
+
+    list.appendChild(row);
+  });
+
+  return list;
+}
+
+function renderStoreOrdersUnavailable(list) {
+  if (!list) return;
+
+  renderEmptyState(
+    list,
+    "Siparişler henüz hazır değil.",
+    "Checkout için sql/store_orders.sql dosyasını Supabase üzerinde çalıştırın."
+  );
+}
+
+function logProfileOrdersIssue(message, detail = {}) {
+  console.warn("[TANIDIK profile orders]", message, detail);
+}
+
+function renderProfileStoreOrdersError(message) {
+  const list = document.getElementById("profileStoreOrdersList");
+
+  if (!list) return;
+
+  renderEmptyState(
+    list,
+    "Siparişler yüklenemedi.",
+    message || "Lütfen birazdan tekrar deneyin."
+  );
+}
+
+async function loadProfileStoreOrdersFromSession() {
+  const list = document.getElementById("profileStoreOrdersList");
+
+  if (!list) return;
+
+  try {
+    const session = await getSafeSession();
+    const userId = session && session.user ? session.user.id : "";
+
+    if (!userId) {
+      renderProfileStoreOrdersError("Siparişleri görmek için giriş yapın.");
+      return;
+    }
+
+    await loadProfileStoreOrders(userId);
+  } catch (error) {
+    logProfileOrdersIssue("Session lookup failed.", error);
+    renderProfileStoreOrdersError();
+  }
+}
+
+async function loadProfileStoreOrdersWithItemsFallback(userId) {
+  const ordersResult = await supabaseClient
+    .from("store_orders")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (ordersResult.error) {
+    logProfileOrdersIssue("Orders fallback query failed.", {
+      userId,
+      error: ordersResult.error,
+    });
+    return { data: [], error: ordersResult.error };
+  }
+
+  const orders = ordersResult.data || [];
+  const orderIds = orders.map((order) => order.id).filter(Boolean);
+
+  if (orderIds.length === 0) {
+    return { data: orders, error: null };
+  }
+
+  const itemsResult = await supabaseClient
+    .from("store_order_items")
+    .select("*")
+    .in("order_id", orderIds);
+
+  if (itemsResult.error) {
+    logProfileOrdersIssue(
+      "Order items fallback query failed. Rendering orders without items.",
+      { userId, orderIds, error: itemsResult.error }
+    );
+    return { data: orders, error: null };
+  }
+
+  const itemsByOrderId = {};
+
+  (itemsResult.data || []).forEach((item) => {
+    const orderId = String(item.order_id || "");
+
+    if (!orderId) return;
+
+    itemsByOrderId[orderId] = itemsByOrderId[orderId] || [];
+    itemsByOrderId[orderId].push(item);
+  });
+
+  return {
+    data: orders.map((order) => ({
+      ...order,
+      store_order_items: itemsByOrderId[String(order.id)] || [],
+    })),
+    error: null,
+  };
+}
+
+async function loadProfileStoreOrders(userId) {
+  const list = document.getElementById("profileStoreOrdersList");
+
+  if (!list || !userId) return;
+
+  try {
+    const session = await getSafeSession();
+    const sessionUserId = session && session.user ? session.user.id : "";
+
+    if (sessionUserId && String(sessionUserId) !== String(userId)) {
+      logProfileOrdersIssue("Session user does not match requested orders user.", {
+        sessionUserId,
+        requestedUserId: userId,
+      });
+    }
+
+    const { data, error } = await supabaseClient
+      .from("store_orders")
+      .select("*, store_order_items(*)")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      logProfileOrdersIssue(
+        "Joined orders query failed. Trying orders/items fallback.",
+        { userId, error }
+      );
+
+      const fallbackResult =
+        await loadProfileStoreOrdersWithItemsFallback(userId);
+
+      if (fallbackResult.error) {
+        renderProfileStoreOrdersError(
+          "Sipariş kayıtları okunamadı. RLS veya tablo ilişkilerini kontrol edin."
+        );
+        showToast("Siparişler yüklenemedi");
+        return;
+      }
+
+      renderProfileStoreOrders(fallbackResult.data || []);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      logProfileOrdersIssue(
+        "Orders query returned no rows. If an order exists, check store_orders.user_id and RLS.",
+        { userId, sessionUserId }
+      );
+    }
+
+    renderProfileStoreOrders(data || []);
+  } catch (error) {
+    logProfileOrdersIssue("Orders load failed unexpectedly.", {
+      userId,
+      error,
+    });
+    renderProfileStoreOrdersError();
+    showToast("Siparişler yüklenemedi");
+  }
+}
+
+function renderProfileStoreOrders(orders) {
+  const list = document.getElementById("profileStoreOrdersList");
+
+  if (!list) return;
+
+  list.innerHTML = "";
+
+  if (!orders || orders.length === 0) {
+    renderEmptyState(
+      list,
+      "Henüz sipariş yok.",
+      "Store üzerinden verdiğiniz siparişler burada görünecek."
+    );
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+
+  orders.forEach((order) => {
+    const card = document.createElement("article");
+    card.className = "store-order-card profile-store-order-card";
+
+    const header = document.createElement("div");
+    header.className = "store-order-card-header";
+
+    const titleWrap = document.createElement("div");
+    const title = document.createElement("h3");
+    title.textContent = getStoreOrderTitle(order);
+    titleWrap.appendChild(title);
+
+    const createdAt = document.createElement("span");
+    createdAt.textContent = formatNotificationDate(order.created_at);
+    titleWrap.appendChild(createdAt);
+
+    header.appendChild(titleWrap);
+    header.appendChild(createStoreOrderStatusBadge(order.status));
+    card.appendChild(header);
+
+    card.appendChild(createStoreOrderItemsList(getStoreOrderItems(order)));
+
+    const footer = document.createElement("div");
+    footer.className = "store-order-meta";
+
+    const total = document.createElement("strong");
+    total.textContent = formatStoreOrderAmount(order.total_amount);
+    footer.appendChild(total);
+
+    if (order.customer_note) {
+      const note = document.createElement("span");
+      note.textContent = safeText(order.customer_note);
+      footer.appendChild(note);
+    }
+
+    card.appendChild(footer);
+    fragment.appendChild(card);
+  });
+
+  list.appendChild(fragment);
 }
 
 function formatNotificationDate(value) {
@@ -2988,6 +4728,11 @@ function renderProfileNotifications(notifications) {
     document.getElementById("profileNotificationsList");
 
   if (!list) return;
+
+  businessStoreProductState = {
+    categories: productData.categories || [],
+    products: productData.products || [],
+  };
 
   list.innerHTML = "";
 
@@ -4275,9 +6020,29 @@ async function loadVenueDetails() {
   setTextIfPresent("venueCategory", getVenueCategoryLabel(venue));
   setTextIfPresent("venueDescription", venue.description);
 
-  renderVenueGallery(await loadVenueGalleryPhotos(venue.id));
+  const venueGalleryPhotos = await loadVenueGalleryPhotos(venue.id);
+  renderVenueGallery(
+    venueGalleryPhotos.length > 0
+      ? venueGalleryPhotos
+      : venue.image
+        ? [{ image_url: venue.image }]
+        : []
+  );
   renderVenueMenu(await loadVenueMenu(venue.id));
-  renderVenueStore(await loadVenueProducts(venue.id));
+  const venueProducts = await loadVenueProducts(venue.id);
+  venueProducts.products = (venueProducts.products || []).map((product) => ({
+    ...product,
+    venues: {
+      id: venue.id,
+      name: venue.name,
+      business_id: venue.business_id,
+      owner_id: venue.owner_id,
+      business_owner_id: venue.business_owner_id,
+    },
+    venue_name: venue.name,
+  }));
+  renderVenueStore(venueProducts);
+  setupVenueStoreAllLink(venue.id);
 
   renderVenueLocation(venue);
 
@@ -4541,18 +6306,21 @@ function getVenueGalleryUrls(inputId) {
     .filter(Boolean);
 }
 
-async function uploadVenueGalleryFiles(inputId) {
-  const files = getAdminFiles(inputId);
+async function uploadVenueGalleryFiles(files, venueId) {
+  const sourceFiles =
+    files ||
+    businessMediaState.venueGallery.pendingFiles.map(
+      (pending) => pending.file
+    );
 
-  if (files.length === 0) return [];
+  if (!sourceFiles.length) return [];
 
   const urls = [];
 
-  for (const file of files) {
-    const uploadedUrl = await uploadAdminImage(
-      file,
-      "venue-gallery"
-    );
+  for (const file of sourceFiles) {
+    const uploadedUrl = await uploadMediaImage(file, "venues", {
+      venueId,
+    });
 
     if (!uploadedUrl) {
       return [];
@@ -4564,28 +6332,105 @@ async function uploadVenueGalleryFiles(inputId) {
   return urls;
 }
 
-async function saveVenueGalleryPhotos(venueId, imageUrls) {
+async function saveVenueGalleryPhotos(venueId, imageUrls, startOrder = 0) {
   if (!venueId || !imageUrls || imageUrls.length === 0) {
-    return;
+    return [];
   }
 
   const rows = imageUrls.map((imageUrl, index) => ({
     venue_id: venueId,
     image_url: imageUrl,
-    sort_order: index,
+    sort_order: startOrder + index,
   }));
 
   try {
-    const { error } = await supabaseClient
+    const { data, error } = await supabaseClient
       .from("venue_photos")
-      .insert(rows);
+      .insert(rows)
+      .select("id, image_url, sort_order");
 
     if (error) {
-      console.warn("Venue gallery photos were not saved.", error);
+      showToast("Venue galeri fotoğrafları kaydedilemedi");
+      return [];
     }
+
+    return data || [];
   } catch (error) {
-    console.warn("Venue gallery photos were not saved.", error);
+    showToast("Venue galeri fotoğrafları kaydedilemedi");
+    return [];
   }
+}
+
+async function getVenueGalleryPhotoCount(venueId) {
+  if (!venueId) return 0;
+
+  try {
+    const { count, error } = await supabaseClient
+      .from("venue_photos")
+      .select("id", { count: "exact", head: true })
+      .eq("venue_id", venueId);
+
+    return error ? 0 : count || 0;
+  } catch (error) {
+    return 0;
+  }
+}
+
+async function persistBusinessVenueGalleryChanges(venueId) {
+  if (!venueId) return { savedUrls: [], primaryImage: "" };
+
+  const removedIds = [
+    ...new Set(businessMediaState.venueGallery.removedPhotoIds),
+  ];
+  const keptPhotos = businessMediaState.venueGallery.photos.filter(
+    (photo) => !removedIds.includes(String(photo.id))
+  );
+  const existingCount = await getVenueGalleryPhotoCount(venueId);
+  const pendingCount =
+    businessMediaState.venueGallery.pendingFiles.length;
+  const projectedCount =
+    existingCount - removedIds.length + pendingCount;
+
+  if (projectedCount > MAX_VENUE_GALLERY_IMAGES) {
+    showToast(`En fazla ${MAX_VENUE_GALLERY_IMAGES} venue fotoğrafı`);
+    return { savedUrls: [], primaryImage: "" };
+  }
+
+  await deleteVenueGalleryPhotoRows(removedIds);
+
+  const uploadedUrls = await uploadVenueGalleryFiles(
+    null,
+    venueId
+  );
+  const urlRows = getVenueGalleryUrls("businessVenueGalleryUrls");
+  const allNewUrls = [...urlRows, ...uploadedUrls];
+  const startOrder = Math.max(
+    keptPhotos.reduce(
+      (max, photo) => Math.max(max, Number(photo.sort_order) || 0),
+      -1
+    ) + 1,
+    existingCount - removedIds.length,
+    0
+  );
+  const insertedRows = await saveVenueGalleryPhotos(
+    venueId,
+    allNewUrls,
+    startOrder
+  );
+  const savedUrls = insertedRows.map((row) => row.image_url);
+  const primaryImage =
+    keptPhotos[0] && keptPhotos[0].image_url
+      ? keptPhotos[0].image_url
+      : savedUrls[0] || "";
+
+  if (primaryImage) {
+    await syncVenuePrimaryImage(venueId, primaryImage);
+  }
+
+  resetBusinessVenueGalleryState();
+  await loadBusinessVenueGalleryState(venueId);
+
+  return { savedUrls, primaryImage };
 }
 
 async function loadVenueGalleryPhotos(venueId) {
@@ -4600,31 +6445,43 @@ async function loadVenueGalleryPhotos(venueId) {
       .order("created_at", { ascending: true });
 
     if (error) {
-      console.warn("Venue gallery photos could not be loaded.", error);
       return [];
     }
 
     return data || [];
   } catch (error) {
-    console.warn("Venue gallery photos could not be loaded.", error);
     return [];
   }
 }
 
-function validateAdminImage(file) {
+function validateMediaImageFile(file) {
   if (!file) return true;
 
-  if (!file.type.startsWith("image/")) {
-    showToast("Please choose an image file");
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    showToast("Sadece JPEG, PNG veya WebP yükleyebilirsiniz");
     return false;
   }
 
   if (file.size > MAX_IMAGE_SIZE) {
-    showToast("Image must be 5MB or smaller");
+    showToast("Görsel en fazla 4 MB olabilir");
     return false;
   }
 
   return true;
+}
+
+function validateAdminImage(file) {
+  return validateMediaImageFile(file);
+}
+
+function getMediaFileExtension(file) {
+  const extensions = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+  };
+
+  return extensions[file.type] || "jpg";
 }
 
 function getSafeFileName(fileName) {
@@ -4636,38 +6493,805 @@ function getSafeFileName(fileName) {
   return safeName || "image";
 }
 
-async function uploadAdminImage(file, folder) {
+function buildMediaStoragePath(folder, file, context = {}) {
+  const timestamp = Date.now();
+  const safeName = getSafeFileName(file.name);
+  const extension = getMediaFileExtension(file);
+
+  if (folder === "avatars" && context.userId) {
+    return `avatars/${context.userId}/avatar-${timestamp}.${extension}`;
+  }
+
+  if (
+    (folder === "venues" || folder === "venue-gallery") &&
+    context.venueId
+  ) {
+    return `venues/${context.venueId}/${timestamp}-${safeName}`;
+  }
+
+  if (
+    (folder === "products" || folder === "product-gallery") &&
+    context.productId
+  ) {
+    return `products/${context.productId}/${timestamp}-${safeName}`;
+  }
+
+  return `${folder}/${timestamp}-${safeName}`;
+}
+
+async function uploadMediaImage(file, folder, context = {}) {
   if (!file) return "";
 
-  if (!validateAdminImage(file)) {
+  if (!validateMediaImageFile(file)) {
     return "";
   }
 
-  const fileName = getSafeFileName(file.name);
-  const filePath = `${folder}/${Date.now()}-${fileName}`;
-
+  const filePath = buildMediaStoragePath(folder, file, context);
   let error = null;
 
   try {
     ({ error } = await supabaseClient.storage
       .from(STORAGE_BUCKET)
-      .upload(filePath, file));
+      .upload(filePath, file, {
+        upsert: folder === "avatars",
+      }));
   } catch (uploadError) {
     error = uploadError;
   }
 
   if (error) {
-    console.log(error);
-    showToast(error.message || "Image upload failed");
+    showToast(error.message || "Görsel yüklenemedi");
     return "";
   }
 
-  const { data } =
-    supabaseClient.storage
-      .from(STORAGE_BUCKET)
-      .getPublicUrl(filePath);
+  const { data } = supabaseClient.storage
+    .from(STORAGE_BUCKET)
+    .getPublicUrl(filePath);
 
   return data.publicUrl;
+}
+
+async function uploadAdminImage(file, folder, context = {}) {
+  return uploadMediaImage(file, folder, context);
+}
+
+function getProfileInitials(profile, session) {
+  const source =
+    getProfileDisplayName(profile) ||
+    safeText(session && session.user && session.user.email) ||
+    "T";
+
+  const parts = source.trim().split(/\s+/).filter(Boolean);
+
+  if (parts.length >= 2) {
+    return `${parts[0][0] || ""}${parts[1][0] || ""}`.toUpperCase();
+  }
+
+  return (parts[0] || "T").slice(0, 2).toUpperCase();
+}
+
+function renderProfileAvatar(session, profile) {
+  const avatarWrap = document.querySelector(
+    ".profile-avatar-wrap .profile-avatar"
+  );
+  const avatarImage = document.getElementById("profileAvatarImage");
+  const avatarInitials = document.getElementById("profileAvatarInitials");
+
+  if (!avatarWrap) return;
+
+  const avatarUrl = getProfileAvatar(profile);
+  const initials = getProfileInitials(profile, session);
+
+  if (avatarInitials) {
+    avatarInitials.textContent = initials;
+  } else if (!avatarImage) {
+    avatarWrap.textContent = initials;
+  }
+
+  if (avatarImage) {
+    if (avatarUrl) {
+      avatarImage.src = avatarUrl;
+      avatarImage.hidden = false;
+      avatarWrap.classList.add("has-image");
+      if (avatarInitials) avatarInitials.hidden = true;
+      avatarImage.addEventListener(
+        "error",
+        () => {
+          avatarImage.hidden = true;
+          avatarWrap.classList.remove("has-image");
+          if (avatarInitials) {
+            avatarInitials.hidden = false;
+            avatarInitials.textContent = initials;
+          }
+        },
+        { once: true }
+      );
+    } else {
+      avatarImage.removeAttribute("src");
+      avatarImage.hidden = true;
+      avatarWrap.classList.remove("has-image");
+      if (avatarInitials) avatarInitials.hidden = false;
+    }
+  }
+}
+
+async function saveProfileAvatarUrl(userId, avatarUrl) {
+  if (!userId || !avatarUrl) return false;
+
+  const payload = {
+    id: userId,
+    avatar_url: avatarUrl,
+  };
+
+  try {
+    const { error } = await supabaseClient
+      .from("profiles")
+      .upsert(payload, { onConflict: "id" });
+
+    if (error) {
+      showSafeError(error, "Profil fotoğrafı kaydedilemedi.");
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    showSafeError(error, "Profil fotoğrafı kaydedilemedi.");
+    return false;
+  }
+}
+
+async function uploadProfileAvatar(file, session) {
+  if (!file || !session || !session.user) return "";
+
+  if (!validateMediaImageFile(file)) {
+    return "";
+  }
+
+  const uploadedUrl = await uploadMediaImage(file, "avatars", {
+    userId: session.user.id,
+  });
+
+  if (!uploadedUrl) return "";
+
+  const saved = await saveProfileAvatarUrl(
+    session.user.id,
+    uploadedUrl
+  );
+
+  return saved ? uploadedUrl : "";
+}
+
+async function hydrateProfileAvatar(session) {
+  if (!session || !session.user) return;
+
+  const profile = await loadProfileRecordByUserId(session.user.id);
+  renderProfileAvatar(session, profile);
+}
+
+function setupProfileAvatarUpload() {
+  const input = document.getElementById("profileAvatarInput");
+  const button = document.getElementById("profileAvatarChangeBtn");
+
+  if (!input || input.dataset.bound === "true") return;
+
+  input.dataset.bound = "true";
+
+  const openPicker = () => input.click();
+
+  if (button) {
+    button.addEventListener("click", openPicker);
+  }
+
+  input.addEventListener("change", async () => {
+    const file = input.files && input.files[0];
+
+    input.value = "";
+
+    if (!file) return;
+
+    if (!validateMediaImageFile(file)) return;
+
+    const session = await getSafeSession();
+
+    if (!session) {
+      showToast("Oturum açmanız gerekiyor");
+      return;
+    }
+
+    const uploadedUrl = await uploadProfileAvatar(file, session);
+
+    if (!uploadedUrl) return;
+
+    renderProfileAvatar(session, { avatar_url: uploadedUrl });
+    showToast("Profil fotoğrafı güncellendi");
+  });
+}
+
+function revokeMediaPreviewUrls(items) {
+  (items || []).forEach((item) => {
+    if (item && item.previewUrl) {
+      URL.revokeObjectURL(item.previewUrl);
+    }
+  });
+}
+
+function resetBusinessVenueGalleryState() {
+  revokeMediaPreviewUrls(businessMediaState.venueGallery.pendingFiles);
+  businessMediaState.venueGallery = {
+    photos: [],
+    pendingFiles: [],
+    removedPhotoIds: [],
+  };
+  renderBusinessVenueGalleryPreview();
+}
+
+function resetBusinessProductGalleryState() {
+  revokeMediaPreviewUrls(businessMediaState.productGallery.pendingFiles);
+  businessMediaState.productGallery = {
+    photos: [],
+    pendingFiles: [],
+    removedPhotoIds: [],
+  };
+  renderBusinessProductGalleryPreview();
+}
+
+function createMediaPreviewThumb(options) {
+  const {
+    imageUrl,
+    label = "",
+    onDelete,
+    isPending = false,
+  } = options;
+  const item = document.createElement("div");
+  item.className = "media-preview-thumb";
+
+  if (isPending) {
+    item.classList.add("media-preview-thumb--pending");
+  }
+
+  const image = document.createElement("img");
+  image.src = getImage(imageUrl);
+  image.alt = label || "Preview";
+  image.loading = "lazy";
+  item.appendChild(image);
+
+  if (onDelete) {
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.className = "media-preview-delete";
+    deleteButton.setAttribute("aria-label", "Görseli sil");
+    deleteButton.textContent = "×";
+    deleteButton.addEventListener("click", onDelete);
+    item.appendChild(deleteButton);
+  }
+
+  return item;
+}
+
+function renderBusinessVenueGalleryPreview() {
+  const grid = document.getElementById("businessVenueGalleryPreview");
+  const status = document.getElementById("businessVenueGalleryStatus");
+
+  if (!grid) return;
+
+  grid.innerHTML = "";
+
+  const keptPhotos = businessMediaState.venueGallery.photos.filter(
+    (photo) =>
+      !businessMediaState.venueGallery.removedPhotoIds.includes(
+        String(photo.id)
+      )
+  );
+  const totalCount =
+    keptPhotos.length +
+    businessMediaState.venueGallery.pendingFiles.length;
+
+  if (status) {
+    status.textContent = `${totalCount}/${MAX_VENUE_GALLERY_IMAGES} fotoğraf`;
+  }
+
+  keptPhotos.forEach((photo) => {
+    grid.appendChild(
+      createMediaPreviewThumb({
+        imageUrl: photo.image_url,
+        label: "Venue photo",
+        onDelete: () => {
+          businessMediaState.venueGallery.removedPhotoIds.push(
+            String(photo.id)
+          );
+          renderBusinessVenueGalleryPreview();
+        },
+      })
+    );
+  });
+
+  businessMediaState.venueGallery.pendingFiles.forEach(
+    (pending, index) => {
+      grid.appendChild(
+        createMediaPreviewThumb({
+          imageUrl: pending.previewUrl,
+          label: "Pending venue photo",
+          isPending: true,
+          onDelete: () => {
+            const removed = businessMediaState.venueGallery.pendingFiles.splice(
+              index,
+              1
+            )[0];
+
+            if (removed && removed.previewUrl) {
+              URL.revokeObjectURL(removed.previewUrl);
+            }
+
+            renderBusinessVenueGalleryPreview();
+          },
+        })
+      );
+    }
+  );
+}
+
+function renderBusinessProductGalleryPreview() {
+  const grid = document.getElementById("businessProductGalleryPreview");
+  const status = document.getElementById("businessProductGalleryStatus");
+
+  if (!grid) return;
+
+  grid.innerHTML = "";
+
+  const keptPhotos = businessMediaState.productGallery.photos.filter(
+    (photo) =>
+      !businessMediaState.productGallery.removedPhotoIds.includes(
+        String(photo.id)
+      )
+  );
+  const totalCount =
+    keptPhotos.length +
+    businessMediaState.productGallery.pendingFiles.length;
+
+  if (status) {
+    status.textContent = `${totalCount}/${MAX_PRODUCT_GALLERY_IMAGES} fotoğraf`;
+  }
+
+  keptPhotos.forEach((photo) => {
+    grid.appendChild(
+      createMediaPreviewThumb({
+        imageUrl: photo.image_url,
+        label: "Product photo",
+        onDelete: () => {
+          businessMediaState.productGallery.removedPhotoIds.push(
+            String(photo.id)
+          );
+          renderBusinessProductGalleryPreview();
+        },
+      })
+    );
+  });
+
+  businessMediaState.productGallery.pendingFiles.forEach(
+    (pending, index) => {
+      grid.appendChild(
+        createMediaPreviewThumb({
+          imageUrl: pending.previewUrl,
+          label: "Pending product photo",
+          isPending: true,
+          onDelete: () => {
+            const removed =
+              businessMediaState.productGallery.pendingFiles.splice(
+                index,
+                1
+              )[0];
+
+            if (removed && removed.previewUrl) {
+              URL.revokeObjectURL(removed.previewUrl);
+            }
+
+            renderBusinessProductGalleryPreview();
+          },
+        })
+      );
+    }
+  );
+}
+
+async function loadBusinessVenueGalleryState(venueId) {
+  resetBusinessVenueGalleryState();
+
+  if (!venueId) return;
+
+  businessMediaState.venueGallery.photos =
+    await loadVenueGalleryPhotos(venueId);
+  renderBusinessVenueGalleryPreview();
+}
+
+async function loadBusinessProductGalleryState(productId) {
+  resetBusinessProductGalleryState();
+
+  if (!productId) return;
+
+  try {
+    const { data, error } = await supabaseClient
+      .from("venue_product_images")
+      .select("id, image_url, sort_order, created_at")
+      .eq("product_id", productId)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
+
+    if (!error) {
+      businessMediaState.productGallery.photos = data || [];
+    }
+  } catch (error) {
+    businessMediaState.productGallery.photos = [];
+  }
+
+  renderBusinessProductGalleryPreview();
+}
+
+function queueBusinessVenueGalleryFiles(files) {
+  const keptCount = businessMediaState.venueGallery.photos.filter(
+    (photo) =>
+      !businessMediaState.venueGallery.removedPhotoIds.includes(
+        String(photo.id)
+      )
+  ).length;
+  const availableSlots =
+    MAX_VENUE_GALLERY_IMAGES -
+    keptCount -
+    businessMediaState.venueGallery.pendingFiles.length;
+
+  if (availableSlots <= 0) {
+    showToast(`En fazla ${MAX_VENUE_GALLERY_IMAGES} venue fotoğrafı`);
+    return;
+  }
+
+  Array.from(files || [])
+    .slice(0, availableSlots)
+    .forEach((file) => {
+      if (!validateMediaImageFile(file)) return;
+
+      businessMediaState.venueGallery.pendingFiles.push({
+        file,
+        previewUrl: URL.createObjectURL(file),
+      });
+    });
+
+  if ((files || []).length > availableSlots) {
+    showToast(`En fazla ${MAX_VENUE_GALLERY_IMAGES} venue fotoğrafı`);
+  }
+
+  renderBusinessVenueGalleryPreview();
+}
+
+function queueBusinessProductGalleryFiles(files) {
+  const keptCount = businessMediaState.productGallery.photos.filter(
+    (photo) =>
+      !businessMediaState.productGallery.removedPhotoIds.includes(
+        String(photo.id)
+      )
+  ).length;
+  const availableSlots =
+    MAX_PRODUCT_GALLERY_IMAGES -
+    keptCount -
+    businessMediaState.productGallery.pendingFiles.length;
+
+  if (availableSlots <= 0) {
+    showToast(`En fazla ${MAX_PRODUCT_GALLERY_IMAGES} ürün fotoğrafı`);
+    return;
+  }
+
+  Array.from(files || [])
+    .slice(0, availableSlots)
+    .forEach((file) => {
+      if (!validateMediaImageFile(file)) return;
+
+      businessMediaState.productGallery.pendingFiles.push({
+        file,
+        previewUrl: URL.createObjectURL(file),
+      });
+    });
+
+  if ((files || []).length > availableSlots) {
+    showToast(`En fazla ${MAX_PRODUCT_GALLERY_IMAGES} ürün fotoğrafı`);
+  }
+
+  renderBusinessProductGalleryPreview();
+}
+
+async function deleteVenueGalleryPhotoRows(photoIds) {
+  if (!photoIds || photoIds.length === 0) return true;
+
+  try {
+    const { error } = await supabaseClient
+      .from("venue_photos")
+      .delete()
+      .in("id", photoIds);
+
+    return !error;
+  } catch (error) {
+    return false;
+  }
+}
+
+async function deleteProductGalleryPhotoRows(photoIds) {
+  if (!photoIds || photoIds.length === 0) return true;
+
+  try {
+    const { error } = await supabaseClient
+      .from("venue_product_images")
+      .delete()
+      .in("id", photoIds);
+
+    return !error;
+  } catch (error) {
+    return false;
+  }
+}
+
+async function syncVenuePrimaryImage(venueId, imageUrl) {
+  if (!venueId || !imageUrl) return;
+
+  try {
+    await supabaseClient
+      .from("venues")
+      .update({ image: imageUrl })
+      .eq("id", venueId);
+  } catch (error) {
+    // Keep venue save successful even if cover sync fails.
+  }
+}
+
+async function syncProductPrimaryImage(productId, imageUrl) {
+  if (!productId || !imageUrl) return;
+
+  try {
+    await supabaseClient
+      .from("venue_products")
+      .update({ image_url: imageUrl })
+      .eq("id", productId);
+  } catch (error) {
+    // Keep product save successful even if cover sync fails.
+  }
+}
+
+function setupBusinessVenueGalleryUpload() {
+  const fileInput = document.getElementById("businessVenueGalleryFiles");
+
+  if (!fileInput || fileInput.dataset.bound === "true") return;
+
+  fileInput.dataset.bound = "true";
+  fileInput.addEventListener("change", () => {
+    queueBusinessVenueGalleryFiles(fileInput.files);
+    fileInput.value = "";
+  });
+}
+
+function setupBusinessProductGalleryUpload() {
+  const fileInput = document.getElementById("businessProductGalleryFiles");
+
+  if (!fileInput || fileInput.dataset.bound === "true") return;
+
+  fileInput.dataset.bound = "true";
+  fileInput.addEventListener("change", () => {
+    queueBusinessProductGalleryFiles(fileInput.files);
+    fileInput.value = "";
+  });
+}
+
+function setupBusinessProductGalleryManager() {
+  const productSelect = document.getElementById("pgProductSelect");
+  const currentPhotos = document.getElementById("pgCurrentPhotos");
+  const fileInput = document.getElementById("pgFileInput");
+  const status = document.getElementById("pgStatus");
+  const manager = document.getElementById("productGalleryManager");
+
+  if (!manager || manager.dataset.bound === "true") return;
+
+  manager.dataset.bound = "true";
+
+  function setStatus(message, isError) {
+    if (!status) return;
+
+    status.textContent = message;
+    status.style.color = isError
+      ? "rgba(220,80,60,0.80)"
+      : "rgba(240,192,96,0.70)";
+  }
+
+  async function populateProductSelect() {
+    if (!productSelect) return;
+
+    const venueSelect = document.getElementById("businessStoreVenueSelect");
+    const venueId = venueSelect ? venueSelect.value : "";
+
+    productSelect.innerHTML =
+      '<option value="">— Ürün seç —</option>';
+
+    if (currentPhotos) currentPhotos.innerHTML = "";
+
+    if (!venueId) {
+      setStatus("Önce yukarıdan venue seçin.");
+      return;
+    }
+
+    setStatus("");
+
+    const { data, error } = await supabaseClient
+      .from("venue_products")
+      .select("id, name, deleted_at")
+      .eq("venue_id", venueId)
+      .order("sort_order", { ascending: true });
+
+    if (error || !data) return;
+
+    data
+      .filter((product) => !product.deleted_at)
+      .forEach((product) => {
+        const option = document.createElement("option");
+        option.value = product.id;
+        option.textContent = safeText(product.name);
+        productSelect.appendChild(option);
+      });
+  }
+
+  async function loadGallery(productId) {
+    if (!currentPhotos) return;
+
+    currentPhotos.innerHTML = "";
+
+    if (!productId) return;
+
+    const { data, error } = await supabaseClient
+      .from("venue_product_images")
+      .select("id, image_url, sort_order")
+      .eq("product_id", productId)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      setStatus("Fotoğraflar yüklenemedi.", true);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      setStatus("Henüz ek fotoğraf yok.");
+      return;
+    }
+
+    setStatus(`${data.length}/${MAX_PRODUCT_GALLERY_IMAGES} fotoğraf`);
+
+    data.forEach((image, index) => {
+      const wrap = createMediaPreviewThumb({
+        imageUrl: image.image_url,
+        label: "Product gallery photo",
+        onDelete: async () => {
+          const { error: deleteError } = await supabaseClient
+            .from("venue_product_images")
+            .delete()
+            .eq("id", image.id);
+
+          if (deleteError) {
+            setStatus("Silinemedi.", true);
+            return;
+          }
+
+          if (index === 0) {
+            const nextImage = data[1];
+            await syncProductPrimaryImage(
+              productId,
+              nextImage ? nextImage.image_url : ""
+            );
+          }
+
+          setStatus("Silindi.");
+          await loadGallery(productId);
+        },
+      });
+
+      currentPhotos.appendChild(wrap);
+    });
+  }
+
+  async function uploadFiles(files, productId) {
+    if (!files || !files.length || !productId) return;
+
+    const { data: existing, error: countError } = await supabaseClient
+      .from("venue_product_images")
+      .select("id")
+      .eq("product_id", productId);
+
+    if (countError) {
+      setStatus("Fotoğraflar kontrol edilemedi.", true);
+      return;
+    }
+
+    const availableSlots =
+      MAX_PRODUCT_GALLERY_IMAGES - (existing || []).length;
+
+    if (availableSlots <= 0) {
+      setStatus(
+        `En fazla ${MAX_PRODUCT_GALLERY_IMAGES} ürün fotoğrafı`,
+        true
+      );
+      return;
+    }
+
+    setStatus("Yükleniyor…");
+
+    const session = await getSafeSession();
+
+    if (!session) {
+      setStatus("Oturum açık değil.", true);
+      return;
+    }
+
+    let success = 0;
+    const filesToUpload = Array.from(files).slice(0, availableSlots);
+
+    for (let index = 0; index < filesToUpload.length; index += 1) {
+      const file = filesToUpload[index];
+
+      if (!validateMediaImageFile(file)) continue;
+
+      const uploadedUrl = await uploadMediaImage(
+        file,
+        "products",
+        { productId }
+      );
+
+      if (!uploadedUrl) continue;
+
+      const sortOrder = (existing || []).length + success;
+      const { error: insertError } = await supabaseClient
+        .from("venue_product_images")
+        .insert([
+          {
+            product_id: productId,
+            image_url: uploadedUrl,
+            sort_order: sortOrder,
+          },
+        ]);
+
+      if (insertError) {
+        setStatus("Kayıt hatası.", true);
+        continue;
+      }
+
+      if (sortOrder === 0) {
+        await syncProductPrimaryImage(productId, uploadedUrl);
+      }
+
+      success += 1;
+    }
+
+    if (fileInput) fileInput.value = "";
+
+    setStatus(`${success} fotoğraf eklendi.`);
+    await loadGallery(productId);
+  }
+
+  const venueSelect = document.getElementById("businessStoreVenueSelect");
+
+  if (venueSelect) {
+    venueSelect.addEventListener("change", populateProductSelect);
+  }
+
+  window.addEventListener(
+    "business-store-products-refreshed",
+    populateProductSelect
+  );
+
+  if (productSelect) {
+    productSelect.addEventListener("change", () => {
+      loadGallery(productSelect.value);
+    });
+  }
+
+  if (fileInput) {
+    fileInput.addEventListener("change", () => {
+      uploadFiles(fileInput.files, productSelect.value);
+    });
+  }
+
+  populateProductSelect();
 }
 
 function clearAdminVenueForm() {
@@ -5690,6 +8314,7 @@ function clearBusinessVenueForm() {
   setAdminValue("businessVenueLatitude", "");
   setAdminValue("businessVenueLongitude", "");
   setAdminValue("businessVenueDescription", "");
+  resetBusinessVenueGalleryState();
 }
 
 function clearBusinessEventForm() {
@@ -5774,6 +8399,7 @@ function renderBusinessVenues(venues) {
             "businessVenueDescription",
             venue.description
           );
+          loadBusinessVenueGalleryState(venue.id);
           window.scrollTo({ top: 0, behavior: "smooth" });
         },
         () => deleteBusinessVenue(venue.id)
@@ -6200,7 +8826,313 @@ function getSelectedBusinessStoreVenueId() {
   return venueId;
 }
 
+const BUSINESS_PRODUCT_ACTIVE_FIELDS = [
+  "is_active",
+  "active",
+  "status",
+];
+const BUSINESS_PRODUCT_STOCK_FIELDS = [
+  "stock_quantity",
+  "stock",
+  "inventory",
+  "quantity",
+];
+const BUSINESS_PRODUCT_GALLERY_FIELDS = [
+  "product_images",
+  "images",
+  "gallery",
+  "gallery_images",
+  "image_urls",
+];
+
+let businessStoreProductState = {
+  categories: [],
+  products: [],
+};
+
+function hasBusinessProductField(product, field) {
+  return Boolean(
+    product &&
+      Object.prototype.hasOwnProperty.call(product, field)
+  );
+}
+
+function getBusinessProductActiveField(product) {
+  return BUSINESS_PRODUCT_ACTIVE_FIELDS.find((field) =>
+    hasBusinessProductField(product, field)
+  );
+}
+
+function getBusinessProductStockField(product) {
+  return BUSINESS_PRODUCT_STOCK_FIELDS.find((field) =>
+    hasBusinessProductField(product, field)
+  );
+}
+
+function getBusinessProductGalleryField(product) {
+  return BUSINESS_PRODUCT_GALLERY_FIELDS.find((field) =>
+    hasBusinessProductField(product, field)
+  );
+}
+
+function getBusinessProductIsActive(product) {
+  const field = getBusinessProductActiveField(product);
+
+  if (!field) return true;
+
+  if (field === "status") {
+    const status = safeText(product.status).toLowerCase().trim();
+    return !["inactive", "hidden", "disabled", "draft"].includes(
+      status
+    );
+  }
+
+  return product[field] !== false;
+}
+
+function getBusinessProductActivePatch(field, isActive) {
+  if (!field) return null;
+
+  return {
+    [field]: field === "status"
+      ? isActive
+        ? "active"
+        : "inactive"
+      : Boolean(isActive),
+  };
+}
+
+function getBusinessProductStockValue(product) {
+  const field = getBusinessProductStockField(product);
+
+  if (!field) return "";
+
+  const value = product[field];
+
+  return value === null || value === undefined ? "" : value;
+}
+
+function getBusinessProductById(productId) {
+  return businessStoreProductState.products.find(
+    (product) => String(product.id) === String(productId)
+  );
+}
+
+function getBusinessProductDefaultActiveField() {
+  const product = businessStoreProductState.products.find((item) =>
+    getBusinessProductActiveField(item)
+  );
+
+  return getBusinessProductActiveField(product) || "is_active";
+}
+
+function getBusinessProductDefaultStockField() {
+  const product = businessStoreProductState.products.find((item) =>
+    getBusinessProductStockField(item)
+  );
+
+  return getBusinessProductStockField(product) || "stock_quantity";
+}
+
+function getProductCategoryName(product, categories) {
+  const category = (categories || []).find(
+    (item) => String(item.id) === String(product.category_id || "")
+  );
+
+  return category ? safeText(category.name) : "";
+}
+
+function isMissingProductFieldError(error, field) {
+  const text = [
+    error && error.message,
+    error && error.details,
+    error && error.hint,
+    error && error.code,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return Boolean(
+    field &&
+      text.includes(String(field).toLowerCase()) &&
+      (text.includes("column") ||
+        text.includes("schema cache") ||
+        text.includes("not found"))
+  );
+}
+
+function getBusinessProductGalleryUrls(product) {
+  const urls = [];
+
+  function addUrl(value) {
+    const url = safeText(value).trim();
+
+    if (url && !urls.includes(url)) {
+      urls.push(url);
+    }
+  }
+
+  function collect(value) {
+    if (!value) return;
+
+    if (Array.isArray(value)) {
+      value.forEach(collect);
+      return;
+    }
+
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+
+      if (!trimmed) return;
+
+      if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+        try {
+          collect(JSON.parse(trimmed));
+          return;
+        } catch (error) {
+          // Keep treating it as a plain URL/string list.
+        }
+      }
+
+      if (!trimmed.startsWith("data:") && /[\n,]/.test(trimmed)) {
+        trimmed.split(/[\n,]/).forEach(addUrl);
+        return;
+      }
+
+      addUrl(trimmed);
+      return;
+    }
+
+    if (typeof value === "object") {
+      [
+        "image_url",
+        "image",
+        "url",
+        "src",
+        "publicUrl",
+        "path",
+      ].forEach((key) => collect(value[key]));
+    }
+  }
+
+  BUSINESS_PRODUCT_GALLERY_FIELDS.forEach((field) => {
+    collect(product && product[field]);
+  });
+
+  collect(product && product.extra_images);
+
+  return urls;
+}
+
+function getBusinessProductGalleryInputUrls() {
+  return getAdminValue("businessProductGalleryUrls")
+    .split(/\r?\n|,/)
+    .map((url) => safeText(url).trim())
+    .filter(Boolean);
+}
+
+async function uploadBusinessProductGalleryFiles(productId) {
+  const files = businessMediaState.productGallery.pendingFiles.map(
+    (pending) => pending.file
+  );
+
+  if (!files.length) return [];
+
+  const urls = [];
+
+  for (const file of files) {
+    const uploadedUrl = await uploadMediaImage(file, "products", {
+      productId,
+    });
+
+    if (!uploadedUrl) {
+      return [];
+    }
+
+    urls.push(uploadedUrl);
+  }
+
+  return urls;
+}
+
+async function getProductGalleryPhotoCount(productId) {
+  if (!productId) return 0;
+
+  try {
+    const { count, error } = await supabaseClient
+      .from("venue_product_images")
+      .select("id", { count: "exact", head: true })
+      .eq("product_id", productId);
+
+    return error ? 0 : count || 0;
+  } catch (error) {
+    return 0;
+  }
+}
+
+async function persistBusinessProductGalleryChanges(
+  productId,
+  product
+) {
+  if (!productId) return { savedUrls: [], primaryImage: "" };
+
+  const removedIds = [
+    ...new Set(businessMediaState.productGallery.removedPhotoIds),
+  ];
+  const keptPhotos = businessMediaState.productGallery.photos.filter(
+    (photo) => !removedIds.includes(String(photo.id))
+  );
+  const existingCount = await getProductGalleryPhotoCount(productId);
+  const pendingCount =
+    businessMediaState.productGallery.pendingFiles.length;
+  const projectedCount =
+    existingCount - removedIds.length + pendingCount;
+
+  if (projectedCount > MAX_PRODUCT_GALLERY_IMAGES) {
+    showToast(`En fazla ${MAX_PRODUCT_GALLERY_IMAGES} ürün fotoğrafı`);
+    return { savedUrls: [], primaryImage: "" };
+  }
+
+  await deleteProductGalleryPhotoRows(removedIds);
+
+  const uploadedUrls = await uploadBusinessProductGalleryFiles(
+    productId
+  );
+  const urlRows = getBusinessProductGalleryInputUrls();
+  const allNewUrls = getUniqueBusinessProductImageUrls([
+    ...urlRows,
+    ...uploadedUrls,
+  ]);
+  const gallerySaved = await saveBusinessProductGalleryImages(
+    productId,
+    allNewUrls,
+    product
+  );
+
+  if (!gallerySaved && allNewUrls.length > 0) {
+    showToast("Ek ürün fotoğrafları kaydedilemedi");
+  }
+
+  const primaryImage =
+    keptPhotos[0] && keptPhotos[0].image_url
+      ? keptPhotos[0].image_url
+      : allNewUrls[0] ||
+        safeText(product && product.image_url) ||
+        "";
+
+  if (primaryImage) {
+    await syncProductPrimaryImage(productId, primaryImage);
+  }
+
+  resetBusinessProductGalleryState();
+  await loadBusinessProductGalleryState(productId);
+
+  return { savedUrls: allNewUrls, primaryImage };
+}
+
 function resetBusinessStoreForms() {
+  setAdminValue("businessProductId", "");
   setAdminValue("businessProductCategoryName", "");
   setAdminValue("businessProductCategorySort", "0");
   setAdminValue("businessProductCategory", "");
@@ -6210,6 +9142,9 @@ function resetBusinessStoreForms() {
   setAdminValue("businessProductCurrency", "TRY");
   setAdminValue("businessProductImage", "");
   clearAdminFile("businessProductImageFile");
+  setAdminValue("businessProductGalleryUrls", "");
+  clearAdminFile("businessProductGalleryFiles");
+  resetBusinessProductGalleryState();
   setAdminValue("businessProductStock", "");
   setAdminValue("businessProductSort", "0");
 
@@ -6217,9 +9152,18 @@ function resetBusinessStoreForms() {
     document.getElementById("businessProductCategoryActive");
   const productActive =
     document.getElementById("businessProductActive");
+  const productForm =
+    document.getElementById("businessProductForm");
+  const productSaveButton =
+    document.getElementById("businessProductSaveBtn");
+  const productCancelButton =
+    document.getElementById("businessProductCancelEditBtn");
 
   if (categoryActive) categoryActive.checked = true;
   if (productActive) productActive.checked = true;
+  if (productForm) productForm.classList.remove("is-editing");
+  if (productSaveButton) productSaveButton.textContent = "Save Product";
+  if (productCancelButton) productCancelButton.hidden = true;
 }
 
 async function loadVenueProductsForBusiness(venueId) {
@@ -6251,13 +9195,63 @@ async function loadVenueProductsForBusiness(venueId) {
       return { categories: [], products: [] };
     }
 
+    const products = await hydrateBusinessProductImages(
+      (productsResult.data || []).filter(
+        (product) => !product.deleted_at
+      )
+    );
+
     return {
       categories: categoriesResult.data || [],
-      products: productsResult.data || [],
+      products,
     };
   } catch (error) {
     showSafeError(error, "Store could not be loaded.");
     return { categories: [], products: [] };
+  }
+}
+
+async function hydrateBusinessProductImages(products) {
+  if (!products || products.length === 0) return [];
+
+  const productIds = products
+    .map((product) => product.id)
+    .filter(Boolean);
+
+  if (productIds.length === 0) return products;
+
+  try {
+    const { data, error } = await supabaseClient
+      .from("venue_product_images")
+      .select("product_id, image_url, sort_order, created_at")
+      .in("product_id", productIds)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      return products;
+    }
+
+    const imagesByProductId = {};
+
+    (data || []).forEach((image) => {
+      const productId = String(image.product_id || "");
+
+      if (!productId || !image.image_url) return;
+
+      if (!imagesByProductId[productId]) {
+        imagesByProductId[productId] = [];
+      }
+
+      imagesByProductId[productId].push(image.image_url);
+    });
+
+    return products.map((product) => ({
+      ...product,
+      extra_images: imagesByProductId[String(product.id)] || [],
+    }));
+  } catch (error) {
+    return products;
   }
 }
 
@@ -6289,6 +9283,230 @@ function populateBusinessProductCategorySelect(categories) {
   ) {
     select.value = currentValue;
   }
+}
+
+function createBusinessProductImagePreview(product) {
+  const imageWrap = document.createElement("div");
+  imageWrap.className = "business-product-thumb";
+
+  if (product && product.image_url) {
+    const image = document.createElement("img");
+    image.src = getImage(product.image_url);
+    image.alt = safeText(product.name);
+    image.loading = "lazy";
+    image.addEventListener(
+      "error",
+      () => {
+        imageWrap.classList.add("business-product-thumb--empty");
+        image.remove();
+      },
+      { once: true }
+    );
+    imageWrap.appendChild(image);
+  } else {
+    imageWrap.classList.add("business-product-thumb--empty");
+  }
+
+  return imageWrap;
+}
+
+function renderBusinessProductGalleryCount(product) {
+  const count = getBusinessProductGalleryUrls(product).length;
+
+  return count > 0 ? `${count} extra image${count === 1 ? "" : "s"}` : "";
+}
+
+function createBusinessProductManagementRow(product, categories) {
+  const row = document.createElement("article");
+  row.className = "business-menu-row business-product-row";
+  row.dataset.productId = product.id;
+
+  const activeField = getBusinessProductActiveField(product);
+  const stockField = getBusinessProductStockField(product);
+  const isActive = getBusinessProductIsActive(product);
+  const stockValue = getBusinessProductStockValue(product);
+  const stockNumber = Number(stockValue);
+  const isOutOfStock =
+    stockField &&
+    stockValue !== "" &&
+    Number.isFinite(stockNumber) &&
+    stockNumber <= 0;
+  const price = formatMenuPrice(product);
+  const categoryName = getProductCategoryName(product, categories);
+  const galleryCount = renderBusinessProductGalleryCount(product);
+
+  row.appendChild(createBusinessProductImagePreview(product));
+
+  const content = document.createElement("div");
+  content.className = "business-product-row-content";
+
+  const heading = document.createElement("h3");
+  heading.textContent = safeText(product.name);
+  content.appendChild(heading);
+
+  const meta = document.createElement("p");
+  meta.textContent = [
+    price,
+    categoryName,
+    stockField && stockValue !== "" ? `${stockValue} stock` : "",
+    activeField ? (isActive ? "Active" : "Hidden") : "",
+    galleryCount,
+    `Sort ${product.sort_order || 0}`,
+  ]
+    .filter(Boolean)
+    .join(" / ");
+  content.appendChild(meta);
+
+  if (isOutOfStock) {
+    const stockBadge = document.createElement("span");
+    stockBadge.className =
+      "business-product-stock-badge business-product-stock-badge--out";
+    stockBadge.textContent = "Stokta yok";
+    content.appendChild(stockBadge);
+  }
+
+  if (product.description) {
+    const description = document.createElement("p");
+    description.className = "business-product-row-desc";
+    description.textContent = safeText(product.description);
+    content.appendChild(description);
+  }
+
+  row.appendChild(content);
+
+  const controls = document.createElement("div");
+  controls.className = "business-product-controls";
+
+  const editButton = document.createElement("button");
+  editButton.type = "button";
+  editButton.className = "secondary-btn business-product-action-btn";
+  editButton.textContent = "Edit";
+  editButton.addEventListener("click", () => {
+    editBusinessVenueProduct(product.id);
+  });
+  controls.appendChild(editButton);
+
+  if (activeField) {
+    const toggleButton = document.createElement("button");
+    toggleButton.type = "button";
+    toggleButton.className =
+      "secondary-btn business-product-action-btn";
+    toggleButton.textContent = isActive ? "Make Passive" : "Make Active";
+    toggleButton.addEventListener("click", () => {
+      toggleBusinessVenueProductActive(product.id);
+    });
+    controls.appendChild(toggleButton);
+  }
+
+  if (stockField) {
+    const stockControls = document.createElement("div");
+    stockControls.className = "business-product-stock-controls";
+
+    const decreaseButton = document.createElement("button");
+    decreaseButton.type = "button";
+    decreaseButton.className = "business-product-step-btn";
+    decreaseButton.textContent = "-";
+
+    const stockInput = document.createElement("input");
+    stockInput.type = "number";
+    stockInput.className = "business-product-stock-input";
+    stockInput.value = stockValue === "" ? "" : String(stockValue);
+    stockInput.setAttribute("aria-label", "Stock quantity");
+
+    const increaseButton = document.createElement("button");
+    increaseButton.type = "button";
+    increaseButton.className = "business-product-step-btn";
+    increaseButton.textContent = "+";
+
+    const saveStockButton = document.createElement("button");
+    saveStockButton.type = "button";
+    saveStockButton.className =
+      "secondary-btn business-product-action-btn";
+    saveStockButton.textContent = "Save Stock";
+
+    decreaseButton.addEventListener("click", () => {
+      const nextValue = Math.max(
+        0,
+        (Number(stockInput.value) || 0) - 1
+      );
+      stockInput.value = String(nextValue);
+    });
+
+    increaseButton.addEventListener("click", () => {
+      stockInput.value = String((Number(stockInput.value) || 0) + 1);
+    });
+
+    saveStockButton.addEventListener("click", () => {
+      updateBusinessVenueProductStock(product.id, stockInput.value);
+    });
+
+    stockControls.appendChild(decreaseButton);
+    stockControls.appendChild(stockInput);
+    stockControls.appendChild(increaseButton);
+    stockControls.appendChild(saveStockButton);
+    controls.appendChild(stockControls);
+  }
+
+  const deleteButton = document.createElement("button");
+  deleteButton.type = "button";
+  deleteButton.className = "admin-delete-btn";
+  deleteButton.textContent = "Delete";
+  deleteButton.addEventListener("click", () => {
+    deleteVenueProduct(product.id);
+  });
+  controls.appendChild(deleteButton);
+
+  row.appendChild(controls);
+  return row;
+}
+
+function editBusinessVenueProduct(productId) {
+  const product = getBusinessProductById(productId);
+
+  if (!product) {
+    showToast("Product unavailable");
+    return;
+  }
+
+  setAdminValue("businessProductId", product.id);
+  setAdminValue("businessProductCategory", product.category_id || "");
+  setAdminValue("businessProductName", product.name || "");
+  setAdminValue("businessProductDescription", product.description || "");
+  setAdminValue(
+    "businessProductPrice",
+    product.price === null || product.price === undefined
+      ? ""
+      : product.price
+  );
+  setAdminValue("businessProductCurrency", product.currency || "TRY");
+  setAdminValue("businessProductImage", product.image_url || "");
+  clearAdminFile("businessProductImageFile");
+  setAdminValue(
+    "businessProductGalleryUrls",
+    getBusinessProductGalleryUrls(product).join("\n")
+  );
+  clearAdminFile("businessProductGalleryFiles");
+  loadBusinessProductGalleryState(product.id);
+  setAdminValue("businessProductStock", getBusinessProductStockValue(product));
+  setAdminValue("businessProductSort", product.sort_order || "0");
+
+  const activeInput =
+    document.getElementById("businessProductActive");
+  const form = document.getElementById("businessProductForm");
+  const saveButton = document.getElementById("businessProductSaveBtn");
+  const cancelButton =
+    document.getElementById("businessProductCancelEditBtn");
+
+  if (activeInput) activeInput.checked = getBusinessProductIsActive(product);
+  if (form) {
+    form.classList.add("is-editing");
+    form.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  if (saveButton) saveButton.textContent = "Update Product";
+  if (cancelButton) cancelButton.hidden = false;
+
+  const nameInput = document.getElementById("businessProductName");
+  if (nameInput) nameInput.focus();
 }
 
 function renderBusinessVenueProducts(productData) {
@@ -6338,21 +9556,10 @@ function renderBusinessVenueProducts(productData) {
   productsGroup.appendChild(productsTitle);
 
   (productData.products || []).forEach((product) => {
-    const price = formatMenuPrice(product);
-    const stock =
-      product.stock_quantity === null ||
-      product.stock_quantity === undefined ||
-      product.stock_quantity === ""
-        ? ""
-        : `${product.stock_quantity} stock`;
-    const availability = product.is_active ? "Active" : "Hidden";
     productsGroup.appendChild(
-      createBusinessMenuRow(
-        product.name,
-        [price, stock, availability, `Sort ${product.sort_order || 0}`]
-          .filter(Boolean)
-          .join(" · "),
-        () => deleteVenueProduct(product.id)
+      createBusinessProductManagementRow(
+        product,
+        productData.categories || []
       )
     );
   });
@@ -6378,6 +9585,12 @@ async function refreshBusinessVenueProducts() {
 
   renderBusinessVenueProducts(
     await loadVenueProductsForBusiness(venueId)
+  );
+
+  window.dispatchEvent(
+    new CustomEvent("business-store-products-refreshed", {
+      detail: { venueId },
+    })
   );
 }
 
@@ -6421,6 +9634,234 @@ async function createProductCategory(event) {
   await refreshBusinessVenueProducts();
 }
 
+function getBusinessProductPayload({
+  venueId,
+  product = null,
+  uploadedImage = "",
+}) {
+  const activeInput =
+    document.getElementById("businessProductActive");
+  const stockValue = getAdminValue("businessProductStock");
+  const categoryId = getAdminValue("businessProductCategory");
+  const activeField =
+    getBusinessProductActiveField(product) ||
+    getBusinessProductDefaultActiveField();
+  const stockField =
+    getBusinessProductStockField(product) ||
+    getBusinessProductDefaultStockField();
+  const payload = {
+    venue_id: venueId,
+    category_id: categoryId || null,
+    name: getAdminValue("businessProductName"),
+    description: getAdminValue("businessProductDescription"),
+    price: getAdminValue("businessProductPrice")
+      ? Number(getAdminValue("businessProductPrice"))
+      : null,
+    currency: getAdminValue("businessProductCurrency") || "TRY",
+    image_url: uploadedImage || getAdminValue("businessProductImage"),
+    sort_order: Number(getAdminValue("businessProductSort")) || 0,
+  };
+
+  const activePatch = getBusinessProductActivePatch(
+    activeField,
+    activeInput ? activeInput.checked : true
+  );
+
+  if (activePatch) {
+    Object.assign(payload, activePatch);
+  }
+
+  if (stockField) {
+    payload[stockField] = stockValue ? Number(stockValue) : null;
+  }
+
+  return payload;
+}
+
+function getMissingPayloadField(error, payload) {
+  return Object.keys(payload).find((field) =>
+    isMissingProductFieldError(error, field)
+  );
+}
+
+async function insertBusinessProductWithFallback(payload) {
+  const workingPayload = { ...payload };
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const result = await supabaseClient
+      .from("venue_products")
+      .insert([workingPayload])
+      .select("id")
+      .maybeSingle();
+
+    if (!result.error) return result;
+
+    const missingField = getMissingPayloadField(
+      result.error,
+      workingPayload
+    );
+
+    if (!missingField) return result;
+
+    delete workingPayload[missingField];
+  }
+
+  return {
+    data: null,
+    error: { message: "Product payload fields are unavailable." },
+  };
+}
+
+async function updateBusinessProductWithFallback(productId, payload) {
+  const workingPayload = { ...payload };
+
+  delete workingPayload.venue_id;
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const result = await supabaseClient
+      .from("venue_products")
+      .update(workingPayload)
+      .eq("id", productId);
+
+    if (!result.error) return result;
+
+    const missingField = getMissingPayloadField(
+      result.error,
+      workingPayload
+    );
+
+    if (!missingField) return result;
+
+    delete workingPayload[missingField];
+  }
+
+  return {
+    error: { message: "Product payload fields are unavailable." },
+  };
+}
+
+function getUniqueBusinessProductImageUrls(urls) {
+  const uniqueUrls = [];
+
+  (urls || []).forEach((url) => {
+    const value = safeText(url).trim();
+
+    if (value && !uniqueUrls.includes(value)) {
+      uniqueUrls.push(value);
+    }
+  });
+
+  return uniqueUrls;
+}
+
+async function appendBusinessProductImageRows(
+  productId,
+  imageUrls,
+  existingUrls = []
+) {
+  try {
+    const currentCount = await getProductGalleryPhotoCount(productId);
+    const urlsToInsert = imageUrls.filter(
+      (imageUrl) => !existingUrls.includes(imageUrl)
+    );
+
+    if (!urlsToInsert.length) return true;
+
+    const allowedCount = Math.max(
+      0,
+      MAX_PRODUCT_GALLERY_IMAGES - currentCount
+    );
+    const limitedUrls = urlsToInsert.slice(0, allowedCount);
+
+    if (limitedUrls.length === 0) {
+      showToast(`En fazla ${MAX_PRODUCT_GALLERY_IMAGES} ürün fotoğrafı`);
+      return false;
+    }
+
+    const rows = limitedUrls.map((imageUrl, index) => ({
+      product_id: productId,
+      image_url: imageUrl,
+      sort_order: currentCount + index,
+    }));
+
+    const insertResult = await supabaseClient
+      .from("venue_product_images")
+      .insert(rows);
+
+    return !insertResult.error;
+  } catch (error) {
+    return false;
+  }
+}
+
+async function saveBusinessProductInlineGallery(
+  productId,
+  imageUrls,
+  product
+) {
+  const preferredField = getBusinessProductGalleryField(product);
+  const fields = preferredField
+    ? [
+        preferredField,
+        ...BUSINESS_PRODUCT_GALLERY_FIELDS.filter(
+          (field) => field !== preferredField
+        ),
+      ]
+    : BUSINESS_PRODUCT_GALLERY_FIELDS;
+
+  for (const field of fields) {
+    const arrayResult = await supabaseClient
+      .from("venue_products")
+      .update({ [field]: imageUrls })
+      .eq("id", productId);
+
+    if (!arrayResult.error) return true;
+
+    if (!isMissingProductFieldError(arrayResult.error, field)) {
+      const textResult = await supabaseClient
+        .from("venue_products")
+        .update({ [field]: imageUrls.join("\n") })
+        .eq("id", productId);
+
+      if (!textResult.error) return true;
+    }
+  }
+
+  return false;
+}
+
+async function saveBusinessProductGalleryImages(
+  productId,
+  imageUrls,
+  product
+) {
+  if (!productId) return true;
+
+  const uniqueUrls = getUniqueBusinessProductImageUrls(imageUrls);
+  const existingUrls = getBusinessProductGalleryUrls(product);
+
+  if (
+    uniqueUrls.length === 0 &&
+    existingUrls.length === 0
+  ) {
+    return true;
+  }
+
+  const savedToImageTable = await appendBusinessProductImageRows(
+    productId,
+    uniqueUrls,
+    existingUrls
+  );
+
+  if (savedToImageTable) return true;
+
+  return saveBusinessProductInlineGallery(
+    productId,
+    uniqueUrls,
+    product
+  );
+}
+
 async function createVenueProduct(event) {
   event.preventDefault();
 
@@ -6438,46 +9879,106 @@ async function createVenueProduct(event) {
     return;
   }
 
-  const priceValue = getAdminValue("businessProductPrice");
-  const stockValue = getAdminValue("businessProductStock");
-  const categoryId = getAdminValue("businessProductCategory");
-  const activeInput =
-    document.getElementById("businessProductActive");
+  const productId = getAdminValue("businessProductId");
+  const existingProduct = productId
+    ? getBusinessProductById(productId)
+    : null;
   const imageFile = getAdminFile("businessProductImageFile");
-  const uploadedImage = imageFile
-    ? await uploadAdminImage(imageFile, "venues")
-    : "";
+  const manualImage = getAdminValue("businessProductImage");
+  const galleryUrlInput = getBusinessProductGalleryInputUrls();
+  const hasGalleryChanges =
+    businessMediaState.productGallery.pendingFiles.length > 0 ||
+    businessMediaState.productGallery.removedPhotoIds.length > 0 ||
+    galleryUrlInput.length > 0;
 
-  if (imageFile && !uploadedImage) return;
+  const payload = getBusinessProductPayload({
+    venueId,
+    product: existingProduct,
+    uploadedImage: manualImage,
+  });
 
-  const { error } = await supabaseClient
-    .from("venue_products")
-    .insert([{
-      venue_id: venueId,
-      category_id: categoryId || null,
-      name,
-      description: getAdminValue("businessProductDescription"),
-      price: priceValue ? Number(priceValue) : null,
-      currency: getAdminValue("businessProductCurrency") || "TRY",
-      image_url:
-        uploadedImage || getAdminValue("businessProductImage"),
-      stock_quantity: stockValue ? Number(stockValue) : null,
-      is_active: activeInput ? activeInput.checked : true,
-      sort_order: Number(getAdminValue("businessProductSort")) || 0,
-    }]);
+  if (productId) {
+    const updateResult = await updateBusinessProductWithFallback(
+      productId,
+      payload
+    );
 
-  if (error) {
-    showSafeError(error, "Product could not be saved.");
+    if (updateResult.error) {
+      showToast("Product could not be updated.");
+      return;
+    }
+
+    if (imageFile) {
+      const uploadedImage = await uploadMediaImage(
+        imageFile,
+        "products",
+        { productId }
+      );
+
+      if (!uploadedImage) return;
+
+      payload.image_url = uploadedImage;
+      await syncProductPrimaryImage(productId, uploadedImage);
+    }
+
+    if (hasGalleryChanges) {
+      const galleryResult = await persistBusinessProductGalleryChanges(
+        productId,
+        existingProduct
+      );
+
+      if (!payload.image_url && galleryResult.primaryImage) {
+        await syncProductPrimaryImage(
+          productId,
+          galleryResult.primaryImage
+        );
+      }
+    }
+
+    showToast("Product updated");
+    resetBusinessStoreForms();
+    await refreshBusinessVenueProducts();
     return;
   }
 
-  setAdminValue("businessProductName", "");
-  setAdminValue("businessProductDescription", "");
-  setAdminValue("businessProductPrice", "");
-  setAdminValue("businessProductImage", "");
-  clearAdminFile("businessProductImageFile");
-  setAdminValue("businessProductStock", "");
-  setAdminValue("businessProductSort", "0");
+  const { data, error } = await insertBusinessProductWithFallback(
+    payload
+  );
+
+  if (error) {
+    showToast("Product could not be saved.");
+    return;
+  }
+
+  const savedProductId = data && data.id;
+
+  if (imageFile && savedProductId) {
+    const uploadedImage = await uploadMediaImage(
+      imageFile,
+      "products",
+      { productId: savedProductId }
+    );
+
+    if (!uploadedImage) return;
+
+    await syncProductPrimaryImage(savedProductId, uploadedImage);
+  }
+
+  if (hasGalleryChanges && savedProductId) {
+    const galleryResult = await persistBusinessProductGalleryChanges(
+      savedProductId,
+      data
+    );
+
+    if (!imageFile && galleryResult.primaryImage) {
+      await syncProductPrimaryImage(
+        savedProductId,
+        galleryResult.primaryImage
+      );
+    }
+  }
+
+  resetBusinessStoreForms();
   showToast("Product saved");
   await refreshBusinessVenueProducts();
 }
@@ -6499,8 +10000,84 @@ async function deleteProductCategory(categoryId) {
   await refreshBusinessVenueProducts();
 }
 
+async function toggleBusinessVenueProductActive(productId) {
+  const product = getBusinessProductById(productId);
+  const activeField = getBusinessProductActiveField(product);
+
+  if (!product || !activeField) {
+    showToast("Active/passive field is not available.");
+    return;
+  }
+
+  const patch = getBusinessProductActivePatch(
+    activeField,
+    !getBusinessProductIsActive(product)
+  );
+
+  const { error } = await supabaseClient
+    .from("venue_products")
+    .update(patch)
+    .eq("id", productId);
+
+  if (error) {
+    showToast("Product status could not be updated.");
+    return;
+  }
+
+  showToast("Product status updated");
+  await refreshBusinessVenueProducts();
+}
+
+async function updateBusinessVenueProductStock(productId, value) {
+  const product = getBusinessProductById(productId);
+  const stockField = getBusinessProductStockField(product);
+
+  if (!product || !stockField) {
+    showToast("Stock field is not available.");
+    return;
+  }
+
+  const nextValue =
+    value === "" || value === null || value === undefined
+      ? null
+      : Number(value);
+
+  if (nextValue !== null && Number.isNaN(nextValue)) {
+    showToast("Enter a valid stock amount.");
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("venue_products")
+    .update({ [stockField]: nextValue })
+    .eq("id", productId);
+
+  if (error) {
+    showToast("Stock could not be updated.");
+    return;
+  }
+
+  showToast("Stock updated");
+  await refreshBusinessVenueProducts();
+}
+
 async function deleteVenueProduct(productId) {
   if (!productId || !confirm("Delete this product?")) return;
+
+  const product = getBusinessProductById(productId);
+
+  if (hasBusinessProductField(product, "deleted_at")) {
+    const softDeleteResult = await supabaseClient
+      .from("venue_products")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", productId);
+
+    if (!softDeleteResult.error) {
+      showToast("Product deleted");
+      await refreshBusinessVenueProducts();
+      return;
+    }
+  }
 
   const { error } = await supabaseClient
     .from("venue_products")
@@ -6508,7 +10085,7 @@ async function deleteVenueProduct(productId) {
     .eq("id", productId);
 
   if (error) {
-    showSafeError(error, "Product could not be deleted.");
+    showToast("Product could not be deleted.");
     return;
   }
 
@@ -7357,6 +10934,216 @@ async function loadBusinessReservations() {
   return data || [];
 }
 
+function mergeStoreOrderResults(results) {
+  const ordersById = new Map();
+
+  (results || []).forEach((result) => {
+    (result.data || []).forEach((order) => {
+      if (order && order.id) {
+        ordersById.set(String(order.id), order);
+      }
+    });
+  });
+
+  return [...ordersById.values()].sort((a, b) =>
+    String(b.created_at || "").localeCompare(String(a.created_at || ""))
+  );
+}
+
+async function loadBusinessStoreOrders() {
+  const list = document.getElementById("businessStoreOrdersList");
+
+  if (!list) return [];
+
+  const ownerId =
+    businessDashboardState.session &&
+    businessDashboardState.session.user &&
+    businessDashboardState.session.user.id;
+  const venueIds = getBusinessDashboardVenueIds();
+  const requests = [];
+
+  if (ownerId) {
+    requests.push(
+      supabaseClient
+        .from("store_orders")
+        .select("*, store_order_items(*)")
+        .eq("business_owner_id", ownerId)
+        .order("created_at", { ascending: false })
+    );
+  }
+
+  if (venueIds.length > 0) {
+    requests.push(
+      supabaseClient
+        .from("store_orders")
+        .select("*, store_order_items(*)")
+        .in("venue_id", venueIds)
+        .order("created_at", { ascending: false })
+    );
+  }
+
+  if (requests.length === 0) return [];
+
+  try {
+    const results = await Promise.all(requests);
+
+    if (results.some((result) => result.error)) {
+      renderStoreOrdersUnavailable(list);
+      return null;
+    }
+
+    return mergeStoreOrderResults(results);
+  } catch (error) {
+    renderStoreOrdersUnavailable(list);
+    return null;
+  }
+}
+
+function getStoreOrderVenueLabel(order) {
+  if (!order || !order.venue_id) return "Store";
+
+  return safeText(getBusinessDashboardVenueName(order.venue_id)) ||
+    `Venue #${order.venue_id}`;
+}
+
+function getStoreOrderCustomerLabel(order) {
+  const userId = safeText(order && order.user_id);
+
+  return userId ? `Müşteri #${userId.slice(0, 8)}` : "Müşteri";
+}
+
+function createBusinessStoreOrderStatusSelect(order) {
+  const select = document.createElement("select");
+  select.className = "store-order-status-select";
+  select.setAttribute("aria-label", "Sipariş durumu");
+
+  STORE_ORDER_STATUSES.forEach((status) => {
+    const option = document.createElement("option");
+    option.value = status;
+    option.textContent = getStoreOrderStatusLabel(status);
+    select.appendChild(option);
+  });
+
+  select.value = getStoreOrderStatusValue(order.status);
+  select.addEventListener("change", () => {
+    updateBusinessStoreOrderStatus(order.id, select.value);
+  });
+
+  return select;
+}
+
+function createBusinessStoreOrderCard(order) {
+  const card = document.createElement("article");
+  card.className = "store-order-card business-store-order-card";
+
+  const header = document.createElement("div");
+  header.className = "store-order-card-header";
+
+  const titleWrap = document.createElement("div");
+  const title = document.createElement("h3");
+  title.textContent = getStoreOrderTitle(order);
+  titleWrap.appendChild(title);
+
+  const meta = document.createElement("span");
+  meta.textContent = [
+    getStoreOrderVenueLabel(order),
+    formatNotificationDate(order.created_at),
+  ].filter(Boolean).join(" · ");
+  titleWrap.appendChild(meta);
+
+  header.appendChild(titleWrap);
+  header.appendChild(createStoreOrderStatusBadge(order.status));
+  card.appendChild(header);
+
+  card.appendChild(createStoreOrderItemsList(getStoreOrderItems(order)));
+
+  const footer = document.createElement("div");
+  footer.className = "store-order-meta";
+
+  const total = document.createElement("strong");
+  total.textContent = formatStoreOrderAmount(order.total_amount);
+  footer.appendChild(total);
+
+  const customer = document.createElement("span");
+  customer.textContent = getStoreOrderCustomerLabel(order);
+  footer.appendChild(customer);
+
+  const profileLink = createUserProfileLink(order.user_id, "Müşteri profili");
+  if (profileLink) {
+    footer.appendChild(profileLink);
+  }
+
+  if (order.customer_note) {
+    const note = document.createElement("span");
+    note.textContent = safeText(order.customer_note);
+    footer.appendChild(note);
+  }
+
+  footer.appendChild(createBusinessStoreOrderStatusSelect(order));
+  card.appendChild(footer);
+
+  return card;
+}
+
+function renderBusinessStoreOrders(orders) {
+  const list = document.getElementById("businessStoreOrdersList");
+
+  if (!list) return;
+
+  list.innerHTML = "";
+
+  if (!orders || orders.length === 0) {
+    renderEmptyState(
+      list,
+      "Henüz store siparişi yok.",
+      "Yeni siparişler burada görünecek."
+    );
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+
+  orders.forEach((order) => {
+    fragment.appendChild(createBusinessStoreOrderCard(order));
+  });
+
+  list.appendChild(fragment);
+}
+
+async function updateBusinessStoreOrderStatus(orderId, status) {
+  const nextStatus = getStoreOrderStatusValue(status);
+  const currentOrder =
+    getBusinessStoreOrderById(orderId) || { id: orderId };
+  const previousStatus = getStoreOrderStatusValue(currentOrder.status);
+
+  if (!orderId || !STORE_ORDER_STATUSES.includes(nextStatus)) {
+    showToast("Sipariş durumu güncellenemedi");
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("store_orders")
+    .update({ status: nextStatus })
+    .eq("id", orderId);
+
+  if (error) {
+    showToast("Sipariş durumu güncellenemedi");
+    return;
+  }
+
+  showToast("Sipariş durumu güncellendi");
+  if (nextStatus !== previousStatus) {
+    await notifyStoreOrderOwnerStatusChange(currentOrder, nextStatus);
+  }
+
+  const orders = await loadBusinessStoreOrders();
+
+  if (Array.isArray(orders)) {
+    businessDashboardState.storeOrders = orders;
+    renderBusinessStoreOrders(orders);
+  }
+}
+
 async function loadBusinessAnalytics() {
   const venueIds = getBusinessDashboardVenueIds();
   const eventIds = businessDashboardState.events.map(
@@ -7468,6 +11255,7 @@ async function refreshBusinessDashboard() {
     businessDashboardState.venues = [];
     businessDashboardState.events = [];
     businessDashboardState.reservations = [];
+    businessDashboardState.storeOrders = [];
     renderBusinessAnalytics(getEmptyBusinessAnalytics());
     populateBusinessDashboardSelects();
     populateBusinessMenuVenueSelect();
@@ -7475,6 +11263,7 @@ async function refreshBusinessDashboard() {
     renderBusinessVenues([]);
     renderBusinessEvents([]);
     renderBusinessReservations([]);
+    renderBusinessStoreOrders([]);
     renderBusinessReservationSchedule([]);
     updateBusinessBookingVenueOptions();
     renderBusinessOperatingHourRows([]);
@@ -7509,6 +11298,12 @@ async function refreshBusinessDashboard() {
   renderBusinessReservationSchedule(
     businessDashboardState.reservations
   );
+
+  const storeOrders = await loadBusinessStoreOrders();
+  if (Array.isArray(storeOrders)) {
+    businessDashboardState.storeOrders = storeOrders;
+    renderBusinessStoreOrders(storeOrders);
+  }
 
   renderBusinessAnalytics(await loadBusinessAnalytics());
 }
@@ -7549,27 +11344,11 @@ async function saveBusinessVenue(event) {
   }
 
   const imageFile = getAdminFile("businessVenueImageFile");
-  const uploadedImage = imageFile
-    ? await uploadAdminImage(imageFile, "venues")
-    : "";
-
-  if (imageFile && !uploadedImage) return;
-
-  const galleryUrls = getVenueGalleryUrls(
-    "businessVenueGalleryUrls"
-  );
-  const galleryFiles = getAdminFiles("businessVenueGalleryFiles");
-  const uploadedGalleryUrls = galleryFiles.length
-    ? await uploadVenueGalleryFiles("businessVenueGalleryFiles")
-    : [];
-  const galleryImageUrls = [
-    ...galleryUrls,
-    ...uploadedGalleryUrls,
-  ];
-
-  if (galleryFiles.length && uploadedGalleryUrls.length === 0) {
-    return;
-  }
+  const manualImage = getAdminValue("businessVenueImage");
+  const hasPendingGallery =
+    businessMediaState.venueGallery.pendingFiles.length > 0 ||
+    businessMediaState.venueGallery.removedPhotoIds.length > 0;
+  const galleryUrlInput = getVenueGalleryUrls("businessVenueGalleryUrls");
 
   const payload = {
     business_id: businessId,
@@ -7578,8 +11357,7 @@ async function saveBusinessVenue(event) {
     category: getVenueCategoryValue({
       category: getAdminValue("businessVenueCategory"),
     }),
-    image:
-      uploadedImage || getAdminValue("businessVenueImage"),
+    image: manualImage,
     address: getAdminValue("businessVenueAddress"),
     latitude: hasLatitude ? Number(latitudeValue) : null,
     longitude: hasLongitude ? Number(longitudeValue) : null,
@@ -7595,10 +11373,6 @@ async function saveBusinessVenue(event) {
       .update(payload)
       .eq("id", id)
       .in("business_id", getBusinessDashboardBusinessIds()));
-  } else if (galleryImageUrls.length === 0) {
-    ({ error } = await supabaseClient
-      .from("venues")
-      .insert([payload]));
   } else {
     const { data, error: insertError } = await supabaseClient
       .from("venues")
@@ -7615,7 +11389,48 @@ async function saveBusinessVenue(event) {
     return;
   }
 
-  await saveVenueGalleryPhotos(savedVenueId, galleryImageUrls);
+  if (imageFile) {
+    const uploadedImage = await uploadMediaImage(imageFile, "venues", {
+      venueId: savedVenueId,
+    });
+
+    if (!uploadedImage) return;
+
+    payload.image = uploadedImage;
+    await supabaseClient
+      .from("venues")
+      .update({ image: uploadedImage })
+      .eq("id", savedVenueId);
+  }
+
+  if (
+    hasPendingGallery ||
+    galleryUrlInput.length > 0 ||
+    businessMediaState.venueGallery.removedPhotoIds.length > 0
+  ) {
+    const galleryResult = await persistBusinessVenueGalleryChanges(
+      savedVenueId
+    );
+
+    if (
+      !payload.image &&
+      galleryResult.primaryImage
+    ) {
+      await syncVenuePrimaryImage(
+        savedVenueId,
+        galleryResult.primaryImage
+      );
+    }
+  } else if (!payload.image) {
+    const existingPhotos = await loadVenueGalleryPhotos(savedVenueId);
+
+    if (existingPhotos[0] && existingPhotos[0].image_url) {
+      await syncVenuePrimaryImage(
+        savedVenueId,
+        existingPhotos[0].image_url
+      );
+    }
+  }
 
   showToast(id ? "Venue updated" : "Venue created");
   clearBusinessVenueForm();
@@ -8902,6 +12717,102 @@ async function openDirectConversation(targetUserId) {
       conversationId
     )}`;
   return true;
+}
+
+async function getStoreProductBusinessOwnerId(product) {
+  const embeddedOwnerId = [
+    product && product.owner_id,
+    product && product.business_owner_id,
+    product && product.businessOwnerId,
+    product && product.owner && product.owner.id,
+    product && product.business_owner && product.business_owner.id,
+    product && product.business && product.business.owner_id,
+    product && product.businesses && product.businesses.owner_id,
+    product && product.venues && product.venues.owner_id,
+    product && product.venues && product.venues.business_owner_id,
+    product &&
+      product.venues &&
+      product.venues.businesses &&
+      product.venues.businesses.owner_id,
+  ]
+    .map((value) => safeText(value).trim())
+    .find(Boolean);
+
+  if (embeddedOwnerId) {
+    return embeddedOwnerId;
+  }
+
+  const businessId = safeText(
+    (product && product.business_id) ||
+      (product && product.venues && product.venues.business_id)
+  ).trim();
+
+  if (businessId) {
+    try {
+      const { data: business, error: businessError } =
+        await supabaseClient
+          .from("businesses")
+          .select("owner_id")
+          .eq("id", businessId)
+          .maybeSingle();
+
+      if (!businessError && business && business.owner_id) {
+        return safeText(business.owner_id).trim();
+      }
+    } catch (error) {
+      // Fall through to venue lookup below.
+    }
+  }
+
+  const venueId = safeText(product && product.venue_id).trim();
+
+  if (!venueId) {
+    return "";
+  }
+
+  try {
+    const { data: venue, error: venueError } =
+      await supabaseClient
+        .from("venues")
+        .select("business_id")
+        .eq("id", venueId)
+        .maybeSingle();
+
+    if (venueError || !venue || !venue.business_id) {
+      return "";
+    }
+
+    const { data: business, error: businessError } =
+      await supabaseClient
+        .from("businesses")
+        .select("owner_id")
+        .eq("id", venue.business_id)
+        .maybeSingle();
+
+    if (businessError || !business || !business.owner_id) {
+      return "";
+    }
+
+    return safeText(business.owner_id).trim();
+  } catch (error) {
+    return "";
+  }
+}
+
+async function openStoreProductConversation(product) {
+  const ownerId = await getStoreProductBusinessOwnerId(product);
+
+  if (!ownerId) {
+    showToast("İşletmeye mesaj gönderilemedi");
+    return false;
+  }
+
+  if (typeof openDirectConversation !== "function") {
+    showToast("İşletmeye mesaj gönderilemedi");
+    return false;
+  }
+
+  return openDirectConversation(ownerId);
 }
 
 function setPublicUserMessageError(message) {
@@ -10643,6 +14554,10 @@ function setupBusinessBookingSettings() {
 }
 
 function setupBusinessForms() {
+  setupBusinessVenueGalleryUpload();
+  setupBusinessProductGalleryUpload();
+  setupBusinessProductGalleryManager();
+
   const venueForm =
     document.getElementById("businessVenueForm");
   const eventForm =
@@ -10717,6 +14632,8 @@ function setupBusinessStoreManager() {
     document.getElementById("businessProductCategoryForm");
   const productForm =
     document.getElementById("businessProductForm");
+  const productCancelButton =
+    document.getElementById("businessProductCancelEditBtn");
 
   if (venueSelect && venueSelect.dataset.bound !== "true") {
     venueSelect.dataset.bound = "true";
@@ -10737,6 +14654,16 @@ function setupBusinessStoreManager() {
     productForm.dataset.bound = "true";
     productForm.addEventListener("submit", (event) => {
       runGuardedFormSubmit(event, createVenueProduct);
+    });
+  }
+
+  if (
+    productCancelButton &&
+    productCancelButton.dataset.bound !== "true"
+  ) {
+    productCancelButton.dataset.bound = "true";
+    productCancelButton.addEventListener("click", () => {
+      resetBusinessStoreForms();
     });
   }
 }
@@ -10889,6 +14816,7 @@ function registerServiceWorker() {
 
 runSafeInitializer("checkUser", checkUser);
 runSafeInitializer("loadVenues", loadVenues);
+runSafeInitializer("initDiscoverStorePreview", initDiscoverStorePreview);
 runSafeInitializer("loadFavorites", loadFavorites);
 runSafeInitializer("loadEvents", loadEvents);
 runSafeInitializer("loadVenueDetails", loadVenueDetails);
@@ -10913,3 +14841,9 @@ window.openReservationConversation =
 window.openDirectConversation = openDirectConversation;
 window.getOrCreateDirectConversation =
   getOrCreateDirectConversation;
+window.createNotification = createNotification;
+window.createStoreOrderNotification = createStoreOrderNotification;
+window.openStoreProductConversation =
+  openStoreProductConversation;
+window.getStoreProductBusinessOwnerId =
+  getStoreProductBusinessOwnerId;
