@@ -39,15 +39,6 @@
 
   <main class="store-page">
 
-    <header class="store-header">
-      <span class="store-kicker">Exclusive Drops</span>
-      <h1 id="storePageTitle">TANIDIK Store</h1>
-      <p id="storePageSubtitle">Premium merchandise, VIP packages &amp; nightlife essentials.</p>
-      <div class="store-scope-actions" id="storeScopeActions" hidden>
-        <a href="./store.html" class="secondary-btn">Tüm mağazaya dön</a>
-      </div>
-    </header>
-
     <!-- Category filter pills (populated dynamically) -->
     <div class="store-filters" id="storeFilters" role="group" aria-label="Product categories">
       <button class="store-pill store-pill--active" data-category="all">All</button>
@@ -81,17 +72,12 @@
         <button class="store-cart-close" id="storeCartClose" type="button" aria-label="Close cart">✕</button>
       </div>
       <div class="store-cart-items" id="storeCartItems"></div>
-      <textarea
-        class="store-cart-note"
-        id="storeCartNote"
-        placeholder="Sipariş notu (isteğe bağlı)"
-      ></textarea>
       <div class="store-cart-footer">
         <div class="store-cart-total">
           <span>Total</span>
           <strong id="storeCartTotal">₺0</strong>
         </div>
-        <button class="store-checkout-btn" id="storeCheckoutBtn" type="button">Siparişi Tamamla</button>
+        <button class="store-checkout-btn" type="button">Checkout</button>
       </div>
     </div>
   </aside>
@@ -106,10 +92,7 @@
       <button class="store-modal-close" id="storeModalClose" type="button" aria-label="Close">✕</button>
       <div class="store-modal-img" id="storeModalImg"></div>
       <div class="store-modal-body">
-        <div class="store-modal-badges" id="storeModalBadges">
-          <span class="store-modal-cat" id="storeModalCat"></span>
-          <span class="store-modal-stock-badge" id="storeModalStockBadge"></span>
-        </div>
+        <span class="store-modal-cat" id="storeModalCat"></span>
         <h2 class="store-modal-name" id="storeModalName"></h2>
         <p class="store-modal-desc" id="storeModalDesc"></p>
         <div class="store-modal-meta">
@@ -126,11 +109,7 @@
             <strong id="storeModalVenue"></strong>
           </div>
         </div>
-        <div class="store-modal-actions">
-          <button class="store-modal-cta" id="storeModalAddToCart" type="button">Sepete ekle</button>
-          <button class="store-modal-message-btn" id="storeModalMessageBtn" type="button">İşletmeye mesaj gönder</button>
-          <button class="store-modal-share-btn" id="storeModalShareBtn" type="button">Paylaş</button>
-        </div>
+        <button class="store-modal-cta" type="button" disabled>Yakında</button>
       </div>
     </div>
   </div>
@@ -151,9 +130,6 @@
     /* ── DOM refs ── */
     var grid     = document.getElementById('storeGrid');
     var filters  = document.getElementById('storeFilters');
-    var storeTitle = document.getElementById('storePageTitle');
-    var storeSubtitle = document.getElementById('storePageSubtitle');
-    var storeScopeActions = document.getElementById('storeScopeActions');
     var fab      = document.getElementById('storeCartFab');
     var fabCount = document.getElementById('storeCartCount');
     var drawer   = document.getElementById('storeCartDrawer');
@@ -161,8 +137,6 @@
     var closeBtn = document.getElementById('storeCartClose');
     var cartItems= document.getElementById('storeCartItems');
     var cartTotal= document.getElementById('storeCartTotal');
-    var cartNote = document.getElementById('storeCartNote');
-    var checkoutBtn = document.getElementById('storeCheckoutBtn');
 
     /* modal */
     var modal        = document.getElementById('storeModal');
@@ -177,575 +151,22 @@
     var modalStockRow= document.getElementById('storeModalStockRow');
     var modalVenue   = document.getElementById('storeModalVenue');
     var modalVenueRow= document.getElementById('storeModalVenueRow');
-    var modalBadges  = document.getElementById('storeModalBadges');
-    var modalStockBadge = document.getElementById('storeModalStockBadge');
-    var modalAddToCart = document.getElementById('storeModalAddToCart');
-    var modalMessageBtn = document.getElementById('storeModalMessageBtn');
-    var modalShareBtn = document.getElementById('storeModalShareBtn');
 
     /* ── State ── */
     var ALL_PRODUCTS   = [];   // raw Supabase rows
-    var CART_KEY       = 'tanidik_store_cart';
-    var STORE_STOCK_FIELDS = ['stock_quantity', 'stock', 'inventory', 'quantity'];
     var cart           = {};
     var activeCategory = 'all';
-    var storeParams    = new URLSearchParams(window.location.search);
-    var activeVenueId  = safeStr(storeParams.get('venue')).trim();
-    var pendingCategoryParam = safeStr(storeParams.get('category')).trim();
-    var activeModalProduct = null;
-    var modalTrigger = null;
 
     /* ── Helpers ── */
-    function safeStr(v) { return v === null || v === undefined ? '' : String(v); }
-
-    function escapeHtml(v) {
-      return safeStr(v).replace(/[&<>"']/g, function (ch) {
-        return ({
-          '&': '&amp;',
-          '<': '&lt;',
-          '>': '&gt;',
-          '"': '&quot;',
-          "'": '&#39;'
-        })[ch];
-      });
-    }
+    function safeStr(v) { return v ? String(v) : ''; }
 
     function fmtPrice(price, currency) {
-      if (price == null || price === '') return '';
-      var amount = Number(price);
-      if (Number.isNaN(amount)) return '';
+      if (price == null) return '';
       var sym = (currency === 'USD') ? '$' : (currency === 'EUR') ? '€' : '₺';
-      return sym + amount.toLocaleString('tr-TR');
+      return sym + Number(price).toLocaleString('tr-TR');
     }
 
     function showGrid(html) { grid.innerHTML = html; }
-
-    function showStoreSkeletons() {
-      var count = window.matchMedia && window.matchMedia('(max-width: 640px)').matches
-        ? 6
-        : 8;
-      var skeletons = Array.from({ length: count }).map(function () {
-        return '<article class="store-card store-card-skeleton" aria-hidden="true">' +
-          '<div class="store-card-img store-skeleton-block"></div>' +
-          '<div class="store-card-body">' +
-            '<span class="store-skeleton-line store-skeleton-line--short"></span>' +
-            '<span class="store-skeleton-line"></span>' +
-            '<span class="store-skeleton-line store-skeleton-line--muted"></span>' +
-            '<div class="store-card-footer">' +
-              '<span class="store-skeleton-line store-skeleton-price"></span>' +
-              '<span class="store-skeleton-button"></span>' +
-            '</div>' +
-          '</div>' +
-        '</article>';
-      }).join('');
-
-      showGrid(skeletons);
-    }
-
-    function showStoreToast(message) {
-      if (typeof showToast === 'function') {
-        showToast(message);
-      }
-    }
-
-    function readStoredCart() {
-      try {
-        var parsed = JSON.parse(localStorage.getItem(CART_KEY) || '{}');
-        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-          return {};
-        }
-        return parsed;
-      } catch (error) {
-        return {};
-      }
-    }
-
-    function writeStoredCart() {
-      try {
-        localStorage.setItem(CART_KEY, JSON.stringify(cart));
-      } catch (error) {
-        showStoreToast('Sepet kaydedilemedi');
-      }
-    }
-
-    function getProductCartPayload(product) {
-      if (!product) return null;
-
-      var venue = product.venues || {};
-      var business = venue.businesses || {};
-
-      return {
-        id: safeStr(product.id),
-        name: safeStr(product.name),
-        price: product.price === null || product.price === undefined || product.price === ''
-          ? null
-          : Number(product.price),
-        currency: safeStr(product.currency) || 'TRY',
-        image_url: safeStr(product.image_url || product.image),
-        venue_id: safeStr(product.venue_id || venue.id),
-        venue_name: safeStr(venue.name),
-        business_id: safeStr(product.business_id || venue.business_id || business.id),
-        owner_id: safeStr(product.owner_id || product.business_owner_id || business.owner_id),
-        quantity: 1
-      };
-    }
-
-    function getCartProduct(id) {
-      return findProductById(id);
-    }
-
-    function getCartItem(id) {
-      var storedItem = cart[id] || {};
-      var storedQuantity = typeof storedItem === 'number'
-        ? storedItem
-        : storedItem.quantity;
-      var product = getCartProduct(id);
-      var productItem = getProductCartPayload(product);
-      var item = Object.assign({}, storedItem, productItem || {});
-      item.id = safeStr(item.id || id);
-      item.quantity = Math.max(0, Number(storedQuantity || item.quantity || 0));
-      return item;
-    }
-
-    function getCartItems() {
-      return Object.keys(cart)
-        .map(getCartItem)
-        .filter(function (item) {
-          return item.id && item.quantity > 0;
-        });
-    }
-
-    function isStoreMissingFieldError(error, field) {
-      var text = [
-        error && error.message,
-        error && error.details,
-        error && error.hint,
-        error && error.code
-      ].filter(Boolean).join(' ').toLowerCase();
-
-      return Boolean(
-        field &&
-        text.indexOf(String(field).toLowerCase()) !== -1 &&
-        (text.indexOf('column') !== -1 ||
-          text.indexOf('schema cache') !== -1 ||
-          text.indexOf('not found') !== -1)
-      );
-    }
-
-    function isStoreProductVisible(product) {
-      if (!product || product.deleted_at) return false;
-      if (Object.prototype.hasOwnProperty.call(product, 'is_active')) {
-        return product.is_active !== false;
-      }
-      if (Object.prototype.hasOwnProperty.call(product, 'active')) {
-        return product.active !== false;
-      }
-      if (Object.prototype.hasOwnProperty.call(product, 'status')) {
-        return ['inactive', 'hidden', 'disabled', 'deleted'].indexOf(
-          safeStr(product.status).toLowerCase().trim()
-        ) === -1;
-      }
-      return true;
-    }
-
-    async function fetchStoreProducts() {
-      var attempts = [
-        { field: 'is_active', value: true, type: 'eq' },
-        { field: 'active', value: true, type: 'eq' },
-        { field: 'status', value: 'active', type: 'eq' },
-        null
-      ];
-
-      for (var i = 0; i < attempts.length; i++) {
-        var attempt = attempts[i];
-        var query = supabaseClient
-          .from('venue_products')
-          .select('*, venue_product_categories(id, name), venues(id, name, business_id)')
-          .order('sort_order', { ascending: true })
-          .order('created_at', { ascending: true });
-
-        if (attempt && attempt.type === 'eq') {
-          query = query.eq(attempt.field, attempt.value);
-        }
-
-        var result = await query;
-
-        if (!result.error) return result;
-
-        if (!attempt || !isStoreMissingFieldError(result.error, attempt.field)) {
-          return result;
-        }
-      }
-
-      return { data: [], error: null };
-    }
-
-    function getStoreStockField(product) {
-      if (!product) return '';
-
-      for (var i = 0; i < STORE_STOCK_FIELDS.length; i++) {
-        if (Object.prototype.hasOwnProperty.call(product, STORE_STOCK_FIELDS[i])) {
-          return STORE_STOCK_FIELDS[i];
-        }
-      }
-
-      return '';
-    }
-
-    function getStoreStockValue(product) {
-      var field = getStoreStockField(product);
-
-      if (!field || !product) return null;
-
-      var value = product[field];
-
-      if (value === null || value === undefined || value === '') {
-        return null;
-      }
-
-      var numericValue = Number(value);
-      return Number.isFinite(numericValue) ? numericValue : null;
-    }
-
-    function isStoreProductOutOfStock(product) {
-      var stockValue = getStoreStockValue(product);
-      return stockValue !== null && stockValue <= 0;
-    }
-
-    function getStockLabel(product) {
-      var stockValue = getStoreStockValue(product);
-
-      if (stockValue === null) {
-        return '';
-      }
-
-      return stockValue > 0
-        ? stockValue + ' adet'
-        : 'Stokta yok';
-    }
-
-    function renderModalImage(imageUrl, productName) {
-      modalImg.innerHTML = imageUrl
-        ? '<img src="' + escapeHtml(imageUrl) + '" alt="' + escapeHtml(productName) + '" class="store-modal-main-img" />'
-        : '<div class="store-modal-img-placeholder" aria-label="TANIDIK ürün görseli"></div>';
-
-      var image = modalImg.querySelector('img');
-      if (image) {
-        image.addEventListener('error', function () {
-          modalImg.innerHTML = '<div class="store-modal-img-placeholder" aria-label="TANIDIK ürün görseli"></div>';
-        }, { once: true });
-      }
-    }
-
-    function addUniqueImageUrl(urls, value) {
-      var url = safeStr(value).trim();
-      if (!url || urls.indexOf(url) !== -1) return;
-      urls.push(url);
-    }
-
-    function collectImageUrls(value, urls) {
-      if (!value) return;
-
-      if (Array.isArray(value)) {
-        value.forEach(function (item) {
-          collectImageUrls(item, urls);
-        });
-        return;
-      }
-
-      if (typeof value === 'string') {
-        var trimmed = value.trim();
-        if (!trimmed) return;
-
-        if (trimmed.charAt(0) === '[' || trimmed.charAt(0) === '{') {
-          try {
-            collectImageUrls(JSON.parse(trimmed), urls);
-            return;
-          } catch (error) {
-            /* JSON olmayan düz URL stringleri desteklenmeye devam eder. */
-          }
-        }
-
-        if (trimmed.indexOf('data:') !== 0 && /[\n,]/.test(trimmed)) {
-          trimmed.split(/[\n,]/).forEach(function (item) {
-            addUniqueImageUrl(urls, item);
-          });
-          return;
-        }
-
-        addUniqueImageUrl(urls, trimmed);
-        return;
-      }
-
-      if (typeof value === 'object') {
-        [
-          'image_url',
-          'image',
-          'url',
-          'src',
-          'publicUrl',
-          'path',
-          'images',
-          'product_images',
-          'gallery',
-          'gallery_images'
-        ].forEach(function (key) {
-          collectImageUrls(value[key], urls);
-        });
-      }
-    }
-
-    function getProductImageUrls(product, extraImages) {
-      var urls = [];
-      [
-        'image_url',
-        'image',
-        'images',
-        'product_images',
-        'gallery',
-        'gallery_images',
-        'image_urls'
-      ].forEach(function (key) {
-        collectImageUrls(product && product[key], urls);
-      });
-      collectImageUrls(extraImages, urls);
-      return urls;
-    }
-
-    function renderProductGallery(imageUrls, productName, activeIndex) {
-      var urls = (imageUrls || []).filter(Boolean);
-      var currentIndex = Number.isFinite(Number(activeIndex))
-        ? Number(activeIndex)
-        : 0;
-
-      if (urls.length === 0) {
-        renderModalImage('', productName);
-        return;
-      }
-
-      currentIndex = Math.max(0, Math.min(currentIndex, urls.length - 1));
-
-      var showControls = urls.length > 1;
-      var thumbsHtml = showControls
-        ? '<div class="store-modal-thumbs" role="list" aria-label="Ürün görselleri">' +
-            urls.map(function (url, index) {
-              return '<button class="store-modal-thumb-btn' +
-                (index === currentIndex ? ' store-modal-thumb-btn--active' : '') +
-                '" type="button" data-idx="' + index + '" role="listitem" aria-label="Görsel ' + (index + 1) + '" aria-current="' + (index === currentIndex ? 'true' : 'false') + '">' +
-                  '<img src="' + escapeHtml(url) + '" class="store-modal-thumb" alt="" loading="lazy" />' +
-                '</button>';
-            }).join('') +
-          '</div>'
-        : '';
-
-      modalImg.innerHTML =
-        '<div class="store-modal-gallery">' +
-          '<div class="store-modal-gallery-main">' +
-            '<img src="' + escapeHtml(urls[currentIndex]) + '" class="store-modal-main-img" alt="' + escapeHtml(productName) + '" />' +
-            (showControls
-              ? '<button class="store-gallery-nav store-gallery-nav--prev" type="button" aria-label="Önceki">‹</button>' +
-                '<button class="store-gallery-nav store-gallery-nav--next" type="button" aria-label="Sonraki">›</button>'
-              : '') +
-          '</div>' +
-          thumbsHtml +
-        '</div>';
-
-      var mainImage = modalImg.querySelector('.store-modal-main-img');
-      var thumbButtons = [].slice.call(modalImg.querySelectorAll('.store-modal-thumb-btn'));
-
-      function setActiveGalleryImage(index) {
-        currentIndex = (index + urls.length) % urls.length;
-        if (mainImage) {
-          mainImage.src = urls[currentIndex];
-          mainImage.alt = productName || 'TANIDIK ürün görseli';
-        }
-
-        thumbButtons.forEach(function (button, buttonIndex) {
-          var isActive = buttonIndex === currentIndex;
-          button.classList.toggle('store-modal-thumb-btn--active', isActive);
-          button.setAttribute('aria-current', isActive ? 'true' : 'false');
-        });
-      }
-
-      if (mainImage) {
-        mainImage.addEventListener('error', function () {
-          renderModalImage('', productName);
-        }, { once: true });
-      }
-
-      thumbButtons.forEach(function (button) {
-        button.addEventListener('click', function () {
-          setActiveGalleryImage(parseInt(button.dataset.idx, 10));
-        });
-      });
-
-      var prev = modalImg.querySelector('.store-gallery-nav--prev');
-      var next = modalImg.querySelector('.store-gallery-nav--next');
-      if (prev) prev.addEventListener('click', function () {
-        setActiveGalleryImage(currentIndex - 1);
-      });
-      if (next) next.addEventListener('click', function () {
-        setActiveGalleryImage(currentIndex + 1);
-      });
-    }
-
-    function getProductShareUrl(product) {
-      var url = new URL(window.location.href);
-      url.searchParams.set('product', safeStr(product && product.id));
-      return url.toString();
-    }
-
-    function copyTextFallback(text) {
-      var input = document.createElement('textarea');
-      input.value = text;
-      input.setAttribute('readonly', 'readonly');
-      input.style.position = 'fixed';
-      input.style.left = '-9999px';
-      document.body.appendChild(input);
-      input.select();
-      var copied = false;
-      try {
-        copied = document.execCommand('copy');
-      } catch (error) {
-        copied = false;
-      }
-      input.remove();
-      return copied;
-    }
-
-    async function copyProductLink(text) {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text);
-        return true;
-      }
-
-      return copyTextFallback(text);
-    }
-
-    async function shareActiveProduct() {
-      if (!activeModalProduct) {
-        showStoreToast('Ürün linki hazırlanamadı');
-        return;
-      }
-
-      var shareUrl = getProductShareUrl(activeModalProduct);
-      var shareTitle = safeStr(activeModalProduct.name) || 'TANIDIK Store';
-      var shareText = shareTitle + ' - TANIDIK Store';
-
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: shareTitle,
-            text: shareText,
-            url: shareUrl
-          });
-          showStoreToast('Paylaşım hazır');
-          return;
-        } catch (error) {
-          if (error && error.name === 'AbortError') return;
-        }
-      }
-
-      try {
-        var copied = await copyProductLink(shareUrl);
-        showStoreToast(copied ? 'Ürün linki kopyalandı' : 'Ürün linki kopyalanamadı');
-      } catch (error) {
-        showStoreToast('Ürün linki kopyalanamadı');
-      }
-    }
-
-    function focusStoreElement(element) {
-      if (!element || typeof element.focus !== 'function') return;
-      try {
-        element.focus({ preventScroll: true });
-      } catch (error) {
-        element.focus();
-      }
-    }
-
-    function findProductById(productId) {
-      return ALL_PRODUCTS.find(function (item) {
-        return String(item.id) === String(productId);
-      });
-    }
-
-    function getStoreProductVenueId(product) {
-      return safeStr(
-        product &&
-        (
-          product.venue_id ||
-          (product.venues && product.venues.id)
-        )
-      ).trim();
-    }
-
-    function getStoreScopedProducts() {
-      if (!activeVenueId) return ALL_PRODUCTS;
-
-      return ALL_PRODUCTS.filter(function (product) {
-        return String(getStoreProductVenueId(product)) === String(activeVenueId);
-      });
-    }
-
-    function getStoreVenueScopeName(products) {
-      var scopedProduct = (products || []).find(function (product) {
-        return product.venues && product.venues.name;
-      });
-
-      return scopedProduct && scopedProduct.venues
-        ? safeStr(scopedProduct.venues.name)
-        : '';
-    }
-
-    function renderStoreScopeHeader(products) {
-      if (!storeTitle || !storeSubtitle) return;
-
-      if (!activeVenueId) {
-        storeTitle.textContent = 'TANIDIK Store';
-        storeSubtitle.textContent = 'Premium merchandise, VIP packages & nightlife essentials.';
-        if (storeScopeActions) storeScopeActions.hidden = true;
-        return;
-      }
-
-      var venueName = getStoreVenueScopeName(products);
-      storeTitle.textContent = venueName || 'Bu işletmenin ürünleri';
-      storeSubtitle.textContent = 'Bu işletmenin TANIDIK Store ürünlerini keşfet.';
-      if (storeScopeActions) storeScopeActions.hidden = false;
-    }
-
-    function applyCategoryFromUrl() {
-      if (!pendingCategoryParam || pendingCategoryParam === 'all') {
-        activeCategory = 'all';
-        return;
-      }
-
-      var normalizedParam = pendingCategoryParam.toLowerCase();
-      var match = getStoreScopedProducts().find(function (product) {
-        var category = product.venue_product_categories || {};
-        return (
-          String(category.id || '') === pendingCategoryParam ||
-          safeStr(category.name).toLowerCase() === normalizedParam
-        );
-      });
-
-      if (match && match.venue_product_categories) {
-        activeCategory = String(match.venue_product_categories.id);
-      }
-    }
-
-    function openProductFromCard(card) {
-      if (!card) return;
-      var product = findProductById(card.dataset.productId);
-      if (product) openModal(product);
-    }
-
-    function openProductFromUrl() {
-      var productId = new URLSearchParams(window.location.search).get('product');
-      if (!productId) return;
-
-      var product = findProductById(productId);
-      if (product) openModal(product);
-    }
 
     /* ── Category pills (dynamic) ── */
     function buildPills(products) {
@@ -767,18 +188,10 @@
       cats.forEach(function (c) {
         var btn = document.createElement('button');
         btn.className = 'store-pill';
-        if (String(c.id) === String(activeCategory)) {
-          btn.classList.add('store-pill--active');
-        }
         btn.dataset.category = c.id;
         btn.textContent = c.name;
         filters.appendChild(btn);
       });
-
-      var allPill = filters.querySelector('.store-pill[data-category="all"]');
-      if (allPill) {
-        allPill.classList.toggle('store-pill--active', activeCategory === 'all');
-      }
 
       bindPills();
     }
@@ -798,20 +211,15 @@
 
     /* ── Product grid ── */
     function renderGrid() {
-      var scopedProducts = getStoreScopedProducts();
       var filtered = activeCategory === 'all'
-        ? scopedProducts
-        : scopedProducts.filter(function (p) {
+        ? ALL_PRODUCTS
+        : ALL_PRODUCTS.filter(function (p) {
             return p.venue_product_categories &&
                    String(p.venue_product_categories.id) === activeCategory;
           });
 
       if (filtered.length === 0) {
-        showGrid('<p class="store-empty">' +
-          (activeVenueId
-            ? 'Bu işletme için ürün bulunamadı.'
-            : 'Bu kategoride henüz ürün yok.') +
-          '</p>');
+        showGrid('<p class="store-empty">Bu kategoride henüz ürün yok.</p>');
         return;
       }
 
@@ -819,38 +227,25 @@
       filtered.forEach(function (p) {
         var catName = (p.venue_product_categories && p.venue_product_categories.name)
           ? safeStr(p.venue_product_categories.name) : '';
-        var venueName = (p.venues && p.venues.name)
-          ? safeStr(p.venues.name) : '';
         var imgHtml = p.image_url
-          ? '<img src="' + escapeHtml(p.image_url) + '" alt="' + escapeHtml(p.name) + '" loading="lazy" />'
-          : '<div class="store-card-img-placeholder" aria-label="TANIDIK ürün görseli"></div>';
-        var stockValue = getStoreStockValue(p);
-        var outOfStock = isStoreProductOutOfStock(p);
-        var stockBadge = outOfStock
-          ? '<span class="store-card-badge store-card-badge--soldout">Stokta yok</span>'
-          : (stockValue !== null && stockValue <= 5 && stockValue > 0)
-            ? '<span class="store-card-badge store-card-badge--low">Son ' + escapeHtml(stockValue) + '</span>' : '';
-        var quickAddDisabled = outOfStock ? ' disabled aria-disabled="true"' : '';
-        var quickAddLabel = outOfStock ? 'Stokta yok' : '+ Sepet';
+          ? '<img src="' + safeStr(p.image_url) + '" alt="' + safeStr(p.name) + '" loading="lazy" />'
+          : '<div class="store-card-img-placeholder"></div>';
+        var stockBadge = (p.stock_quantity != null && p.stock_quantity <= 5 && p.stock_quantity > 0)
+          ? '<span class="store-card-badge store-card-badge--low">Son ' + p.stock_quantity + '</span>' : '';
 
         var card = document.createElement('article');
-        card.className = 'store-card' + (outOfStock ? ' store-card--out-of-stock' : '');
-        card.dataset.productId = safeStr(p.id);
-        card.tabIndex = 0;
-        card.setAttribute('role', 'button');
-        card.setAttribute('aria-label', (safeStr(p.name) || 'Ürün') + ' detayını aç');
+        card.className = 'store-card';
         card.innerHTML =
           '<div class="store-card-img" aria-hidden="true">' +
             stockBadge + imgHtml +
           '</div>' +
           '<div class="store-card-body">' +
-            (catName ? '<span class="store-card-cat">' + escapeHtml(catName) + '</span>' : '') +
-            '<h3 class="store-card-name">' + escapeHtml(p.name) + '</h3>' +
-            (p.description ? '<p class="store-card-desc">' + escapeHtml(p.description) + '</p>' : '') +
-            (venueName ? '<span class="store-card-venue">' + escapeHtml(venueName) + '</span>' : '') +
+            (catName ? '<span class="store-card-cat">' + catName + '</span>' : '') +
+            '<h3 class="store-card-name">' + safeStr(p.name) + '</h3>' +
+            (p.description ? '<p class="store-card-desc">' + safeStr(p.description) + '</p>' : '') +
             '<div class="store-card-footer">' +
-              '<span class="store-card-price">' + escapeHtml(fmtPrice(p.price, p.currency)) + '</span>' +
-              '<button class="store-add-btn" type="button" data-id="' + escapeHtml(p.id) + '" aria-label="' + escapeHtml(p.name) + ' sepete ekle"' + quickAddDisabled + '>' + quickAddLabel + '</button>' +
+              '<span class="store-card-price">' + fmtPrice(p.price, p.currency) + '</span>' +
+              '<button class="store-add-btn" type="button" data-id="' + p.id + '">+ Sepet</button>' +
             '</div>' +
           '</div>';
         grid.appendChild(card);
@@ -859,12 +254,7 @@
       grid.querySelectorAll('.store-add-btn').forEach(function (btn) {
         btn.addEventListener('click', function (e) {
           e.stopPropagation(); /* kart tıklamasını engelle */
-          if (btn.disabled) {
-            showStoreToast('Ürün stokta yok');
-            return;
-          }
-
-          if (!addToCart(btn.dataset.id)) return;
+          addToCart(btn.dataset.id);
           btn.textContent = '✓';
           btn.classList.add('store-add-btn--added');
           setTimeout(function () {
@@ -876,458 +266,58 @@
 
       /* kart tıklaması → modal aç */
       grid.querySelectorAll('.store-card').forEach(function (card) {
-        card.addEventListener('click', function (event) {
-          if (event.target.closest('button, a')) return;
-          openProductFromCard(card);
-        });
-        card.addEventListener('keydown', function (event) {
-          if (event.key !== 'Enter' && event.key !== ' ') return;
-          event.preventDefault();
-          openProductFromCard(card);
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', function () {
+          var btn = card.querySelector('.store-add-btn');
+          if (!btn) return;
+          var pid = btn.dataset.id;
+          var p = ALL_PRODUCTS.find(function (x) { return String(x.id) === String(pid); });
+          if (p) openModal(p);
         });
       });
     }
 
     /* ── Cart ── */
-    function addToCart(id, options) {
-      var product = findProductById(id);
-
-      if (isStoreProductOutOfStock(product)) {
-        showStoreToast('Ürün stokta yok');
-        return false;
-      }
-
-      var cartItem = getProductCartPayload(product);
-
-      if (!cartItem) {
-        showStoreToast('Ürün sepete eklenemedi');
-        return false;
-      }
-
-      var existing = cart[cartItem.id] || cartItem;
-      var existingQuantity = typeof existing === 'number'
-        ? existing
-        : existing.quantity;
-      var nextQuantity = Math.max(0, Number(existingQuantity || 0)) + 1;
-      var stockValue = getStoreStockValue(product);
-
-      if (stockValue !== null && nextQuantity > stockValue) {
-        showStoreToast('Stok miktarı aşılamaz');
-        return false;
-      }
-
-      existing = Object.assign({}, existing, cartItem, {
-        quantity: nextQuantity
-      });
-      cart[cartItem.id] = existing;
-      writeStoredCart();
+    function addToCart(id) {
+      cart[id] = (cart[id] || 0) + 1;
       updateCartUI();
-      showStoreToast('Ürün sepete eklendi');
-
-      if (!options || options.openDrawer !== false) {
-        openCart();
-      }
-
-      return true;
     }
 
     function removeFromCart(id) {
       delete cart[id];
-      writeStoredCart();
       updateCartUI();
-    }
-
-    function setCartQuantity(id, quantity) {
-      var nextQuantity = Math.max(0, Number(quantity) || 0);
-      var product = findProductById(id);
-      var stockValue = getStoreStockValue(product);
-
-      if (nextQuantity <= 0) {
-        removeFromCart(id);
-        return;
-      }
-
-      if (stockValue !== null && stockValue <= 0) {
-        showStoreToast('Ürün stokta yok');
-        return;
-      }
-
-      if (stockValue !== null && nextQuantity > stockValue) {
-        showStoreToast('Stok miktarı aşılamaz');
-        return;
-      }
-
-      if (!cart[id] || typeof cart[id] !== 'object') {
-        var cartItem = getProductCartPayload(product) || getCartItem(id);
-        if (!cartItem) return;
-        cart[id] = cartItem;
-      }
-
-      cart[id].quantity = nextQuantity;
-      writeStoredCart();
-      updateCartUI();
-    }
-
-    function adjustCartQuantity(id, delta) {
-      var item = getCartItem(id);
-      setCartQuantity(id, Number(item.quantity || 0) + delta);
     }
 
     function updateCartUI() {
-      var items = getCartItems();
-      var totalQuantity = items.reduce(function (sum, item) {
-        return sum + Number(item.quantity || 0);
-      }, 0);
-      fabCount.textContent = totalQuantity;
-      fabCount.hidden = totalQuantity === 0;
-      fab.hidden = totalQuantity === 0;
-      fab.classList.toggle('store-cart-fab--has-items', totalQuantity > 0);
+      var total = Object.keys(cart).reduce(function (s, id) { return s + cart[id]; }, 0);
+      fabCount.textContent = total;
+      fab.hidden = total === 0;
       renderCartDrawer();
     }
 
     function renderCartDrawer() {
       cartItems.innerHTML = '';
       var sum = 0;
-      var items = getCartItems();
-
-      if (items.length === 0) {
-        cartItems.innerHTML = '<p class="store-cart-empty">Sepetiniz boş.</p>';
-        cartTotal.textContent = fmtPrice(0, 'TRY');
-        return;
-      }
-
-      items.forEach(function (item) {
-        var qty  = Number(item.quantity || 0);
-        var price = Number(item.price || 0);
-        var line = price * qty;
+      Object.keys(cart).forEach(function (id) {
+        var p = ALL_PRODUCTS.find(function (x) { return String(x.id) === String(id); });
+        if (!p) return;
+        var qty  = cart[id];
+        var line = (p.price || 0) * qty;
         sum += line;
         var row = document.createElement('div');
         row.className = 'store-cart-row';
         row.innerHTML =
-          (item.image_url
-            ? '<img class="store-cart-row-img" src="' + escapeHtml(item.image_url) + '" alt="" loading="lazy" />'
-            : '<span class="store-cart-row-img store-cart-row-img--empty" aria-hidden="true"></span>') +
           '<div class="store-cart-row-info">' +
-            '<strong>' + escapeHtml(item.name) + '</strong>' +
-            (item.venue_name ? '<span>' + escapeHtml(item.venue_name) + '</span>' : '') +
-            '<span>' + escapeHtml(fmtPrice(line, item.currency)) + '</span>' +
+            '<strong>' + safeStr(p.name) + '</strong>' +
+            '<span>×' + qty + ' &nbsp; ' + fmtPrice(line, p.currency) + '</span>' +
           '</div>' +
-          '<div class="store-cart-qty" aria-label="Quantity controls">' +
-            '<button class="store-cart-qty-btn" type="button" data-action="decrease" data-id="' + escapeHtml(item.id) + '" aria-label="Azalt">−</button>' +
-            '<span>' + qty + '</span>' +
-            '<button class="store-cart-qty-btn" type="button" data-action="increase" data-id="' + escapeHtml(item.id) + '" aria-label="Artır">+</button>' +
-          '</div>' +
-          '<button class="store-cart-remove" type="button" data-id="' + escapeHtml(item.id) + '" aria-label="Remove">✕</button>';
+          '<button class="store-cart-remove" type="button" data-id="' + id + '" aria-label="Remove">✕</button>';
         cartItems.appendChild(row);
       });
       cartTotal.textContent = fmtPrice(sum, 'TRY');
       cartItems.querySelectorAll('.store-cart-remove').forEach(function (btn) {
         btn.addEventListener('click', function () { removeFromCart(btn.dataset.id); });
       });
-      cartItems.querySelectorAll('.store-cart-qty-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          adjustCartQuantity(btn.dataset.id, btn.dataset.action === 'increase' ? 1 : -1);
-        });
-      });
-    }
-
-    function getCartTotalAmount(items) {
-      return (items || []).reduce(function (sum, item) {
-        return sum + (Number(item.price || 0) * Number(item.quantity || 0));
-      }, 0);
-    }
-
-    function getNormalizedCartVenueId(value) {
-      var venueId = safeStr(value).trim();
-      var numericVenueId = Number(venueId);
-
-      return venueId && Number.isFinite(numericVenueId)
-        ? numericVenueId
-        : null;
-    }
-
-    async function resolveCartItemOwnerId(item) {
-      var ownerId = safeStr(item && item.owner_id).trim();
-
-      if (ownerId) return ownerId;
-
-      var product = findProductById(item && item.id);
-
-      if (
-        typeof window.getStoreProductBusinessOwnerId === 'function'
-      ) {
-        try {
-          ownerId = await window.getStoreProductBusinessOwnerId(
-            product || item
-          );
-        } catch (error) {
-          ownerId = '';
-        }
-      }
-
-      return safeStr(ownerId).trim();
-    }
-
-    async function getCartOrderGroups(items) {
-      var groups = {};
-
-      for (var i = 0; i < items.length; i++) {
-        var item = items[i];
-        var ownerId = await resolveCartItemOwnerId(item);
-        var venueId = safeStr(item.venue_id).trim();
-        var groupKey = [
-          venueId || 'no-venue',
-          ownerId || 'no-owner'
-        ].join('|');
-
-        if (!groups[groupKey]) {
-          groups[groupKey] = {
-            venue_id: venueId,
-            business_owner_id: ownerId,
-            items: []
-          };
-        }
-
-        groups[groupKey].items.push(item);
-      }
-
-      return Object.keys(groups).map(function (key) {
-        var group = groups[key];
-        group.total_amount = getCartTotalAmount(group.items);
-        return group;
-      });
-    }
-
-    function getCartStockIssue(items) {
-      for (var i = 0; i < (items || []).length; i++) {
-        var item = items[i];
-        var product = findProductById(item.id);
-        var stockValue = getStoreStockValue(product);
-
-        if (stockValue === null) continue;
-
-        if (stockValue <= 0) {
-          return safeStr(item.name) || 'Ürün';
-        }
-
-        if (Number(item.quantity || 0) > stockValue) {
-          return safeStr(item.name) || 'Ürün';
-        }
-      }
-
-      return '';
-    }
-
-    function syncLocalProductStock(productId, nextValue) {
-      var product = findProductById(productId);
-      var field = getStoreStockField(product);
-
-      if (!product || !field || nextValue === null || nextValue === undefined) return;
-
-      product[field] = nextValue;
-    }
-
-    async function decrementStoreProductStock(item) {
-      if (!item || !item.id) return;
-
-      var quantity = Math.max(1, Number(item.quantity || 1));
-      var product = findProductById(item.id);
-      var currentStock = getStoreStockValue(product);
-
-      try {
-        var rpcResult = await supabaseClient.rpc('decrement_store_product_stock', {
-          p_product_id: item.id,
-          p_quantity: quantity
-        });
-
-        if (!rpcResult.error) {
-          if (currentStock !== null) {
-            syncLocalProductStock(item.id, Math.max(0, currentStock - quantity));
-          }
-          return;
-        }
-      } catch (error) {
-        /* Optional SQL may not be installed yet; direct update fallback follows. */
-      }
-
-      var stockField = getStoreStockField(product);
-
-      if (!stockField || currentStock === null) return;
-
-      var nextStock = Math.max(0, currentStock - quantity);
-      var payload = {};
-      payload[stockField] = nextStock;
-
-      try {
-        var updateResult = await supabaseClient
-          .from('venue_products')
-          .update(payload)
-          .eq('id', item.id);
-
-        if (!updateResult.error) {
-          syncLocalProductStock(item.id, nextStock);
-        }
-      } catch (error) {
-        /* Stock decrement is best-effort and must not break checkout. */
-      }
-    }
-
-    async function decrementStoreProductStocks(items) {
-      for (var i = 0; i < (items || []).length; i++) {
-        await decrementStoreProductStock(items[i]);
-      }
-    }
-
-    async function notifyBusinessOwnerStoreOrder(group, orderId) {
-      var ownerId = safeStr(group && group.business_owner_id).trim();
-
-      if (!ownerId) return;
-
-      var metadata = {
-        order_id: orderId,
-        venue_id: group.venue_id || null
-      };
-
-      try {
-        if (typeof window.createStoreOrderNotification === 'function') {
-          await window.createStoreOrderNotification(
-            ownerId,
-            'store_order_created',
-            'Yeni mağaza siparişi aldınız',
-            'Yeni mağaza siparişi aldınız',
-            './business.html',
-            metadata
-          );
-          return;
-        }
-
-        if (typeof window.createNotification === 'function') {
-          await window.createNotification(
-            ownerId,
-            'store_order_created',
-            'Yeni mağaza siparişi aldınız',
-            'Yeni mağaza siparişi aldınız',
-            './business.html'
-          );
-        }
-      } catch (error) {
-        /* Notification failure must not break checkout. */
-      }
-    }
-
-    async function insertStoreOrderGroup(session, group, note) {
-      var orderPayload = {
-        user_id: session.user.id,
-        venue_id: getNormalizedCartVenueId(group.venue_id),
-        business_owner_id: group.business_owner_id || null,
-        status: 'pending',
-        total_amount: Number(group.total_amount || 0),
-        customer_note: note || null
-      };
-
-      var orderResult = await supabaseClient
-        .from('store_orders')
-        .insert([orderPayload])
-        .select('id')
-        .maybeSingle();
-
-      if (orderResult.error || !orderResult.data) {
-        throw orderResult.error || new Error('Order could not be created');
-      }
-
-      var orderId = orderResult.data.id;
-      var itemPayloads = group.items.map(function (item) {
-        var quantity = Math.max(1, Number(item.quantity || 1));
-        var unitPrice = Number(item.price || 0);
-
-        return {
-          order_id: orderId,
-          product_id: item.id,
-          product_name: safeStr(item.name) || 'TANIDIK Store ürünü',
-          quantity: quantity,
-          unit_price: unitPrice,
-          total_price: unitPrice * quantity,
-          image_url: safeStr(item.image_url) || null
-        };
-      });
-
-      var itemsResult = await supabaseClient
-        .from('store_order_items')
-        .insert(itemPayloads);
-
-      if (itemsResult.error) {
-        throw itemsResult.error;
-      }
-
-      await decrementStoreProductStocks(group.items);
-      await notifyBusinessOwnerStoreOrder(group, orderId);
-
-      return orderId;
-    }
-
-    function renderCheckoutSuccess() {
-      cartItems.innerHTML =
-        '<div class="store-cart-success">' +
-          '<strong>Sipariş oluşturuldu</strong>' +
-          '<span>İşletme siparişinizi panelinde görecek.</span>' +
-        '</div>';
-      cartTotal.textContent = fmtPrice(0, 'TRY');
-      fabCount.textContent = '0';
-      fab.hidden = true;
-      if (cartNote) cartNote.value = '';
-    }
-
-    async function checkoutStoreCart() {
-      var items = getCartItems();
-
-      if (items.length === 0) {
-        showStoreToast('Sepetiniz boş');
-        return;
-      }
-
-      if (checkoutBtn.disabled) return;
-
-      var originalText = checkoutBtn.textContent;
-      checkoutBtn.disabled = true;
-      checkoutBtn.textContent = 'Oluşturuluyor...';
-      var sessionResult = null;
-
-      try {
-        sessionResult = await supabaseClient.auth.getSession();
-        var session =
-          sessionResult &&
-          sessionResult.data &&
-          sessionResult.data.session;
-
-        if (!session) {
-          window.location.href = './auth.html';
-          return;
-        }
-
-        var note = cartNote ? safeStr(cartNote.value).trim() : '';
-        var groups = await getCartOrderGroups(items);
-        var stockIssue = getCartStockIssue(items);
-
-        if (stockIssue) {
-          showStoreToast(stockIssue + ' stokta yok veya yeterli değil');
-          return;
-        }
-
-        for (var i = 0; i < groups.length; i++) {
-          await insertStoreOrderGroup(session, groups[i], note);
-        }
-
-        cart = {};
-        writeStoredCart();
-        renderCheckoutSuccess();
-        renderGrid();
-        showStoreToast('Sipariş oluşturuldu');
-      } catch (error) {
-        showStoreToast('Sipariş oluşturulamadı');
-      } finally {
-        checkoutBtn.disabled = false;
-        checkoutBtn.textContent = originalText;
-      }
     }
 
     /* ── Cart drawer open/close ── */
@@ -1354,30 +344,23 @@
 
     /* ── Product detail modal ── */
     async function openModal(p) {
-      activeModalProduct = p;
-      modalTrigger = document.activeElement;
-      renderProductGallery(getProductImageUrls(p), safeStr(p.name));
+      /* main image (placeholder while gallery loads) */
+      modalImg.innerHTML = p.image_url
+        ? '<img src="' + safeStr(p.image_url) + '" alt="' + safeStr(p.name) + '" class="store-modal-main-img" />'
+        : '<div class="store-modal-img-placeholder"></div>';
 
       /* fields */
       var catName = (p.venue_product_categories && p.venue_product_categories.name)
         ? safeStr(p.venue_product_categories.name) : '';
-      var stockLabel = getStockLabel(p);
-      var outOfStock = isStoreProductOutOfStock(p);
       modalCat.textContent  = catName;
       modalCat.hidden       = !catName;
-      modalStockBadge.textContent = stockLabel;
-      modalStockBadge.hidden = !stockLabel;
-      modalStockBadge.classList.toggle('store-modal-badge--soldout', outOfStock);
-      modalBadges.hidden = !catName && !stockLabel;
       modalName.textContent = safeStr(p.name);
-      modalDesc.textContent = safeStr(p.description).trim() || 'Bu ürün için açıklama yakında eklenecek.';
-      modalDesc.hidden      = false;
-      modalPrice.textContent= fmtPrice(p.price, p.currency) || 'Fiyat yakında';
-      modalAddToCart.disabled = outOfStock;
-      modalAddToCart.textContent = outOfStock ? 'Stokta yok' : 'Sepete ekle';
+      modalDesc.textContent = safeStr(p.description);
+      modalDesc.hidden      = !p.description;
+      modalPrice.textContent= fmtPrice(p.price, p.currency);
 
-      if (stockLabel) {
-        modalStock.textContent = stockLabel;
+      if (p.stock_quantity != null) {
+        modalStock.textContent = p.stock_quantity > 0 ? p.stock_quantity + ' adet' : 'Tükendi';
         modalStockRow.hidden = false;
       } else {
         modalStockRow.hidden = true;
@@ -1394,9 +377,6 @@
         modalBackdrop.classList.add('store-cart-backdrop--visible');
       });
       document.body.style.overflow = 'hidden';
-      setTimeout(function () {
-        focusStoreElement(modalClose);
-      }, 0);
 
       /* galeri fotoğraflarını async yükle */
       loadGalleryImages(p);
@@ -1412,116 +392,106 @@
           .order('created_at', { ascending: true });
 
         if (res.error || !res.data || res.data.length === 0) return;
-        if (!activeModalProduct || String(activeModalProduct.id) !== String(p.id)) return;
 
-        var allImgs = getProductImageUrls(p, res.data);
+        /* tüm görselleri birleştir: ana + ek */
+        var allImgs = [];
+        if (p.image_url) allImgs.push(p.image_url);
+        res.data.forEach(function (r) {
+          if (r.image_url && r.image_url !== p.image_url) allImgs.push(r.image_url);
+        });
 
-        if (allImgs.length > 0) {
-          renderProductGallery(allImgs, safeStr(p.name));
+        if (allImgs.length <= 1) return;
+
+        /* galeri widget'ı oluştur */
+        var activeIdx = 0;
+
+        function buildGallery() {
+          var html =
+            '<div class="store-modal-gallery">' +
+              '<div class="store-modal-gallery-main">' +
+                '<img src="' + allImgs[activeIdx] + '" class="store-modal-main-img" alt="" />' +
+                (allImgs.length > 1
+                  ? '<button class="store-gallery-nav store-gallery-nav--prev" type="button" aria-label="Önceki">‹</button>' +
+                    '<button class="store-gallery-nav store-gallery-nav--next" type="button" aria-label="Sonraki">›</button>'
+                  : '') +
+              '</div>' +
+              '<div class="store-modal-thumbs">' +
+                allImgs.map(function (url, i) {
+                  return '<img src="' + url + '" class="store-modal-thumb' +
+                    (i === activeIdx ? ' store-modal-thumb--active' : '') +
+                    '" data-idx="' + i + '" alt="" loading="lazy" />';
+                }).join('') +
+              '</div>' +
+            '</div>';
+          modalImg.innerHTML = html;
+
+          modalImg.querySelectorAll('.store-modal-thumb').forEach(function (t) {
+            t.addEventListener('click', function () {
+              activeIdx = parseInt(t.dataset.idx, 10);
+              buildGallery();
+            });
+          });
+
+          var prev = modalImg.querySelector('.store-gallery-nav--prev');
+          var next = modalImg.querySelector('.store-gallery-nav--next');
+          if (prev) prev.addEventListener('click', function () {
+            activeIdx = (activeIdx - 1 + allImgs.length) % allImgs.length;
+            buildGallery();
+          });
+          if (next) next.addEventListener('click', function () {
+            activeIdx = (activeIdx + 1) % allImgs.length;
+            buildGallery();
+          });
         }
+
+        buildGallery();
       } catch (e) { /* galeri yüklenemese de modal çalışır */ }
     }
 
     function closeModal() {
-      if (modal.hidden) return;
       modal.classList.remove('store-modal--open');
       modalBackdrop.classList.remove('store-cart-backdrop--visible');
       document.body.style.overflow = '';
       setTimeout(function () {
         modal.hidden         = true;
         modalBackdrop.hidden = true;
-        activeModalProduct = null;
-        focusStoreElement(modalTrigger);
-        modalTrigger = null;
       }, 280);
     }
 
     modalClose.addEventListener('click', closeModal);
     modalBackdrop.addEventListener('click', closeModal);
-    modalAddToCart.addEventListener('click', function () {
-      if (!activeModalProduct) {
-        showStoreToast('Ürün sepete eklenemedi');
-        return;
-      }
-
-      if (!addToCart(activeModalProduct.id, { openDrawer: false })) return;
-
-      closeModal();
-      setTimeout(openCart, 300);
-    });
-    modalMessageBtn.addEventListener('click', async function () {
-      if (!activeModalProduct) {
-        showStoreToast('İşletmeye mesaj gönderilemedi');
-        return;
-      }
-
-      modalMessageBtn.disabled = true;
-      modalMessageBtn.textContent = 'Açılıyor...';
-
-      try {
-        if (typeof window.openStoreProductConversation === 'function') {
-          await window.openStoreProductConversation(activeModalProduct);
-        } else {
-          showStoreToast('İşletmeye mesaj gönderilemedi');
-        }
-      } catch (error) {
-        showStoreToast('İşletmeye mesaj gönderilemedi');
-      } finally {
-        modalMessageBtn.disabled = false;
-        modalMessageBtn.textContent = 'İşletmeye mesaj gönder';
-      }
-    });
-    modalShareBtn.addEventListener('click', async function () {
-      modalShareBtn.disabled = true;
-      try {
-        await shareActiveProduct();
-      } finally {
-        modalShareBtn.disabled = false;
-      }
-    });
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && !modal.hidden) closeModal();
+      if (e.key === 'Escape') closeModal();
     });
-
-    if (checkoutBtn) {
-      checkoutBtn.addEventListener('click', function () {
-        checkoutStoreCart();
-      });
-    }
 
     /* Initial "All" pill binding */
     bindPills();
-    cart = readStoredCart();
-    updateCartUI();
-    window.addEventListener('storage', function (event) {
-      if (event.key !== CART_KEY) return;
-      cart = readStoredCart();
-      updateCartUI();
-    });
 
     /* ── Supabase fetch ── */
     async function loadProducts() {
-      showStoreSkeletons();
+      showGrid('<p class="store-empty">Yükleniyor…</p>');
 
       try {
-        var result = await fetchStoreProducts();
+        var result = await supabaseClient
+          .from('venue_products')
+          .select('*, venue_product_categories(id, name), venues(name)')
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true })
+          .order('created_at', { ascending: true });
 
         if (result.error) throw result.error;
 
-        ALL_PRODUCTS = (result.data || []).filter(isStoreProductVisible);
+        ALL_PRODUCTS = result.data || [];
 
         if (ALL_PRODUCTS.length === 0) {
           showGrid('<p class="store-empty">Henüz ürün eklenmemiş.</p>');
           return;
         }
 
-        applyCategoryFromUrl();
-        renderStoreScopeHeader(getStoreScopedProducts());
-        buildPills(getStoreScopedProducts());
+        buildPills(ALL_PRODUCTS);
         renderGrid();
-        updateCartUI();
-        openProductFromUrl();
       } catch (err) {
+        console.warn('Store load error:', err);
         showGrid('<p class="store-empty">Ürünler yüklenemedi. Lütfen tekrar deneyin.</p>');
       }
     }

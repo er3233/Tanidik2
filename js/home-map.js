@@ -250,32 +250,32 @@
     }
   }
 
-  function getNoirStyle() {
+  function getSatelliteStyle() {
     return {
       version: 8,
       sources: {
-        osm: {
+        satellite: {
           type: "raster",
           tiles: [
-            "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-            "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-            "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+            "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
           ],
           tileSize: 256,
-          attribution: "&copy; OpenStreetMap &copy; CARTO",
+          attribution: "Tiles &copy; Esri &mdash; Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP",
+          maxzoom: 19,
+        },
+        terrainDem: {
+          type: "raster-dem",
+          tiles: ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"],
+          tileSize: 256,
+          encoding: "terrarium",
+          maxzoom: 14,
         },
       },
       layers: [
         {
-          id: "osm",
+          id: "satellite",
           type: "raster",
-          source: "osm",
-          paint: {
-            "raster-brightness-min": 0,
-            "raster-brightness-max": 0.7,
-            "raster-contrast": 0.24,
-            "raster-saturation": -0.72,
-          },
+          source: "satellite",
         },
       ],
     };
@@ -289,6 +289,12 @@
         : "home-map-marker home-map-marker--real";
       markerElement.type = "button";
       markerElement.setAttribute("aria-label", venue.name);
+
+      const pinLabel = document.createElement("span");
+      pinLabel.className = "home-map-pin-label";
+      pinLabel.textContent = venue.name;
+      markerElement.appendChild(pinLabel);
+
       markerElement.addEventListener("click", () => {
         renderPreview(venue);
         map.flyTo({
@@ -488,10 +494,10 @@
     try {
       map = new maplibregl.Map({
         container: mapElement,
-        style: getNoirStyle(),
+        style: getSatelliteStyle(),
         center: bodrum,
-        zoom: 14.35,
-        pitch: 72,
+        zoom: 13.8,
+        pitch: 65,
         bearing: -28,
         attributionControl: false,
         antialias: true,
@@ -507,6 +513,20 @@
       setupWalkControls();
 
       map.on("load", async () => {
+        try {
+          map.setTerrain({ source: "terrainDem", exaggeration: 1.5 });
+          map.addLayer({
+            id: "sky",
+            type: "sky",
+            paint: {
+              "sky-type": "atmosphere",
+              "sky-atmosphere-sun": [0.0, 30.0],
+              "sky-atmosphere-sun-intensity": 15,
+            },
+          });
+        } catch (e) {
+          console.log("[home-map] Terrain/sky unavailable:", e);
+        }
         mapElement.classList.add("is-ready");
         const mapVenues = await loadMapVenues();
         addMarkers(mapVenues);

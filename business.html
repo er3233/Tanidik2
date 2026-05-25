@@ -175,13 +175,6 @@
 
       <button
         type="button"
-        data-business-panel="orders"
-      >
-        Orders
-      </button>
-
-      <button
-        type="button"
         data-business-panel="analytics"
       >
         Analytics
@@ -288,34 +281,22 @@
         <input
           type="file"
           id="businessVenueImageFile"
-          accept="image/jpeg,image/png,image/webp"
+          accept="image/*"
           class="admin-file-input"
         />
 
-        <label class="media-upload-label" for="businessVenueGalleryFiles">
-          Venue galeri (en fazla 10)
-        </label>
-
         <textarea
           id="businessVenueGalleryUrls"
-          placeholder="Galeri URL'leri (isteğe bağlı), her satıra bir"
+          placeholder="Gallery photo URLs, one per line"
         ></textarea>
 
         <input
           type="file"
           id="businessVenueGalleryFiles"
-          accept="image/jpeg,image/png,image/webp"
+          accept="image/*"
           multiple
           class="admin-file-input"
         />
-
-        <p id="businessVenueGalleryStatus" class="media-upload-status"></p>
-
-        <div
-          id="businessVenueGalleryPreview"
-          class="media-preview-grid"
-          aria-live="polite"
-        ></div>
 
         <input
           type="text"
@@ -638,11 +619,6 @@
         id="businessProductForm"
         class="admin-form business-store-form"
       >
-        <input
-          type="hidden"
-          id="businessProductId"
-        />
-
         <select id="businessProductCategory">
           <option value="">No category</option>
         </select>
@@ -683,34 +659,9 @@
         <input
           type="file"
           id="businessProductImageFile"
-          accept="image/jpeg,image/png,image/webp"
+          accept="image/*"
           class="admin-file-input"
         />
-
-        <label class="media-upload-label" for="businessProductGalleryFiles">
-          Ürün galeri (en fazla 5)
-        </label>
-
-        <textarea
-          id="businessProductGalleryUrls"
-          placeholder="Ek görsel URL'leri (isteğe bağlı), her satıra bir"
-        ></textarea>
-
-        <input
-          type="file"
-          id="businessProductGalleryFiles"
-          accept="image/jpeg,image/png,image/webp"
-          multiple
-          class="admin-file-input"
-        />
-
-        <p id="businessProductGalleryStatus" class="media-upload-status"></p>
-
-        <div
-          id="businessProductGalleryPreview"
-          class="media-preview-grid"
-          aria-live="polite"
-        ></div>
 
         <input
           type="number"
@@ -734,24 +685,12 @@
           Active
         </label>
 
-        <div class="admin-form-actions business-product-form-actions">
-          <button
-            type="submit"
-            id="businessProductSaveBtn"
-            class="btn"
-          >
-            Save Product
-          </button>
-
-          <button
-            type="button"
-            id="businessProductCancelEditBtn"
-            class="secondary-btn"
-            hidden
-          >
-            Cancel Edit
-          </button>
-        </div>
+        <button
+          type="submit"
+          class="btn"
+        >
+          Save Product
+        </button>
       </form>
 
       <div
@@ -775,7 +714,7 @@
           <input
             id="pgFileInput"
             type="file"
-            accept="image/jpeg,image/png,image/webp"
+            accept="image/*"
             multiple
             class="product-gallery-file-input"
           />
@@ -784,25 +723,6 @@
         <p id="pgStatus" class="product-gallery-status"></p>
       </div>
 
-    </section>
-
-    <section
-      class="business-section dashboard-section dashboard-section--store-orders business-mobile-panel"
-      data-panel="orders"
-    >
-      <h2>
-        Store Orders
-      </h2>
-
-      <p class="reservation-dashboard-copy">
-        Review incoming store orders and update their fulfillment status.
-      </p>
-
-      <div
-        id="businessStoreOrdersList"
-        class="business-list store-orders-list"
-      >
-      </div>
     </section>
 
     <section
@@ -1028,6 +948,16 @@
 
     </section>
 
+    <div class="business-scroll-top-wrap">
+      <button
+        type="button"
+        class="scroll-top-btn"
+        onclick="window.scrollTo({top:0,behavior:'smooth'})"
+      >
+        ↑ Yukarı Çık
+      </button>
+    </div>
+
   </main>
 
   <nav
@@ -1105,6 +1035,149 @@
 </script>
 
   <div id="toast" class="toast"></div>
+
+<script>
+/* ── Ürün Galeri Yöneticisi (app.js'e dokunmadan) ── */
+(function () {
+  var productSelect = document.getElementById('pgProductSelect');
+  var currentPhotos = document.getElementById('pgCurrentPhotos');
+  var fileInput     = document.getElementById('pgFileInput');
+  var status        = document.getElementById('pgStatus');
+  var manager       = document.getElementById('productGalleryManager');
+
+  if (!manager) return;
+
+  var BUCKET = 'tanidik-images';
+
+  function setStatus(msg, isErr) {
+    status.textContent = msg;
+    status.style.color = isErr ? 'rgba(220,80,60,0.80)' : 'rgba(240,192,96,0.70)';
+  }
+
+  /* products listesini doldur: store section'ındaki seçili venue_id'ye göre */
+  async function populateProductSelect() {
+    if (!productSelect) return;
+    var venueSelect = document.getElementById('businessStoreVenueSelect');
+    var venueId = venueSelect ? venueSelect.value : '';
+
+    productSelect.innerHTML = '<option value="">— Ürün seç —</option>';
+    currentPhotos.innerHTML = '';
+
+    if (!venueId) { setStatus('Önce yukarıdan venue seçin.'); return; }
+
+    var { data, error } = await supabaseClient
+      .from('venue_products')
+      .select('id, name')
+      .eq('venue_id', venueId)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true });
+
+    if (error || !data) return;
+    data.forEach(function (p) {
+      var opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.name;
+      productSelect.appendChild(opt);
+    });
+  }
+
+  /* seçili ürünün mevcut galeri fotoğraflarını listele */
+  async function loadGallery(productId) {
+    currentPhotos.innerHTML = '';
+    if (!productId) return;
+
+    var { data, error } = await supabaseClient
+      .from('venue_product_images')
+      .select('id, image_url, sort_order')
+      .eq('product_id', productId)
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: true });
+
+    if (error) { setStatus('Fotoğraflar yüklenemedi.', true); return; }
+    if (!data || data.length === 0) { setStatus('Henüz ek fotoğraf yok.'); return; }
+
+    setStatus('');
+    data.forEach(function (img) {
+      var wrap = document.createElement('div');
+      wrap.className = 'pg-thumb';
+      wrap.innerHTML =
+        '<img src="' + img.image_url + '" alt="" loading="lazy" />' +
+        '<button class="pg-delete-btn" data-id="' + img.id + '" type="button" aria-label="Sil">✕</button>';
+      currentPhotos.appendChild(wrap);
+    });
+
+    currentPhotos.querySelectorAll('.pg-delete-btn').forEach(function (btn) {
+      btn.addEventListener('click', async function () {
+        btn.disabled = true;
+        var { error } = await supabaseClient
+          .from('venue_product_images')
+          .delete()
+          .eq('id', btn.dataset.id);
+        if (error) { setStatus('Silinemedi.', true); btn.disabled = false; return; }
+        btn.closest('.pg-thumb').remove();
+        setStatus('Silindi.');
+      });
+    });
+  }
+
+  /* dosya yükleme */
+  async function uploadFiles(files, productId) {
+    if (!files || files.length === 0 || !productId) return;
+    setStatus('Yükleniyor…');
+
+    var { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session) { setStatus('Oturum açık değil.', true); return; }
+
+    var success = 0;
+    for (var i = 0; i < files.length; i++) {
+      var file = files[i];
+      var ext  = file.name.split('.').pop();
+      var path = 'venues/' + productId + '_' + Date.now() + '_' + i + '.' + ext;
+
+      var { data: upload, error: upErr } = await supabaseClient.storage
+        .from(BUCKET)
+        .upload(path, file, { upsert: false });
+
+      if (upErr) { setStatus('Yükleme hatası: ' + upErr.message, true); continue; }
+
+      var { data: pub } = supabaseClient.storage.from(BUCKET).getPublicUrl(path);
+      var publicUrl = pub && pub.publicUrl ? pub.publicUrl : '';
+      if (!publicUrl) continue;
+
+      var { error: insErr } = await supabaseClient
+        .from('venue_product_images')
+        .insert([{ product_id: productId, image_url: publicUrl, sort_order: i }]);
+
+      if (insErr) { setStatus('Kayıt hatası: ' + insErr.message, true); continue; }
+      success++;
+    }
+
+    fileInput.value = '';
+    setStatus(success + ' fotoğraf eklendi.');
+    await loadGallery(productId);
+  }
+
+  /* event binding */
+  var venueSelect = document.getElementById('businessStoreVenueSelect');
+  if (venueSelect) {
+    venueSelect.addEventListener('change', populateProductSelect);
+  }
+
+  productSelect.addEventListener('change', function () {
+    loadGallery(productSelect.value);
+  });
+
+  fileInput.addEventListener('change', function () {
+    uploadFiles(Array.from(fileInput.files), productSelect.value);
+  });
+
+  /* venue store section açıldığında otomatik doldur */
+  var storeSection = document.querySelector('[data-panel="store"] #businessStoreVenueSelect');
+  if (!storeSection && venueSelect) {
+    venueSelect.addEventListener('change', populateProductSelect);
+  }
+})();
+</script>
 
 </body>
 </html>

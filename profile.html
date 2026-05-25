@@ -91,30 +91,8 @@
   <div class="profile-dashboard">
 
     <header class="dashboard-header dashboard-header--profile profile-hero-card">
-      <div class="profile-avatar-wrap">
-        <div class="profile-avatar" id="profileAvatar" aria-hidden="true">
-          <img
-            id="profileAvatarImage"
-            alt=""
-            hidden
-          />
-          <span id="profileAvatarInitials">T</span>
-        </div>
-
-        <button
-          type="button"
-          id="profileAvatarChangeBtn"
-          class="profile-avatar-change-btn"
-        >
-          Fotoğraf değiştir
-        </button>
-
-        <input
-          type="file"
-          id="profileAvatarInput"
-          accept="image/jpeg,image/png,image/webp"
-          hidden
-        />
+      <div class="profile-avatar" aria-hidden="true">
+        T
       </div>
 
       <div class="profile-hero-copy">
@@ -144,13 +122,6 @@
         onclick="window.location.href='./my-reservations.html'"
       >
         My Reservations
-      </button>
-
-      <button
-        type="button"
-        data-profile-panel="orders"
-      >
-        Siparişlerim
       </button>
 
       <button
@@ -341,25 +312,6 @@
     </section>
 
     <section
-      class="profile-orders-section dashboard-section profile-mobile-panel"
-      data-panel="orders"
-    >
-      <h2>
-        Siparişlerim
-      </h2>
-
-      <p class="reservation-dashboard-copy">
-        Store siparişlerini ve güncel durumlarını takip et.
-      </p>
-
-      <div
-        id="profileStoreOrdersList"
-        class="profile-store-orders-list"
-      >
-      </div>
-    </section>
-
-    <section
       class="profile-reservations-section dashboard-section dashboard-section--reservations profile-mobile-panel is-open"
       data-panel="reservations"
     >
@@ -405,50 +357,6 @@
           My Reviews
         </a>
 
-        <button
-          type="button"
-          data-profile-panel="orders"
-        >
-          Siparişlerim
-        </button>
-
-        <a
-          href="./favorites.html"
-          class="secondary-btn"
-        >
-          Favorilerim
-        </a>
-
-        <a
-          href="./events.html"
-          class="secondary-btn"
-        >
-          Biletlerim
-        </a>
-
-        <button
-          type="button"
-          class="profile-menu-placeholder"
-          disabled
-        >
-          Adreslerim
-        </button>
-
-        <button
-          type="button"
-          class="profile-menu-placeholder"
-          disabled
-        >
-          Odeme Yontemlerim
-        </button>
-
-        <button
-          type="button"
-          data-profile-panel="settings"
-        >
-          Ayarlar
-        </button>
-
         <a
           id="businessDashboardLink"
           href="./business.html"
@@ -463,6 +371,14 @@
         >
           Messages
         </a>
+
+        <button
+          type="button"
+          class="scroll-top-btn"
+          onclick="window.scrollTo({top:0,behavior:'smooth'})"
+        >
+          ↑ Yukarı Çık
+        </button>
 
         <button id="logoutBtn">
           Logout

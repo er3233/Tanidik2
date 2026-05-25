@@ -90,12 +90,6 @@
 
   <main class="discover-page public-detail">
 
-    <header class="public-page-header">
-      <h1>
-        Discover Venues
-      </h1>
-    </header>
-
     <div class="discover-controls public-section">
 
       <input
@@ -118,42 +112,6 @@
       </div>
 
     </div>
-
-    <section
-      class="discover-shop-section public-section"
-      id="discoverShopSection"
-      aria-labelledby="discoverShopTitle"
-    >
-      <div class="discover-shop-head">
-        <div>
-          <span class="store-kicker">Shop the City</span>
-          <h2 id="discoverShopTitle">
-            Mağazayı Keşfet
-          </h2>
-        </div>
-
-        <a
-          href="./store.html"
-          class="secondary-btn discover-shop-all-btn"
-        >
-          Tüm mağazayı gör
-        </a>
-      </div>
-
-      <div
-        id="discoverStoreCategoryChips"
-        class="discover-store-chips"
-        aria-label="Store categories"
-      >
-      </div>
-
-      <div
-        id="discoverStorePreview"
-        class="discover-store-preview"
-        aria-live="polite"
-      >
-      </div>
-    </section>
 
     <div
       id="venuesContainer"
@@ -179,6 +137,65 @@
 <script src="./js/app.js"></script>
 
 <div id="toast" class="toast"></div>
+
+<script>
+/* ── Venue cards: kategori bazlı yatay satırlara grupla ── */
+(function () {
+  var container = document.getElementById('venuesContainer');
+  if (!container) return;
+
+  var timer;
+
+  var observer = new MutationObserver(function () {
+    clearTimeout(timer);
+    timer = setTimeout(reorganize, 90);
+  });
+
+  observer.observe(container, { childList: true });
+
+  function reorganize() {
+    var cards = Array.from(
+      container.querySelectorAll(':scope > .venue-card')
+    );
+    if (cards.length === 0) return;
+
+    /* kategori etiketini venue-meta'dan oku (son parça: "Şehir / Kategori") */
+    var groupMap = new Map();
+    cards.forEach(function (card) {
+      var meta = card.querySelector('.venue-meta');
+      var text = meta ? meta.textContent.trim() : '';
+      var parts = text.split(' / ');
+      var cat = parts[parts.length - 1].trim() || 'Other';
+      if (!groupMap.has(cat)) groupMap.set(cat, []);
+      groupMap.get(cat).push(card);
+    });
+
+    /* DOM değişikliği sırasında observer'ı durdur */
+    observer.disconnect();
+    container.innerHTML = '';
+
+    groupMap.forEach(function (groupCards, cat) {
+      var row = document.createElement('div');
+      row.className = 'venue-row';
+
+      var h3 = document.createElement('h3');
+      h3.className = 'venue-row-heading';
+      h3.textContent = cat;
+
+      var scroll = document.createElement('div');
+      scroll.className = 'venue-row-scroll';
+
+      groupCards.forEach(function (c) { scroll.appendChild(c); });
+
+      row.appendChild(h3);
+      row.appendChild(scroll);
+      container.appendChild(row);
+    });
+
+    observer.observe(container, { childList: true });
+  }
+})();
+</script>
 
 </body>
 </html>
