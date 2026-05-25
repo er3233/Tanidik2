@@ -1,0 +1,613 @@
+/* ═══════════════════════════════════════════════════════
+   TANIDIK — Venue Premium Page
+   Safe visual merge: all JS IDs/data-attrs preserved.
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Reset page padding injected by .venue-page rule ── */
+.vp-main.venue-page,
+.vp-main.venue-detail-page {
+  padding: 0 !important;
+  background: #050505;
+  min-height: 100vh;
+}
+
+/* ── Navbar hide over hero (transparent) ── */
+.vp-main ~ .navbar,
+.navbar {
+  /* keep navbar but it sits above hero; hero topbar replaces navigation */
+}
+
+/* ───────────────────────────────────────
+   HERO
+─────────────────────────────────────── */
+.vp-hero {
+  position: relative;
+  height: 100svh;
+  min-height: 580px;
+  overflow: hidden;
+  background: #0a0a0c;
+}
+
+/* Hero image — fills container, no distortion */
+.vp-hero-img {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center 30% !important;
+  filter: brightness(0.88) saturate(1.1) !important;
+  border-radius: 0 !important;
+}
+
+/* Cinematic gradient overlay */
+.vp-hero-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg,
+      rgba(0,0,0,0.46) 0%,
+      rgba(0,0,0,0.0) 32%,
+      rgba(0,0,0,0.0) 52%,
+      rgba(0,0,0,0.78) 100%
+    ),
+    radial-gradient(ellipse at 50% 100%, rgba(0,0,0,0.5) 0%, transparent 70%);
+}
+
+/* ── Hero top bar ── */
+.vp-hero-topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 20px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.52) 0%, transparent 100%);
+}
+
+.vp-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 9px 16px 9px 12px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.54);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255,255,255,0.16);
+  color: rgba(255,255,255,0.96);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  letter-spacing: 0.01em;
+  transition: background 150ms, border-color 150ms;
+}
+
+.vp-back-btn:hover {
+  background: rgba(0,0,0,0.74);
+  border-color: rgba(255,255,255,0.28);
+}
+
+.vp-fav-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  min-height: unset !important;
+  padding: 9px 16px !important;
+  border-radius: 999px !important;
+  background: rgba(0,0,0,0.54) !important;
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255,255,255,0.16) !important;
+  color: rgba(255,255,255,0.94) !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em !important;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 150ms, border-color 150ms, color 150ms;
+}
+
+.vp-fav-btn::before {
+  content: "♡";
+  font-size: 15px;
+  line-height: 1;
+}
+
+.vp-fav-btn:hover,
+.vp-fav-btn.is-favorite,
+.vp-fav-btn.is-active {
+  background: rgba(250,204,21,0.22) !important;
+  border-color: rgba(250,204,21,0.52) !important;
+  color: #facc15 !important;
+}
+
+/* ── Hero footer: kicker + name + pills ── */
+.vp-hero-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  padding: 60px 28px 32px;
+}
+
+.vp-kicker {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  background: rgba(250,204,21,0.16);
+  border: 1px solid rgba(250,204,21,0.34);
+  color: #facc15;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.vp-hero-footer h1,
+#venueName {
+  font-size: clamp(36px, 9vw, 72px) !important;
+  font-weight: 900 !important;
+  line-height: 1.0 !important;
+  letter-spacing: -0.02em !important;
+  color: #fff !important;
+  margin: 0 0 14px !important;
+  text-shadow:
+    0 2px 16px rgba(0,0,0,0.6),
+    0 8px 48px rgba(0,0,0,0.42) !important;
+}
+
+.vp-meta-pills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.vp-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.13);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.92);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.vp-pill:empty {
+  display: none;
+}
+
+.vp-pill--rating {
+  background: rgba(250,204,21,0.18) !important;
+  border-color: rgba(250,204,21,0.38) !important;
+  color: #facc15 !important;
+  font-weight: 800 !important;
+  min-width: unset !important;
+  text-align: left !important;
+}
+
+/* override average-rating default styles */
+.vp-pill.vp-pill--rating.average-rating {
+  padding: 5px 12px !important;
+  border-radius: 999px !important;
+  background: rgba(250,204,21,0.18) !important;
+  border: 1px solid rgba(250,204,21,0.38) !important;
+  color: #facc15 !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  margin: 0 !important;
+}
+
+/* ───────────────────────────────────────
+   CONTENT AREA
+─────────────────────────────────────── */
+.vp-content {
+  position: relative;
+  z-index: 2;
+  padding: 0 0 128px;
+  background: #050505;
+}
+
+/* ── Gallery strip ── */
+.vp-gallery.venue-photo-gallery {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  gap: 8px !important;
+  overflow-x: auto !important;
+  scroll-snap-type: x mandatory !important;
+  padding: 20px 20px 0 !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.vp-gallery.venue-photo-gallery::-webkit-scrollbar {
+  display: none;
+}
+
+.vp-gallery.venue-photo-gallery img,
+.vp-gallery.venue-photo-gallery .gallery-thumb {
+  flex-shrink: 0;
+  width: 180px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 14px;
+  scroll-snap-align: start;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* ── Action pill row ── */
+.vp-main .venue-mobile-actions.vp-actions-row {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  gap: 8px !important;
+  overflow-x: auto !important;
+  scrollbar-width: none !important;
+  padding: 20px 20px 8px !important;
+  grid-template-columns: unset !important;
+}
+
+.vp-main .venue-mobile-actions.vp-actions-row::-webkit-scrollbar {
+  display: none;
+}
+
+.vp-main .venue-mobile-actions.vp-actions-row button {
+  flex-shrink: 0 !important;
+  min-height: 40px !important;
+  padding: 9px 18px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,255,255,0.14) !important;
+  background: rgba(255,255,255,0.06) !important;
+  color: rgba(255,255,255,0.88) !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all 160ms !important;
+  letter-spacing: 0.01em !important;
+  width: auto !important;
+}
+
+.vp-main .venue-mobile-actions.vp-actions-row button:hover,
+.vp-main .venue-mobile-actions.vp-actions-row button.is-active {
+  border-color: rgba(250,204,21,0.46) !important;
+  background: rgba(250,204,21,0.14) !important;
+  color: #facc15 !important;
+}
+
+.vp-main .venue-mobile-actions.vp-actions-row button.vp-action--primary {
+  background: #facc15 !important;
+  border-color: transparent !important;
+  color: #050505 !important;
+  font-weight: 800 !important;
+  box-shadow: 0 4px 20px rgba(250,204,21,0.32);
+}
+
+.vp-main .venue-mobile-actions.vp-actions-row button.vp-action--primary:hover {
+  background: #f7d366 !important;
+  color: #050505 !important;
+}
+
+/* ── Glass cards ── */
+.vp-card {
+  margin: 12px 16px !important;
+  padding: 24px !important;
+  border-radius: 24px !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  background:
+    linear-gradient(160deg, rgba(15,15,18,0.92), rgba(7,7,10,0.88)) !important;
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  box-shadow:
+    0 8px 40px rgba(0,0,0,0.38),
+    inset 0 1px 0 rgba(255,255,255,0.05) !important;
+}
+
+/* Override default public-section padding inside vp-card */
+.vp-card.public-section,
+.vp-card.location-section,
+.vp-card.public-section--reviews,
+.vp-card.public-section--reservations,
+.vp-card.public-section--events {
+  padding: 24px !important;
+  margin-bottom: 0 !important;
+}
+
+/* ── Section headers ── */
+.vp-section-header {
+  margin-bottom: 20px;
+}
+
+.vp-section-kicker {
+  display: inline-block;
+  margin-bottom: 6px;
+  color: #facc15;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.vp-section-header .section-title {
+  font-size: 20px !important;
+  font-weight: 800 !important;
+  color: #fff !important;
+  margin: 0 0 6px !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+.vp-section-header p {
+  color: rgba(180,180,190,0.72) !important;
+  font-size: 13px !important;
+  line-height: 1.55 !important;
+  margin: 0 !important;
+}
+
+.vp-description {
+  color: rgba(210,210,220,0.82) !important;
+  font-size: 15px !important;
+  line-height: 1.72 !important;
+  margin: 0 !important;
+}
+
+.vp-address {
+  color: rgba(200,200,210,0.8) !important;
+  font-size: 14px !important;
+  margin-bottom: 16px !important;
+}
+
+/* ── Toggle buttons (Menu / Store) ── */
+.vp-toggles {
+  display: flex;
+  gap: 10px;
+  padding: 4px 16px 4px;
+}
+
+.vp-toggle-btn.venue-menu-toggle {
+  flex: 1;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.82);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+  transition: all 160ms;
+  letter-spacing: 0.01em;
+}
+
+.vp-toggle-btn.venue-menu-toggle:hover,
+.vp-toggle-btn.venue-menu-toggle[aria-expanded="true"] {
+  border-color: rgba(250,204,21,0.38);
+  background: rgba(250,204,21,0.09);
+  color: #facc15;
+}
+
+/* Panel revealed by toggle buttons */
+.vp-panel-reveal {
+  margin: 4px 16px 0;
+  padding: 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.07);
+  background: rgba(12,12,14,0.86);
+}
+
+/* ── Reservation section ── */
+.vp-card.public-section--reservations::before {
+  border-radius: 24px !important;
+}
+
+/* ── Location map ── */
+.vp-card .location-map {
+  border-radius: 16px !important;
+  border-color: rgba(250,204,21,0.1) !important;
+  margin-bottom: 14px;
+}
+
+/* ── Reviews list ── */
+.vp-card .reviews-list {
+  margin-top: 16px;
+}
+
+/* ── Scroll indicator at bottom of hero ── */
+.vp-hero::after {
+  content: "";
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  width: 30px;
+  height: 30px;
+  border-right: 2px solid rgba(255,255,255,0.5);
+  border-bottom: 2px solid rgba(255,255,255,0.5);
+  transform: translateX(-50%) rotate(45deg);
+  animation: vpScrollBounce 1.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes vpScrollBounce {
+  0%, 100% { opacity: 0.4; transform: translateX(-50%) rotate(45deg) translateY(0); }
+  50%       { opacity: 0.9; transform: translateX(-50%) rotate(45deg) translateY(6px); }
+}
+
+/* ── Scroll-reveal animation on cards ── */
+.vp-card {
+  animation: vpCardIn 380ms cubic-bezier(0.16,1,0.3,1) both;
+}
+
+@keyframes vpCardIn {
+  from { opacity: 0; transform: translateY(22px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* stagger delays for sequential sections */
+.vp-content > .vp-card:nth-child(1) { animation-delay: 0ms; }
+.vp-content > .vp-card:nth-child(2) { animation-delay: 60ms; }
+.vp-content > .vp-card:nth-child(3) { animation-delay: 120ms; }
+.vp-content > .vp-card:nth-child(4) { animation-delay: 180ms; }
+.vp-content > .vp-card:nth-child(5) { animation-delay: 240ms; }
+
+/* ── Hide legacy elements no longer needed ── */
+.vp-main .venue-meta,
+.vp-main .detail-actions {
+  display: none !important;
+}
+
+/* ── Navbar: transparent / blend over hero on venue page ── */
+body:has(.vp-main) .navbar {
+  position: fixed;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  backdrop-filter: none !important;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ───────────────────────────────────────
+   MOBILE OVERRIDES  (≤ 700px)
+─────────────────────────────────────── */
+@media (max-width: 700px) {
+  .vp-hero {
+    height: 100svh;
+    min-height: 520px;
+  }
+
+  .vp-hero-footer {
+    padding: 40px 20px 24px;
+  }
+
+  .vp-hero-footer h1,
+  #venueName {
+    font-size: clamp(32px, 10vw, 56px) !important;
+    margin-bottom: 10px !important;
+  }
+
+  .vp-card,
+  .vp-card.public-section,
+  .vp-card.public-section--reviews,
+  .vp-card.public-section--reservations,
+  .vp-card.public-section--events,
+  .vp-card.location-section {
+    margin: 8px 12px !important;
+    padding: 18px !important;
+    border-radius: 20px !important;
+  }
+
+  .vp-main .venue-mobile-actions.vp-actions-row {
+    padding: 14px 12px 6px !important;
+    gap: 7px !important;
+  }
+
+  .vp-main .venue-mobile-actions.vp-actions-row button {
+    padding: 8px 15px !important;
+    font-size: 12px !important;
+  }
+
+  .vp-gallery.venue-photo-gallery {
+    padding: 12px 12px 0 !important;
+  }
+
+  .vp-gallery.venue-photo-gallery img,
+  .vp-gallery.venue-photo-gallery .gallery-thumb {
+    width: 140px;
+    height: 96px;
+  }
+
+  .vp-toggles {
+    padding: 4px 12px 4px;
+    gap: 8px;
+  }
+
+  .vp-toggle-btn.venue-menu-toggle {
+    padding: 12px 14px;
+    font-size: 13px;
+  }
+
+  /* Mobile panels: keep existing JS-driven toggle behavior */
+  .vp-main .venue-mobile-panel {
+    display: none !important;
+  }
+
+  .vp-main .venue-mobile-panel.is-open {
+    display: block !important;
+    animation: vpCardIn 220ms cubic-bezier(0.16,1,0.3,1) both !important;
+  }
+
+  .vp-section-header .section-title {
+    font-size: 18px !important;
+  }
+}
+
+/* ───────────────────────────────────────
+   DESKTOP / TABLET  (> 700px)
+─────────────────────────────────────── */
+@media (min-width: 701px) {
+  /* All panels always visible on desktop */
+  .vp-main .venue-mobile-panel {
+    display: block !important;
+  }
+
+  .vp-content {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 0 80px;
+  }
+
+  .vp-hero-footer {
+    padding: 60px 48px 40px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .vp-hero-topbar {
+    padding: 24px 48px;
+  }
+
+  .vp-card {
+    margin: 12px 0 !important;
+  }
+
+  .vp-toggles {
+    padding: 4px 0 4px;
+  }
+
+  .vp-panel-reveal {
+    margin: 4px 0 0;
+  }
+
+  .vp-main .venue-mobile-actions.vp-actions-row {
+    padding: 20px 0 8px !important;
+  }
+
+  .vp-gallery.venue-photo-gallery {
+    padding: 20px 0 0 !important;
+  }
+
+  .vp-gallery.venue-photo-gallery img,
+  .vp-gallery.venue-photo-gallery .gallery-thumb {
+    width: 200px;
+    height: 136px;
+  }
+}

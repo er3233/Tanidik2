@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -46,10 +46,8 @@
   />
   <meta name="twitter:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
 
-  <link
-    rel="stylesheet"
-    href="./css/style.css"
-  />
+  <link rel="stylesheet" href="./css/style.css" />
+  <link rel="stylesheet" href="./css/event-premium.css" />
 </head>
 
 <body>
@@ -68,122 +66,114 @@
     </button>
 
     <div class="nav-links">
-
       <a href="./index.html">Home</a>
-
       <a href="./discover.html">Discover</a>
-
       <a href="./events.html">Events</a>
-
       <a href="./favorites.html">Favorites</a>
-
-      <a
-        href="./auth.html"
-        id="authLink"
-      >
-        Login
-      </a>
-
+      <a href="./auth.html" id="authLink">Login</a>
     </div>
 
   </nav>
 
-  <main class="venue-page public-detail event-detail-page">
+  <main class="venue-page event-detail-page ep-main">
 
-    <img
-      id="eventImage"
-      class="venue-hero-image"
-      alt="Event image"
-    />
+    <!-- ─── Full-bleed hero ─── -->
+    <div class="ep-hero">
 
-    <div class="venue-details">
+      <img
+        id="eventImage"
+        class="venue-hero-image ep-hero-img"
+        alt="Event image"
+      />
 
-      <span class="venue-meta">
-        Event
-      </span>
+      <div class="ep-hero-overlay"></div>
 
-      <h1 id="eventTitle">
-        Loading...
-      </h1>
-
-      <div
-        class="event-mobile-actions"
-        aria-label="Event detail sections"
-      >
-        <button
-          type="button"
-          data-event-panel="rsvp"
-        >
-          Join / RSVP
-        </button>
-
-        <button
-          type="button"
-          data-event-panel="details"
-        >
-          Details
-        </button>
-
-        <button
-          type="button"
-          data-event-panel="location"
-        >
-          Location
-        </button>
-
-        <button
-          type="button"
-          data-event-panel="venue"
-        >
-          Venue
-        </button>
+      <!-- Top bar: back -->
+      <div class="ep-hero-topbar">
+        <a href="./events.html" class="ep-back-btn">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M10 13L5 8l5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Events
+        </a>
       </div>
 
+      <!-- Hero footer: kicker + title -->
+      <div class="ep-hero-footer">
+        <span class="ep-kicker">TANIDIK Event</span>
+        <h1 id="eventTitle">Loading…</h1>
+      </div>
+
+    </div>
+
+    <!-- ─── Scrollable content ─── -->
+    <div class="ep-content">
+
+      <!-- Action pill row (always visible) -->
+      <div
+        class="event-mobile-actions ep-actions-row"
+        aria-label="Event detail sections"
+      >
+        <button type="button" data-event-panel="rsvp" class="ep-action--primary">Join / RSVP</button>
+        <button type="button" data-event-panel="details">Details</button>
+        <button type="button" data-event-panel="location">Location</button>
+        <button type="button" data-event-panel="venue">Venue</button>
+      </div>
+
+      <!-- RSVP / Join panel -->
       <section
-        class="event-mobile-panel event-rsvp-panel"
+        class="ep-card event-mobile-panel event-rsvp-panel"
         data-panel="rsvp"
       >
+        <div class="ep-section-header">
+          <span class="ep-section-kicker">Attendance</span>
+          <h2>Join / RSVP</h2>
+        </div>
+
         <div
           id="eventAttendance"
           class="event-attendance"
-        >
-        </div>
+        ></div>
       </section>
 
+      <!-- Details panel (open by default) -->
       <section
-        class="event-mobile-panel event-details-panel is-open"
+        class="ep-card event-mobile-panel event-details-panel is-open"
         data-panel="details"
       >
-        <p id="eventDate"></p>
+        <div class="ep-section-header">
+          <h2>Event Details</h2>
+        </div>
 
-        <p id="eventDescription"></p>
+        <p id="eventDate" class="ep-date"></p>
+
+        <p id="eventDescription" class="ep-description"></p>
       </section>
 
+      <!-- Location panel -->
       <section
-        class="event-mobile-panel event-location-panel"
+        class="ep-card event-mobile-panel event-location-panel"
         data-panel="location"
       >
-        <p id="eventLocation">
-          Location details are connected to the venue.
-        </p>
+        <div class="ep-section-header">
+          <h2>Location</h2>
+        </div>
+
+        <p id="eventLocation">Location details are connected to the venue.</p>
       </section>
 
+      <!-- Venue panel -->
       <section
-        class="event-mobile-panel event-venue-panel"
+        class="ep-card event-mobile-panel event-venue-panel"
         data-panel="venue"
       >
-        <p id="eventVenue"></p>
-
-        <div class="detail-actions">
-
-          <a
-            href="./events.html"
-            class="secondary-btn"
-          >
-            Back to Events
-          </a>
-
+        <div class="ep-section-header">
+          <h2>Venue</h2>
         </div>
+
+        <p id="eventVenue" class="ep-venue-info"></p>
+
+        <a href="./events.html" class="ep-back-link">← Back to Events</a>
       </section>
 
     </div>

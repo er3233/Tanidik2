@@ -1,130 +1,101 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  />
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Discover Venues | TANIDIK</title>
-
-  <meta
-    name="description"
-    content="Browse TANIDIK nightlife venues, compare ratings, and save your favorites."
-  />
-
+  <meta name="description" content="Browse TANIDIK nightlife venues, compare ratings, and save your favorites." />
   <meta name="theme-color" content="#050505" />
-
-  <link
-    rel="icon"
-    href="./assets/favicon.svg"
-    type="image/svg+xml"
-  />
-
+  <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
   <link rel="manifest" href="./manifest.webmanifest" />
-
   <link rel="apple-touch-icon" href="./assets/icon-192.png" />
-
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="TANIDIK" />
   <meta property="og:title" content="Discover Venues | TANIDIK" />
-  <meta
-    property="og:description"
-    content="Browse TANIDIK nightlife venues, compare ratings, and save your favorites."
-  />
+  <meta property="og:description" content="Browse TANIDIK nightlife venues, compare ratings, and save your favorites." />
   <meta property="og:url" content="https://tanidik2.vercel.app" />
   <meta property="og:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
-
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Discover Venues | TANIDIK" />
-  <meta
-    name="twitter:description"
-    content="Browse TANIDIK nightlife venues, compare ratings, and save your favorites."
-  />
+  <meta name="twitter:description" content="Browse TANIDIK nightlife venues, compare ratings, and save your favorites." />
   <meta name="twitter:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
-
-  <link
-    rel="stylesheet"
-    href="./css/style.css"
-  />
+  <link rel="stylesheet" href="./css/style.css" />
+  <link rel="stylesheet" href="./css/discover-premium.css" />
 </head>
-
 <body>
 
+  <!-- Night sky — fixed, behind everything -->
+  <div class="dp-sky" aria-hidden="true">
+    <div class="dp-stars" id="dpStars1"></div>
+    <div class="dp-stars dp-stars--md" id="dpStars2"></div>
+    <div class="dp-stars dp-stars--lg" id="dpStars3"></div>
+    <div class="dp-nebula"></div>
+    <div class="dp-shoot dp-shoot--1"></div>
+    <div class="dp-shoot dp-shoot--2"></div>
+  </div>
+
   <nav class="navbar">
-
     <h1>TANIDIK</h1>
-
-    <button
-      class="nav-toggle"
-      type="button"
-      aria-label="Toggle navigation"
-      aria-expanded="false"
-    >
-      Menu
-    </button>
-
+    <button class="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false">Menu</button>
     <div class="nav-links">
-
       <a href="./index.html">Home</a>
-
       <a href="./discover.html">Discover</a>
-
       <a href="./events.html">Events</a>
-
       <a href="./favorites.html">Favorites</a>
-
-      <a
-        href="./auth.html"
-        id="authLink"
-      >
-        Login
-      </a>
-
+      <a href="./auth.html" id="authLink">Login</a>
     </div>
-
   </nav>
 
   <main class="discover-page public-detail">
 
-    <div class="discover-controls public-section">
+    <div class="discover-controls public-section dp-controls">
 
-      <input
-        type="text"
-        id="venueSearchInput"
-        placeholder="Search venues..."
-        class="search-input"
-      />
-
-      <div
-        id="cityFilters"
-        class="city-filters"
-      >
+      <!-- Search + Filter row -->
+      <div class="dp-search-row">
+        <div class="dp-search-pill">
+          <svg class="dp-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="11" cy="11" r="7.5" stroke="currentColor" stroke-width="2"/>
+            <path d="M20.5 20.5l-4.8-4.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <input
+            type="text"
+            id="venueSearchInput"
+            class="search-input dp-search-input"
+            placeholder="Mekan, şehir veya kategori ara…"
+            autocomplete="off"
+          />
+        </div>
+        <button type="button" id="dpFilterBtn" class="dp-filter-btn"
+                aria-expanded="false" aria-controls="dpFilterPanel">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <line x1="4" y1="6" x2="20" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <line x1="7" y1="12" x2="17" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <line x1="10" y1="18" x2="14" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span class="dp-filter-label-text">Filtrele</span>
+          <span class="dp-filter-count" id="dpFilterCount" hidden>0</span>
+        </button>
       </div>
 
-      <div
-        id="categoryFilters"
-        class="category-filters"
-      >
+      <!-- Filter panel: cities + categories, toggled -->
+      <div class="dp-filter-panel" id="dpFilterPanel" aria-hidden="true">
+        <div class="dp-filter-section">
+          <p class="dp-filter-section-label">Şehirler</p>
+          <div id="cityFilters" class="city-filters dp-filter-chips"></div>
+        </div>
+        <div class="dp-filter-section">
+          <p class="dp-filter-section-label">Kategoriler</p>
+          <div id="categoryFilters" class="category-filters dp-filter-chips"></div>
+        </div>
       </div>
 
     </div>
 
-    <div
-      id="venuesContainer"
-      class="venues-grid"
-    >
-    </div>
+    <div id="venuesContainer" class="venues-grid"></div>
 
   </main>
 
-  <nav
-    class="mobile-bottom-nav"
-    aria-label="Primary mobile navigation"
-  >
+  <nav class="mobile-bottom-nav" aria-label="Primary mobile navigation">
     <a href="./index.html" data-nav-page="index.html"><span aria-hidden="true">H</span>Home</a>
     <a href="./discover.html" data-nav-page="discover.html"><span aria-hidden="true">D</span>Discover</a>
     <a href="./store.html" data-nav-page="store.html"><span aria-hidden="true">S</span>Store</a>
@@ -133,69 +104,159 @@
   </nav>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="./js/app.js"></script>
+  <div id="toast" class="toast"></div>
 
-<script src="./js/app.js"></script>
+  <!-- 1. Star generator -->
+  <script>
+  (function(){
+    function makeStars(n,W,H){
+      var a=[];
+      for(var i=0;i<n;i++) a.push((Math.random()*W|0)+'px '+(Math.random()*H|0)+'px #fff');
+      return a.join(',');
+    }
+    var W=Math.max((window.screen&&window.screen.width)||1920,1920);
+    var H=Math.max((window.screen&&window.screen.height)||1080,1080)*2;
+    var s1=document.getElementById('dpStars1');
+    var s2=document.getElementById('dpStars2');
+    var s3=document.getElementById('dpStars3');
+    if(s1) s1.style.boxShadow=makeStars(1200,W,H);
+    if(s2) s2.style.boxShadow=makeStars(280,W,H);
+    if(s3) s3.style.boxShadow=makeStars(90,W,H);
+  })();
+  </script>
 
-<div id="toast" class="toast"></div>
-
-<script>
-/* ── Venue cards: kategori bazlı yatay satırlara grupla ── */
-(function () {
-  var container = document.getElementById('venuesContainer');
-  if (!container) return;
-
-  var timer;
-
-  var observer = new MutationObserver(function () {
-    clearTimeout(timer);
-    timer = setTimeout(reorganize, 90);
-  });
-
-  observer.observe(container, { childList: true });
-
-  function reorganize() {
-    var cards = Array.from(
-      container.querySelectorAll(':scope > .venue-card')
-    );
-    if (cards.length === 0) return;
-
-    /* kategori etiketini venue-meta'dan oku (son parça: "Şehir / Kategori") */
-    var groupMap = new Map();
-    cards.forEach(function (card) {
-      var meta = card.querySelector('.venue-meta');
-      var text = meta ? meta.textContent.trim() : '';
-      var parts = text.split(' / ');
-      var cat = parts[parts.length - 1].trim() || 'Other';
-      if (!groupMap.has(cat)) groupMap.set(cat, []);
-      groupMap.get(cat).push(card);
+  <!-- 2. Filter panel toggle -->
+  <script>
+  (function(){
+    var btn=document.getElementById('dpFilterBtn');
+    var panel=document.getElementById('dpFilterPanel');
+    if(!btn||!panel) return;
+    function open(){
+      panel.classList.add('dp-filter-panel--open');
+      btn.classList.add('dp-filter-btn--active');
+      btn.setAttribute('aria-expanded','true');
+      panel.setAttribute('aria-hidden','false');
+    }
+    function close(){
+      panel.classList.remove('dp-filter-panel--open');
+      btn.classList.remove('dp-filter-btn--active');
+      btn.setAttribute('aria-expanded','false');
+      panel.setAttribute('aria-hidden','true');
+    }
+    btn.addEventListener('click',function(e){
+      e.stopPropagation();
+      panel.classList.contains('dp-filter-panel--open') ? close() : open();
     });
-
-    /* DOM değişikliği sırasında observer'ı durdur */
-    observer.disconnect();
-    container.innerHTML = '';
-
-    groupMap.forEach(function (groupCards, cat) {
-      var row = document.createElement('div');
-      row.className = 'venue-row';
-
-      var h3 = document.createElement('h3');
-      h3.className = 'venue-row-heading';
-      h3.textContent = cat;
-
-      var scroll = document.createElement('div');
-      scroll.className = 'venue-row-scroll';
-
-      groupCards.forEach(function (c) { scroll.appendChild(c); });
-
-      row.appendChild(h3);
-      row.appendChild(scroll);
-      container.appendChild(row);
+    document.addEventListener('click',function(e){
+      if(!panel.contains(e.target)&&!btn.contains(e.target)) close();
     });
+    function updateBadge(){
+      var n=document.querySelectorAll('.active-filter').length;
+      var badge=document.getElementById('dpFilterCount');
+      if(!badge) return;
+      badge.textContent=n;
+      badge.hidden=(n===0);
+    }
+    document.addEventListener('click',function(e){
+      if(e.target.classList.contains('city-filter-btn')||
+         e.target.classList.contains('category-filter-btn'))
+        setTimeout(updateBadge,60);
+    });
+  })();
+  </script>
 
-    observer.observe(container, { childList: true });
-  }
-})();
-</script>
+  <!-- 3. Category row grouper (horizontal scroll) -->
+  <script>
+  (function(){
+    var container=document.getElementById('venuesContainer');
+    if(!container) return;
+    var timer;
+    var obs=new MutationObserver(function(){ clearTimeout(timer); timer=setTimeout(run,90); });
+    obs.observe(container,{childList:true});
+    function run(){
+      var cards=Array.from(container.querySelectorAll(':scope > .venue-card'));
+      if(!cards.length) return;
+      var map=new Map();
+      cards.forEach(function(c){
+        var m=c.querySelector('.venue-meta');
+        var t=m?m.textContent.trim():'';
+        var parts=t.split(' / ');
+        var cat=parts[parts.length-1].trim()||'Diğer';
+        if(!map.has(cat)) map.set(cat,[]);
+        map.get(cat).push(c);
+      });
+      obs.disconnect();
+      container.innerHTML='';
+      map.forEach(function(items,cat){
+        var row=document.createElement('div');
+        row.className='venue-row';
+        var h=document.createElement('h3');
+        h.className='venue-row-heading';
+        h.textContent=cat;
+        var scroll=document.createElement('div');
+        scroll.className='venue-row-scroll';
+        items.forEach(function(c){ scroll.appendChild(c); });
+        row.appendChild(h);
+        row.appendChild(scroll);
+        container.appendChild(row);
+      });
+      obs.observe(container,{childList:true});
+    }
+  })();
+  </script>
+
+  <!-- 4. Heart / favorite injector -->
+  <script>
+  (function(){
+    var STORE='tndk_favs';
+    function getFavs(){ try{ return new Set(JSON.parse(localStorage.getItem(STORE)||'[]')); }catch(_){ return new Set(); } }
+    function saveFavs(s){ try{ localStorage.setItem(STORE,JSON.stringify([...s])); }catch(_){} }
+    function getId(card){
+      var a=card.querySelector('a[href*="venue.html"]');
+      if(!a) return null;
+      var m=(a.getAttribute('href')||'').match(/[?&]id=([^&]+)/);
+      return m?decodeURIComponent(m[1]):null;
+    }
+    function svg(filled){
+      return filled
+        ? '<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#ff385c"/></svg>'
+        : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" stroke="rgba(255,255,255,0.9)" stroke-width="2" stroke-linejoin="round"/></svg>';
+    }
+    function inject(card){
+      if(card.querySelector('.dp-heart')) return;
+      var id=getId(card);
+      var on=!!(id&&getFavs().has(id));
+      var btn=document.createElement('button');
+      btn.type='button';
+      btn.className='dp-heart'+(on?' dp-heart--on':'');
+      btn.setAttribute('aria-label','Favorilere ekle');
+      btn.innerHTML=svg(on);
+      btn.addEventListener('click',function(e){
+        e.preventDefault(); e.stopPropagation();
+        var favs=getFavs();
+        var isOn=btn.classList.toggle('dp-heart--on');
+        btn.innerHTML=svg(isOn);
+        btn.classList.add('dp-heart--pop');
+        setTimeout(function(){ btn.classList.remove('dp-heart--pop'); },350);
+        if(id){ if(isOn) favs.add(id); else favs.delete(id); saveFavs(favs); }
+      });
+      card.appendChild(btn);
+    }
+    var c=document.getElementById('venuesContainer');
+    if(!c) return;
+    c.querySelectorAll('.venue-card').forEach(inject);
+    new MutationObserver(function(ms){
+      ms.forEach(function(m){
+        m.addedNodes.forEach(function(n){
+          if(n.nodeType!==1) return;
+          if(n.classList&&n.classList.contains('venue-card')) inject(n);
+          else if(n.querySelectorAll) n.querySelectorAll('.venue-card').forEach(inject);
+        });
+      });
+    }).observe(c,{childList:true,subtree:true});
+  })();
+  </script>
 
 </body>
 </html>

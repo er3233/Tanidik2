@@ -1,0 +1,448 @@
+/* ═══════════════════════════════════════════════════════
+   TANIDIK — Event Premium Page
+   Safe visual merge: all JS IDs/data-attrs preserved.
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Reset page padding ── */
+.ep-main.venue-page,
+.ep-main.event-detail-page {
+  padding: 0 !important;
+  background: #050505;
+  min-height: 100vh;
+}
+
+/* ── Hide navbar (replaced by hero topbar) ── */
+body:has(.ep-main) .navbar {
+  position: fixed;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  backdrop-filter: none !important;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ───────────────────────────────────────
+   HERO
+─────────────────────────────────────── */
+.ep-hero {
+  position: relative;
+  height: 100svh;
+  min-height: 560px;
+  overflow: hidden;
+  background: #0a0a0c;
+}
+
+/* Hero image */
+.ep-hero-img {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center 30% !important;
+  filter: brightness(0.84) saturate(1.14) !important;
+  border-radius: 0 !important;
+}
+
+/* Cinematic gradient */
+.ep-hero-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg,
+      rgba(0,0,0,0.52) 0%,
+      rgba(0,0,0,0.0) 30%,
+      rgba(0,0,0,0.0) 50%,
+      rgba(0,0,0,0.88) 100%
+    ),
+    radial-gradient(ellipse at 50% 100%, rgba(0,0,0,0.6) 0%, transparent 65%);
+}
+
+/* ── Hero top bar ── */
+.ep-hero-topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  padding: 20px 20px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.54) 0%, transparent 100%);
+}
+
+.ep-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 9px 16px 9px 12px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.54);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255,255,255,0.16);
+  color: rgba(255,255,255,0.96);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  letter-spacing: 0.01em;
+  transition: background 150ms, border-color 150ms;
+}
+
+.ep-back-btn:hover {
+  background: rgba(0,0,0,0.74);
+  border-color: rgba(255,255,255,0.28);
+}
+
+/* ── Hero footer ── */
+.ep-hero-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  padding: 80px 28px 36px;
+  background: linear-gradient(0deg,
+    rgba(0,0,0,0.9) 0%,
+    rgba(0,0,0,0.6) 45%,
+    transparent 100%
+  );
+}
+
+.ep-kicker {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  background: rgba(250,204,21,0.16);
+  border: 1px solid rgba(250,204,21,0.36);
+  color: #facc15;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.ep-hero-footer h1,
+#eventTitle {
+  font-size: clamp(34px, 8.5vw, 68px) !important;
+  font-weight: 900 !important;
+  line-height: 1.0 !important;
+  letter-spacing: -0.02em !important;
+  color: #fff !important;
+  margin: 0 !important;
+  text-shadow:
+    0 2px 16px rgba(0,0,0,0.64),
+    0 8px 48px rgba(0,0,0,0.44) !important;
+}
+
+/* Scroll caret at bottom of hero */
+.ep-hero::after {
+  content: "";
+  position: absolute;
+  bottom: 22px;
+  left: 50%;
+  z-index: 6;
+  width: 24px;
+  height: 24px;
+  border-right: 2px solid rgba(255,255,255,0.46);
+  border-bottom: 2px solid rgba(255,255,255,0.46);
+  transform: translateX(-50%) rotate(45deg);
+  animation: epScrollBounce 1.9s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes epScrollBounce {
+  0%, 100% { opacity: 0.36; transform: translateX(-50%) rotate(45deg) translateY(0); }
+  50%       { opacity: 0.86; transform: translateX(-50%) rotate(45deg) translateY(6px); }
+}
+
+/* ───────────────────────────────────────
+   CONTENT AREA
+─────────────────────────────────────── */
+.ep-content {
+  position: relative;
+  z-index: 2;
+  padding: 0 0 128px;
+  background: #050505;
+}
+
+/* ── Action pill row ── */
+.ep-main .event-mobile-actions.ep-actions-row {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  gap: 8px !important;
+  overflow-x: auto !important;
+  scrollbar-width: none !important;
+  padding: 20px 20px 8px !important;
+  grid-template-columns: unset !important;
+}
+
+.ep-main .event-mobile-actions.ep-actions-row::-webkit-scrollbar {
+  display: none;
+}
+
+.ep-main .event-mobile-actions.ep-actions-row button {
+  flex-shrink: 0 !important;
+  min-height: 40px !important;
+  padding: 9px 18px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,255,255,0.14) !important;
+  background: rgba(255,255,255,0.06) !important;
+  color: rgba(255,255,255,0.88) !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all 160ms !important;
+  letter-spacing: 0.01em !important;
+  width: auto !important;
+}
+
+.ep-main .event-mobile-actions.ep-actions-row button:hover,
+.ep-main .event-mobile-actions.ep-actions-row button.is-active {
+  border-color: rgba(250,204,21,0.46) !important;
+  background: rgba(250,204,21,0.14) !important;
+  color: #facc15 !important;
+}
+
+.ep-main .event-mobile-actions.ep-actions-row button.ep-action--primary {
+  background: #facc15 !important;
+  border-color: transparent !important;
+  color: #050505 !important;
+  font-weight: 800 !important;
+  box-shadow: 0 4px 20px rgba(250,204,21,0.34);
+}
+
+.ep-main .event-mobile-actions.ep-actions-row button.ep-action--primary:hover {
+  background: #f7d366 !important;
+  color: #050505 !important;
+}
+
+/* ── Glass cards ── */
+.ep-card {
+  margin: 12px 16px !important;
+  padding: 24px !important;
+  border-radius: 24px !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  background:
+    linear-gradient(160deg, rgba(15,15,18,0.92), rgba(7,7,10,0.88)) !important;
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  box-shadow:
+    0 8px 40px rgba(0,0,0,0.38),
+    inset 0 1px 0 rgba(255,255,255,0.05) !important;
+  animation: epCardIn 380ms cubic-bezier(0.16,1,0.3,1) both;
+}
+
+@keyframes epCardIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ep-content > .ep-card:nth-child(2) { animation-delay: 0ms; }
+.ep-content > .ep-card:nth-child(3) { animation-delay: 60ms; }
+.ep-content > .ep-card:nth-child(4) { animation-delay: 120ms; }
+.ep-content > .ep-card:nth-child(5) { animation-delay: 180ms; }
+
+/* ── Section headers ── */
+.ep-section-header {
+  margin-bottom: 18px;
+}
+
+.ep-section-kicker {
+  display: inline-block;
+  margin-bottom: 6px;
+  color: #facc15;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.ep-section-header h2 {
+  font-size: 20px !important;
+  font-weight: 800 !important;
+  color: #fff !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+}
+
+/* ── Content text ── */
+.ep-date {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 14px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(250,204,21,0.12);
+  border: 1px solid rgba(250,204,21,0.28);
+  color: #facc15;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.ep-date:empty {
+  display: none;
+}
+
+.ep-description {
+  color: rgba(210,210,220,0.82) !important;
+  font-size: 15px !important;
+  line-height: 1.72 !important;
+  margin: 0 !important;
+}
+
+.ep-card p {
+  color: rgba(200,200,210,0.78) !important;
+  font-size: 14px !important;
+  line-height: 1.65 !important;
+}
+
+.ep-venue-info {
+  margin-bottom: 18px !important;
+}
+
+/* Venue info links inside eventVenue */
+.ep-card #eventVenue a {
+  color: #facc15;
+  text-decoration: none;
+  font-weight: 700;
+  border-bottom: 1px solid rgba(250,204,21,0.32);
+  transition: border-color 150ms;
+}
+
+.ep-card #eventVenue a:hover {
+  border-color: rgba(250,204,21,0.72);
+}
+
+/* RSVP / attendance widget */
+.ep-card .event-attendance {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ep-card .event-attendance .btn,
+.ep-card .event-attendance button {
+  border-radius: 999px !important;
+}
+
+/* Back link at bottom of venue panel */
+.ep-back-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.72);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  transition: all 150ms;
+}
+
+.ep-back-link:hover {
+  border-color: rgba(250,204,21,0.36);
+  color: #facc15;
+}
+
+/* ── Hide legacy elements ── */
+.ep-main .venue-meta,
+.ep-main .detail-actions {
+  display: none !important;
+}
+
+/* ───────────────────────────────────────
+   MOBILE  (≤ 700px)
+─────────────────────────────────────── */
+@media (max-width: 700px) {
+  .ep-hero {
+    height: 100svh;
+    min-height: 520px;
+  }
+
+  .ep-hero-footer {
+    padding: 60px 20px 28px;
+  }
+
+  .ep-hero-footer h1,
+  #eventTitle {
+    font-size: clamp(30px, 10vw, 54px) !important;
+  }
+
+  .ep-card {
+    margin: 8px 12px !important;
+    padding: 18px !important;
+    border-radius: 20px !important;
+  }
+
+  .ep-main .event-mobile-actions.ep-actions-row {
+    padding: 14px 12px 6px !important;
+    gap: 7px !important;
+  }
+
+  .ep-main .event-mobile-actions.ep-actions-row button {
+    padding: 8px 15px !important;
+    font-size: 12px !important;
+  }
+
+  /* Mobile panels: JS-driven toggle behavior */
+  .ep-main .event-mobile-panel {
+    display: none !important;
+  }
+
+  .ep-main .event-mobile-panel.is-open {
+    display: block !important;
+    animation: epCardIn 220ms cubic-bezier(0.16,1,0.3,1) both !important;
+  }
+
+  .ep-section-header h2 {
+    font-size: 17px !important;
+  }
+}
+
+/* ───────────────────────────────────────
+   DESKTOP / TABLET  (> 700px)
+─────────────────────────────────────── */
+@media (min-width: 701px) {
+  /* All panels always visible */
+  .ep-main .event-mobile-panel {
+    display: block !important;
+  }
+
+  .ep-content {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 0 0 80px;
+  }
+
+  .ep-hero-footer {
+    padding: 80px 48px 40px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .ep-hero-topbar {
+    padding: 24px 48px;
+  }
+
+  .ep-card {
+    margin: 12px 0 !important;
+  }
+
+  .ep-main .event-mobile-actions.ep-actions-row {
+    padding: 20px 0 8px !important;
+  }
+}

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -46,10 +46,8 @@
   />
   <meta name="twitter:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
 
-  <link
-    rel="stylesheet"
-    href="./css/style.css"
-  />
+  <link rel="stylesheet" href="./css/style.css" />
+  <link rel="stylesheet" href="./css/venue-premium.css" />
 </head>
 
 <body>
@@ -68,110 +66,233 @@
     </button>
 
     <div class="nav-links">
-
       <a href="./index.html">Home</a>
-
       <a href="./discover.html">Discover</a>
-
       <a href="./events.html">Events</a>
-
       <a href="./favorites.html">Favorites</a>
-
-      <a
-        href="./auth.html"
-        id="authLink"
-      >
-        Login
-      </a>
-
+      <a href="./auth.html" id="authLink">Login</a>
     </div>
 
   </nav>
 
-  <main class="venue-page public-detail venue-detail-page">
+  <main class="venue-page venue-detail-page vp-main">
 
-    <img
-      id="venueImage"
-      class="venue-hero-image"
-      alt="Venue image"
-    />
+    <!-- ─── Full-bleed hero ─── -->
+    <div class="vp-hero">
 
-    <div
-      id="venueGallery"
-      class="venue-photo-gallery"
-    >
+      <img
+        id="venueImage"
+        class="venue-hero-image vp-hero-img"
+        alt="Venue image"
+      />
+
+      <div class="vp-hero-overlay"></div>
+
+      <!-- Top bar: back + save -->
+      <div class="vp-hero-topbar">
+        <a href="./discover.html" class="vp-back-btn">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M10 13L5 8l5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Discover
+        </a>
+        <button type="button" id="detailFavoriteBtn" class="vp-fav-btn btn">Add to Favorites</button>
+      </div>
+
+      <!-- Hero footer: kicker, name, pills -->
+      <div class="vp-hero-footer">
+        <span class="vp-kicker">TANIDIK</span>
+        <h1 id="venueName">Loading…</h1>
+        <div class="vp-meta-pills">
+          <span id="venueCity" class="vp-pill"></span>
+          <span id="venueCategory" class="vp-pill"></span>
+          <div id="venueAverageRating" class="average-rating vp-pill vp-pill--rating">—</div>
+        </div>
+      </div>
+
     </div>
 
-    <button
-      type="button"
-      id="venueMenuToggle"
-      class="venue-menu-toggle"
-      aria-expanded="false"
-    >
-      Menu
-    </button>
+    <!-- ─── Scrollable content ─── -->
+    <div class="vp-content">
 
-    <section
-      id="venueMenu"
-      class="venue-menu-panel"
-      hidden
-    >
-    </section>
+      <!-- Photo gallery strip -->
+      <div
+        id="venueGallery"
+        class="venue-photo-gallery vp-gallery"
+      ></div>
 
-    <button
-      type="button"
-      id="venueStoreToggle"
-      class="venue-menu-toggle venue-store-toggle"
-      aria-expanded="false"
-    >
-      Store
-    </button>
+      <!-- Action pill row (always visible, panels toggle on mobile) -->
+      <div
+        class="venue-mobile-actions vp-actions-row"
+        aria-label="Venue actions"
+      >
+        <button type="button" data-open-panel="reservation" class="vp-action--primary">Reserve</button>
+        <button type="button" data-open-panel="reviews">Reviews</button>
+        <button type="button" data-open-panel="location">Location</button>
+        <button type="button" data-open-panel="events">Events</button>
+        <button type="button" data-open-panel="details">Info</button>
+      </div>
 
-    <section
-      id="venueStore"
-      class="venue-menu-panel venue-store-panel"
-      hidden
-    >
-    </section>
-
-    <div class="venue-details">
-
-      <span class="venue-meta">
-        Venue
-      </span>
-
-      <h1 id="venueName">
-        Loading...
-      </h1>
-
-      <p id="venueCity"></p>
-
-      <p id="venueCategory"></p>
-
+      <!-- Description / details panel -->
       <section
-        class="venue-mobile-panel venue-details-panel is-open"
+        class="vp-card venue-mobile-panel venue-details-panel is-open"
         data-panel="details"
       >
-        <p id="venueDescription"></p>
-
-        <div
-          id="venueAverageRating"
-          class="average-rating"
-        >
-          No ratings yet
-        </div>
+        <p id="venueDescription" class="vp-description"></p>
       </section>
 
+      <!-- Menu / Store toggle buttons -->
+      <div class="vp-toggles">
+        <button
+          type="button"
+          id="venueMenuToggle"
+          class="vp-toggle-btn venue-menu-toggle"
+          aria-expanded="false"
+        >
+          View Menu
+        </button>
+
+        <button
+          type="button"
+          id="venueStoreToggle"
+          class="vp-toggle-btn venue-menu-toggle venue-store-toggle"
+          aria-expanded="false"
+        >
+          Shop Store
+        </button>
+      </div>
+
+      <section
+        id="venueMenu"
+        class="venue-menu-panel vp-panel-reveal"
+        hidden
+      ></section>
+
+      <section
+        id="venueStore"
+        class="venue-menu-panel venue-store-panel vp-panel-reveal"
+        hidden
+      ></section>
+
+      <!-- Reservation -->
+      <section
+        class="vp-card public-section public-section--reservations venue-mobile-panel"
+        data-panel="reservation"
+      >
+        <div class="vp-section-header">
+          <span class="vp-section-kicker">Table Request</span>
+          <h2 class="section-title">Reservations</h2>
+          <p>Send a request to the venue. Status updates appear here after submission.</p>
+        </div>
+
+        <form
+          id="reservationForm"
+          class="reservation-form"
+        >
+          <label class="reservation-field">
+            <span>Date</span>
+            <input type="date" id="reservationDate" required />
+          </label>
+
+          <label class="reservation-field">
+            <span>Time</span>
+            <input type="time" id="reservationTime" required />
+          </label>
+
+          <div
+            id="venueAvailabilitySummary"
+            class="venue-availability-summary"
+            aria-live="polite"
+          ></div>
+
+          <div
+            id="venueAvailableSlots"
+            class="venue-slot-picker"
+            aria-live="polite"
+          ></div>
+
+          <p id="venueSlotMessage" class="venue-slot-message"></p>
+
+          <label class="reservation-field">
+            <span>Guest count</span>
+            <input
+              type="number"
+              id="reservationPartySize"
+              min="1"
+              max="20"
+              placeholder="2"
+              required
+            />
+          </label>
+
+          <label class="reservation-field reservation-field--note">
+            <span>Optional request</span>
+            <textarea
+              id="reservationNote"
+              placeholder="Occasion, seating preference, or arrival details"
+            ></textarea>
+          </label>
+
+          <div class="reservation-submit-row">
+            <button type="submit" class="btn">Request Reservation</button>
+            <span>Your booking will be sent to the business for approval.</span>
+          </div>
+        </form>
+
+        <p id="reservationMessage" class="page-message"></p>
+
+        <div
+          id="userReservations"
+          class="reservation-list"
+        ></div>
+      </section>
+
+      <!-- Reviews -->
+      <section
+        class="vp-card public-section public-section--reviews venue-mobile-panel"
+        data-panel="reviews"
+      >
+        <div class="vp-section-header">
+          <h2 class="section-title">Reviews</h2>
+        </div>
+
+        <form id="reviewForm" class="review-form">
+          <select id="reviewRating" class="review-rating-select" required>
+            <option value="">Rating</option>
+            <option value="5">5 ★</option>
+            <option value="4">4 ★</option>
+            <option value="3">3 ★</option>
+            <option value="2">2 ★</option>
+            <option value="1">1 ★</option>
+          </select>
+
+          <textarea
+            id="reviewText"
+            class="review-textarea"
+            maxlength="240"
+            placeholder="Write a short review…"
+            required
+          ></textarea>
+
+          <button type="submit" class="btn">Submit Review</button>
+        </form>
+
+        <p id="reviewMessage" class="page-message"></p>
+
+        <div id="venueReviews" class="reviews-list"></div>
+      </section>
+
+      <!-- Location -->
       <section
         id="venueLocationSection"
-        class="location-section public-section public-section--location venue-mobile-panel"
+        class="vp-card location-section public-section public-section--location venue-mobile-panel"
         data-panel="location"
       >
-        <h2 class="section-title">
-          Location
-        </h2>
+        <div class="vp-section-header">
+          <h2 class="section-title">Location</h2>
+        </div>
 
-        <p id="venueAddress"></p>
+        <p id="venueAddress" class="vp-address"></p>
 
         <iframe
           id="venueMap"
@@ -190,244 +311,16 @@
         </a>
       </section>
 
-      <div class="detail-actions">
-
-        <button
-          id="detailFavoriteBtn"
-          class="btn"
-        >
-          Add to Favorites
-        </button>
-
-        <a
-          href="./discover.html"
-          class="secondary-btn"
-        >
-          Back to Discover
-        </a>
-
-      </div>
-
-      <div
-        class="venue-mobile-actions"
-        aria-label="Venue actions"
-      >
-        <button
-          type="button"
-          data-open-panel="reservation"
-        >
-          Make Reservation
-        </button>
-
-        <button
-          type="button"
-          data-open-panel="reviews"
-        >
-          Reviews
-        </button>
-
-        <button
-          type="button"
-          data-open-panel="location"
-        >
-          Location
-        </button>
-
-        <button
-          type="button"
-          data-open-panel="events"
-        >
-          Events
-        </button>
-
-        <button
-          type="button"
-          data-open-panel="details"
-        >
-          Details
-        </button>
-      </div>
-
+      <!-- Events -->
       <section
-        class="public-section public-section--reviews venue-mobile-panel"
-        data-panel="reviews"
-      >
-        <h2 class="section-title">
-          Reviews
-        </h2>
-
-        <form
-          id="reviewForm"
-          class="review-form"
-        >
-          <select
-            id="reviewRating"
-            class="review-rating-select"
-            required
-          >
-            <option value="">
-              Rating
-            </option>
-            <option value="5">5</option>
-            <option value="4">4</option>
-            <option value="3">3</option>
-            <option value="2">2</option>
-            <option value="1">1</option>
-          </select>
-
-          <textarea
-            id="reviewText"
-            class="review-textarea"
-            maxlength="240"
-            placeholder="Write a short review..."
-            required
-          ></textarea>
-
-          <button
-            type="submit"
-            class="btn"
-          >
-            Submit Review
-          </button>
-        </form>
-
-        <p
-          id="reviewMessage"
-          class="page-message"
-        ></p>
-
-        <div
-          id="venueReviews"
-          class="reviews-list"
-        >
-        </div>
-      </section>
-
-      <section
-        class="public-section public-section--reservations venue-mobile-panel"
-        data-panel="reservation"
-      >
-        <div class="reservation-section-header">
-          <div>
-            <span class="reservation-kicker">
-              Table Request
-            </span>
-
-            <h2 class="section-title">
-              Reservations
-            </h2>
-          </div>
-
-          <p>
-            Send a request to the venue. Your status updates will appear here
-            after submission.
-          </p>
-        </div>
-
-        <form
-          id="reservationForm"
-          class="reservation-form"
-        >
-          <label class="reservation-field">
-            <span>Date</span>
-
-            <input
-              type="date"
-              id="reservationDate"
-              required
-            />
-          </label>
-
-          <label class="reservation-field">
-            <span>Time</span>
-
-            <input
-              type="time"
-              id="reservationTime"
-              required
-            />
-          </label>
-
-          <div
-            id="venueAvailabilitySummary"
-            class="venue-availability-summary"
-            aria-live="polite"
-          >
-          </div>
-
-          <div
-            id="venueAvailableSlots"
-            class="venue-slot-picker"
-            aria-live="polite"
-          >
-          </div>
-
-          <p
-            id="venueSlotMessage"
-            class="venue-slot-message"
-          ></p>
-
-          <label class="reservation-field">
-            <span>Guest count</span>
-
-            <input
-              type="number"
-              id="reservationPartySize"
-              min="1"
-              max="20"
-              placeholder="2"
-              required
-            />
-          </label>
-
-          <label class="reservation-field reservation-field--note">
-            <span>Optional request</span>
-
-            <textarea
-              id="reservationNote"
-              placeholder="Occasion, seating preference, or arrival details"
-            ></textarea>
-          </label>
-
-          <div class="reservation-submit-row">
-            <button
-              type="submit"
-              class="btn"
-            >
-              Request Reservation
-            </button>
-
-            <span>
-              Your booking will be sent to the business for approval.
-            </span>
-          </div>
-        </form>
-
-        <p
-          id="reservationMessage"
-          class="page-message"
-        ></p>
-
-        <div
-          id="userReservations"
-          class="reservation-list"
-        >
-        </div>
-      </section>
-
-      <section
-        class="public-section public-section--events venue-mobile-panel"
+        class="vp-card public-section public-section--events venue-mobile-panel"
         data-panel="events"
       >
-        <h2 class="section-title">
-          Events at this venue
-        </h2>
-
-        <div
-          id="venueEvents"
-          class="venues-grid"
-        >
+        <div class="vp-section-header">
+          <h2 class="section-title">Events at this venue</h2>
         </div>
+
+        <div id="venueEvents" class="venues-grid"></div>
       </section>
 
     </div>
