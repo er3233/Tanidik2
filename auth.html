@@ -50,9 +50,42 @@
     rel="stylesheet"
     href="./css/style.css"
   />
+  <link rel="stylesheet" href="./css/auth-earth.css" />
 </head>
 
 <body class="auth-page">
+
+  <!-- ─── Cinematic Earth Intro Overlay ─── -->
+  <div id="ae-intro" role="region" aria-label="Welcome to TANIDIK">
+
+    <!-- Three.js canvas (filled by auth-earth.js) -->
+    <canvas id="ae-canvas" aria-hidden="true"></canvas>
+
+    <!-- Gold dust particles (spawned by auth-earth.js) -->
+    <div class="ae-particles" id="aeParticles" aria-hidden="true"></div>
+
+    <!-- Centered brand + CTA -->
+    <div class="ae-overlay-content">
+
+      <div class="ae-brand">
+        <span class="ae-kicker">Premium Nightlife</span>
+        <div class="ae-title" role="heading" aria-level="1">TANIDIK</div>
+        <p class="ae-sub">Discover &middot; Reserve &middot; Experience</p>
+      </div>
+
+      <div class="ae-cta" role="group" aria-label="Account access">
+        <button id="aeLoginBtn" class="ae-btn ae-btn--primary" type="button">
+          Giriş Yap
+        </button>
+        <button id="aeRegisterBtn" class="ae-btn ae-btn--ghost" type="button">
+          Kayıt Ol
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+  <!-- ─── /Intro Overlay ─── -->
 
   <main class="auth-container">
 
@@ -159,9 +192,11 @@
 
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
   <script src="./js/app.js"></script>
+  <script src="./js/auth-earth.js"></script>
 
   <script>
     (function () {
