@@ -5,7 +5,7 @@
 
 /* ── Page base ── */
 body.auth-page {
-  background: #010108 !important;
+  background: #000004 !important;
   overflow: hidden;
 }
 
@@ -24,7 +24,7 @@ body.auth-page.ae-form-open {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: #010108;
+  background: #000004;
   /* slightly slower fade so Earth lingers as form comes in */
   transition: opacity 780ms cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -53,7 +53,7 @@ body.auth-page.ae-form-open {
   opacity: 0.45;
 }
 
-/* ── Deep-space vignette (radial, edges only) ── */
+/* ── Deep-space vignette ── */
 #ae-intro::before {
   content: '';
   position: absolute;
@@ -61,9 +61,9 @@ body.auth-page.ae-form-open {
   z-index: 2;
   pointer-events: none;
   background: radial-gradient(
-    ellipse 78% 72% at 50% 50%,
-    transparent 28%,
-    rgba(0, 0, 0, 0.78) 100%
+    ellipse 68% 62% at 50% 50%,
+    transparent 18%,
+    rgba(0, 0, 0, 0.92) 100%
   );
 }
 
@@ -74,12 +74,13 @@ body.auth-page.ae-form-open {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 38%;
+  height: 50%;
   z-index: 2;
   pointer-events: none;
   background: linear-gradient(
     0deg,
-    rgba(1, 1, 8, 0.92) 0%,
+    rgba(0, 0, 4, 0.98) 0%,
+    rgba(0, 0, 4, 0.50) 50%,
     transparent 100%
   );
 }
@@ -113,19 +114,20 @@ body.auth-page.ae-form-open {
 }
 
 /* ───────────────────────────────────────
-   OVERLAY CONTENT
+   OVERLAY CONTENT — full-screen anchor
+   Brand block is flex-centered (Earth center).
+   CTA is pinned to bottom independently.
 ─────────────────────────────────────── */
 .ae-overlay-content {
-  position: relative;
+  position: absolute;
+  inset: 0;
   z-index: 10;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;   /* centers .ae-brand over Earth */
   text-align: center;
-  padding: 0 28px;
-  gap: 0;
-  /* keep content centered even on very tall phones */
-  max-height: 100vh;
+  pointer-events: none;
   overflow: hidden;
 }
 
@@ -134,35 +136,37 @@ body.auth-page.ae-form-open {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 60px;
+  gap: 0;
+  margin-bottom: 0;
 }
 
-/* ── Kicker ── */
+/* ── Kicker — hidden ── */
 .ae-kicker {
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.32em;
-  text-transform: uppercase;
-  color: rgba(240, 192, 96, 0.70);
-  opacity: 0;
-  transform: translateY(18px);
-  transition: opacity 860ms ease, transform 860ms cubic-bezier(0.16, 1, 0.3, 1);
-  display: block;
+  display: none !important;
 }
 
-/* ── Main title ── */
+/* ── Main title — metallic gold ── */
 .ae-title {
   font-size: clamp(58px, 16vw, 112px);
   font-weight: 900;
-  letter-spacing: -0.025em;
+  letter-spacing: 0.06em;
   line-height: 1;
-  color: #fff;
   margin: 0;
-  text-shadow:
-    0 0  60px rgba(240, 192, 96, 0.22),
-    0 0 120px rgba(240, 192, 96, 0.10),
-    0 4px 44px rgba(0,   0,   0, 0.94);
+  /* metallic gold gradient */
+  background: linear-gradient(
+    160deg,
+    #c8941c 0%,
+    #f0c060 28%,
+    #fffbe8 50%,
+    #f0c060 72%,
+    #b8780e 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  /* depth shadow — visible on non-gradient fallback browsers */
+  filter: drop-shadow(0 0 32px rgba(240, 192, 96, 0.28))
+          drop-shadow(0 2px 24px rgba(0, 0, 0, 0.90));
   opacity: 0;
   transform: translateY(24px) scale(0.95);
   transition:
@@ -172,32 +176,42 @@ body.auth-page.ae-form-open {
 
 /* ── Subtitle ── */
 .ae-sub {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.24em;
+  margin: 10px 0 0;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.30);
-  margin: 6px 0 0;
+  color: rgba(255, 255, 255, 0.36);
   opacity: 0;
-  transform: translateY(14px);
-  transition: opacity 760ms ease, transform 760ms ease;
+  transform: translateY(10px);
+  transition:
+    opacity   900ms ease,
+    transform 900ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ── Visible state — added by JS ── */
 .ae--visible {
   opacity: 1 !important;
   transform: none !important;
+  /* restore -webkit-text-fill-color when title becomes visible */
 }
 
 /* ───────────────────────────────────────
-   CTA BUTTONS
+   CTA BUTTONS — Earth altında, ortalanmış
 ─────────────────────────────────────── */
 .ae-cta {
+  pointer-events: auto;
+  /* detached from brand block — pinned to bottom of overlay */
+  position: absolute;
+  bottom: 52px;
+  left: 0;
+  right: 0;
   display: flex;
   flex-direction: row;
-  gap: 14px;
+  justify-content: center;
+  gap: 12px;
   opacity: 0;
-  transform: translateY(30px);
+  transform: translateY(18px);
   transition:
     opacity   700ms ease,
     transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -207,115 +221,162 @@ body.auth-page.ae-form-open {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 15px 40px;
+  padding: 0 32px;
+  height: 44px;
   border-radius: 999px;
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
   cursor: pointer;
-  border: none;
   outline: none;
+  border: none;
   -webkit-tap-highlight-color: transparent;
   transition:
-    transform  240ms cubic-bezier(0.34, 1.56, 0.64, 1),
-    box-shadow 240ms ease,
-    background 200ms ease,
+    transform  260ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 260ms ease,
     opacity    200ms ease;
   position: relative;
-  overflow: hidden;
   white-space: nowrap;
-  /* minimum tap target */
-  min-width: 130px;
-  min-height: 52px;
+  min-width: 120px;
 }
 
-/* Primary — gold */
+/* ── Primary — solid metallic gold ── */
 .ae-btn--primary {
-  background: linear-gradient(135deg, #f0c060 0%, #c8841c 100%);
-  color: #050505;
+  background: linear-gradient(
+    150deg,
+    #e8b020 0%,
+    #f5cc55 38%,
+    #fde88a 55%,
+    #e8b020 100%
+  );
+  color: #1a0e00;
   box-shadow:
-    0  6px 32px rgba(240, 192, 96, 0.44),
-    0  2px 10px rgba(0,   0,   0, 0.55),
-    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+    0  4px 24px rgba(240, 192, 40, 0.38),
+    0  1px  6px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.20);
 }
 
 .ae-btn--primary:hover {
-  transform: translateY(-3px) scale(1.03);
+  transform: translateY(-3px) scale(1.02);
   box-shadow:
-    0 14px 48px rgba(240, 192, 96, 0.56),
-    0  4px 16px rgba(0,   0,   0, 0.50);
+    0  8px 36px rgba(240, 192, 40, 0.54),
+    0  2px 12px rgba(0, 0, 0, 0.50),
+    inset 0 1px 0 rgba(255, 255, 255, 0.50);
 }
 
 .ae-btn--primary:active {
-  transform: scale(0.97);
+  transform: scale(0.96);
+  box-shadow:
+    0  2px 12px rgba(240, 192, 40, 0.28),
+    inset 0 1px 2px rgba(0, 0, 0, 0.30);
 }
 
-/* Ghost — glass */
+/* ── Ghost — dark glass + gold border ── */
 .ae-btn--ghost {
-  background: rgba(255, 255, 255, 0.07);
-  color: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  backdrop-filter: blur(18px) saturate(160%);
-  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  background: rgba(6, 4, 2, 0.60);
+  color: rgba(240, 192, 96, 0.75);
+  border: 1px solid rgba(240, 192, 96, 0.32);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  box-shadow:
+    0 2px 16px rgba(0, 0, 0, 0.40),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .ae-btn--ghost:hover {
-  background: rgba(255, 255, 255, 0.13);
-  border-color: rgba(255, 255, 255, 0.30);
-  color: #fff;
-  transform: translateY(-3px) scale(1.03);
+  background: rgba(20, 12, 2, 0.72);
+  border-color: rgba(240, 192, 96, 0.70);
+  color: rgba(245, 204, 112, 0.95);
+  transform: translateY(-3px) scale(1.02);
+  box-shadow:
+    0 6px 28px rgba(0, 0, 0, 0.50),
+    0 0 18px rgba(240, 192, 96, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .ae-btn--ghost:active {
-  transform: scale(0.97);
-}
-
-/* Shimmer sweep on primary */
-.ae-btn--primary::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 60%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.24) 50%,
-    transparent 100%
-  );
-  animation: aeShimmer 3.8s ease-in-out infinite;
-}
-
-@keyframes aeShimmer {
-  0%   { left: -80%;  }
-  60%  { left: 130%;  }
-  100% { left: 130%;  }
+  transform: scale(0.96);
+  opacity: 0.85;
 }
 
 /* ───────────────────────────────────────
-   MOBILE
+   MOBILE  — 431px–600px
 ─────────────────────────────────────── */
-@media (max-width: 480px) {
+@media (max-width: 600px) {
   .ae-title {
-    font-size: clamp(52px, 19vw, 78px) !important;
+    font-size: clamp(46px, 13vw, 66px);
   }
 
-  .ae-brand {
-    margin-bottom: 48px;
+  .ae-sub {
+    font-size: 9px;
+    letter-spacing: 0.20em;
+    margin-top: 8px;
   }
 
   .ae-cta {
-    flex-direction: column;
-    align-items: stretch;
-    width: min(300px, 80vw);
-    gap: 11px;
+    bottom: 44px;
+    gap: 10px;
   }
 
   .ae-btn {
-    padding: 14px 28px;
-    font-size: 13px;
-    text-align: center;
+    height: 40px;
+    padding: 0 26px;
+    font-size: 10px;
+    min-width: 108px;
+  }
+}
+
+/* ───────────────────────────────────────
+   MOBILE  — 390px–430px (iPhone 14/15, Galaxy S)
+─────────────────────────────────────── */
+@media (max-width: 430px) {
+  .ae-title {
+    font-size: clamp(36px, 11vw, 48px) !important;
+    letter-spacing: 0.05em;
+  }
+
+  .ae-sub {
+    font-size: 8px;
+    letter-spacing: 0.18em;
+    margin-top: 6px;
+  }
+
+  .ae-cta {
+    bottom: 38px;
+    gap: 9px;
+  }
+
+  .ae-btn {
+    height: 38px;
+    padding: 0 22px;
+    font-size: 9px;
+    min-width: 100px;
+  }
+}
+
+/* ───────────────────────────────────────
+   SHORT SCREENS  — landscape / küçük yükseklik
+─────────────────────────────────────── */
+@media (max-height: 680px) {
+  .ae-title {
+    font-size: clamp(28px, 9vw, 44px) !important;
+  }
+
+  .ae-sub {
+    display: none;
+  }
+
+  .ae-cta {
+    bottom: 24px;
+  }
+
+  .ae-btn {
+    height: 34px;
+    padding: 0 18px;
+    font-size: 9px;
+    min-width: 90px;
   }
 }
 
@@ -340,9 +401,5 @@ body.auth-page.ae-form-open {
   .ae-particle {
     animation: none !important;
     display: none !important;
-  }
-
-  .ae-btn--primary::after {
-    animation: none !important;
   }
 }
