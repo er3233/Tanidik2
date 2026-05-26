@@ -458,20 +458,41 @@ body.home-walk-active .maplibregl-ctrl-bottom-right {
    rules here safely override style.css for this page.
    ═══════════════════════════════════════════════════════ */
 
-/* ── Navbar: floating glass, remove heavy box ── */
+/* ── Navbar: fully transparent — TANIDIK h2 is the hero ── */
 .navbar {
-  background: rgba(3, 3, 8, 0.46) !important;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.05),
-    0 6px 28px rgba(0, 0, 0, 0.22) !important;
-  border-bottom-color: rgba(255, 255, 255, 0.05) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-bottom: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
+/* Hide navbar brand — overlay h2 carries TANIDIK */
 .navbar h1 {
-  font-size: 1.02rem !important;
-  font-weight: 500 !important;
-  letter-spacing: 0.09em !important;
-  color: rgba(255, 255, 255, 0.80) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
+/* Nav links: ghost-floating over map */
+.nav-links a {
+  font-size: 9.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.14em !important;
+  color: rgba(255, 255, 255, 0.46) !important;
+  background: transparent !important;
+  padding: 6px 12px !important;
+  border-radius: 6px !important;
+}
+
+.nav-links a:hover {
+  color: rgba(255, 255, 255, 0.82) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+.nav-links a.active {
+  color: rgba(240, 192, 96, 0.80) !important;
+  background: rgba(240, 192, 96, 0.06) !important;
 }
 
 /* ── Satellite: noir depth + strong ocean contrast ── */
@@ -515,88 +536,42 @@ body.home-walk-active .home-map-canvas {
   opacity: 0.46 !important;
 }
 
-/* ── TANIDIK headline: smaller, cleaner ── */
-.home-map-overlay h2 {
-  font-size: clamp(44px, 9.5vw, 108px) !important;
-  letter-spacing: 0.03em !important;
-  margin-bottom: 14px !important;
-  text-shadow:
-    0 10px 40px rgba(0,0,0,0.84),
-    0 0 28px rgba(250,204,21,0.09) !important;
-}
-
-/* ── Body copy: quieter ── */
-.home-map-overlay p {
-  font-size: clamp(13px, 1.7vw, 16px) !important;
-  color: rgba(210, 210, 210, 0.68) !important;
-  margin-bottom: 22px !important;
-}
-
-/* ── DISCOVER + Walk Mode: thin dark glass pills ── */
-.home-map-actions .btn {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  min-height: unset !important;
-  height: 36px !important;
-  padding: 0 20px !important;
-  border-radius: 999px !important;
-  background: rgba(4, 4, 10, 0.80) !important;
-  color: rgba(240, 192, 96, 0.88) !important;
-  border: 1px solid rgba(240, 192, 96, 0.26) !important;
-  font-size: 10px !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.18em !important;
-  text-transform: uppercase !important;
-  box-shadow:
-    0 0 12px rgba(240,192,96,0.09),
-    0 3px 14px rgba(0,0,0,0.52),
-    inset 0 1px 0 rgba(255,255,255,0.06) !important;
-  backdrop-filter: blur(24px) !important;
-  -webkit-backdrop-filter: blur(24px) !important;
-  transition: border-color 200ms ease, box-shadow 200ms ease, color 200ms ease !important;
-}
-
-.home-map-actions .btn::before {
+/* ── Remove buttons, kicker, description ── */
+.home-map-kicker,
+.home-map-overlay p,
+.home-map-actions,
+.home-walk-button {
   display: none !important;
 }
 
-.home-map-actions .btn:hover {
-  transform: none !important;
-  border-color: rgba(240,192,96,0.50) !important;
-  color: rgba(240,192,96,1) !important;
-  box-shadow:
-    0 0 20px rgba(240,192,96,0.18),
-    0 4px 18px rgba(0,0,0,0.56),
-    inset 0 1px 0 rgba(255,255,255,0.08) !important;
+/* ── Overlay: TANIDIK pinned to top ── */
+.home-map-overlay {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  padding: 18px 28px 0 !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  text-align: center !important;
 }
 
-.home-map-actions .btn:active {
-  transform: scale(0.97) !important;
-  filter: none !important;
-}
-
-.home-walk-button {
-  height: 36px !important;
-  min-height: unset !important;
-  padding: 0 20px !important;
-  font-size: 10px !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.16em !important;
-  text-transform: uppercase !important;
-  border: 1px solid rgba(255,255,255,0.12) !important;
-  background: rgba(4, 4, 10, 0.74) !important;
-  box-shadow:
-    0 3px 14px rgba(0,0,0,0.48),
-    inset 0 1px 0 rgba(255,255,255,0.05) !important;
-  backdrop-filter: blur(24px) !important;
-}
-
-.home-walk-button:hover,
-.home-walk-button[aria-pressed="true"] {
-  border-color: rgba(250,204,21,0.40) !important;
-  background: rgba(4, 4, 10, 0.86) !important;
-  color: rgba(240,192,96,0.92) !important;
+/* ── TANIDIK: small top header ── */
+.home-map-overlay h2 {
+  margin: 0 !important;
+  font-size: clamp(13px, 1.6vw, 18px) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.22em !important;
+  line-height: 1 !important;
+  background: linear-gradient(
+    135deg,
+    rgba(255,255,255,0.88) 0%,
+    rgba(240,192,96,0.82) 100%
+  ) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  filter: drop-shadow(0 1px 8px rgba(0,0,0,0.72)) !important;
+  text-shadow: none !important;
 }
 
 /* ── Venue preview: deep glass card ── */
@@ -684,56 +659,50 @@ body.home-walk-active .home-map-canvas {
 }
 
 /* ─────────────────────────────────────────────────────
-   MOBILE: iOS / futuristic glass system
+   MOBILE
 ───────────────────────────────────────────────────── */
 @media (max-width: 700px) {
-  /* Lighter satellite on mobile — screen is smaller */
   .home-map-canvas {
     filter: saturate(0.80) contrast(1.28) brightness(0.72) !important;
   }
 
-  /* Simpler overlay on mobile */
   .home-map-hero::after {
     background:
-      linear-gradient(180deg, rgba(0,0,0,0.32) 0%, transparent 42%, rgba(0,0,0,0.80) 100%),
-      linear-gradient(90deg, rgba(0,0,0,0.20) 0%, transparent 62%) !important;
+      linear-gradient(180deg, rgba(0,0,0,0.24) 0%, transparent 46%, rgba(0,0,0,0.72) 100%),
+      linear-gradient(90deg, rgba(0,0,0,0.14) 0%, transparent 60%) !important;
   }
 
-  /* iOS Maps-style bottom-anchored overlay */
+  /* TANIDIK: small header at top */
   .home-map-overlay {
     position: absolute !important;
-    bottom: 0 !important;
+    top: 0 !important;
     left: 0 !important;
     right: 0 !important;
-    top: auto !important;
-    width: 100% !important;
+    bottom: auto !important;
+    inset: unset !important;
     min-height: unset !important;
+    width: 100% !important;
     margin-left: 0 !important;
-    padding: 20px 20px 88px !important;
-    justify-content: flex-end !important;
-    align-items: flex-start !important;
-    background: linear-gradient(0deg,
-      rgba(0,0,4,0.82) 0%,
-      rgba(0,0,4,0.42) 68%,
-      transparent 100%) !important;
+    padding: 14px 20px 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    text-align: center !important;
+    background: none !important;
+    pointer-events: none !important;
   }
 
-  .home-map-overlay h2,
-  .home-map-overlay p {
-    display: none !important;
+  .home-map-overlay h2 {
+    font-size: clamp(12px, 3.8vw, 17px) !important;
+    letter-spacing: 0.20em !important;
   }
 
-  .home-map-kicker {
-    font-size: 10px !important;
-    padding: 5px 10px !important;
-    margin-bottom: 10px !important;
-  }
-
-  /* Floating preview card */
+  /* Venue preview card: above bottom tabbar */
   .home-venue-preview {
     left: 12px !important;
     right: 12px !important;
-    bottom: 80px !important;
+    bottom: 84px !important;
     top: auto !important;
     width: auto !important;
     padding: 14px 16px !important;
@@ -744,52 +713,91 @@ body.home-walk-active .home-map-canvas {
     display: none !important;
   }
 
-  /* ── Bottom nav: futuristic iOS glass pill ── */
+  /* ════════════════════════════════════════
+     ULTRA PREMIUM iOS GLASS TABBAR
+     ════════════════════════════════════════ */
   .mobile-bottom-nav {
-    border-radius: 28px !important;
+    left: max(14px, env(safe-area-inset-left)) !important;
+    right: max(14px, env(safe-area-inset-right)) !important;
+    bottom: max(14px, env(safe-area-inset-bottom)) !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    gap: 0 !important;
     padding: 5px !important;
-    min-height: 60px !important;
-    gap: 2px !important;
-    background: rgba(3, 3, 8, 0.88) !important;
-    border: 1px solid rgba(255,255,255,0.07) !important;
+    min-height: 56px !important;
+    border-radius: 32px !important;
+    /* Layered black glass */
+    background: rgba(2, 2, 5, 0.80) !important;
+    border: 1px solid rgba(255, 255, 255, 0.055) !important;
     box-shadow:
-      0 -1px 0 rgba(255,255,255,0.04),
-      0 32px 90px rgba(0,0,0,0.80),
-      inset 0 1px 0 rgba(255,255,255,0.06),
-      inset 0 -1px 0 rgba(0,0,0,0.40) !important;
-    backdrop-filter: blur(52px) saturate(2.4) !important;
-    -webkit-backdrop-filter: blur(52px) saturate(2.4) !important;
+      /* outer ambient glow */
+      0 0 0 1px rgba(0,0,0,0.72),
+      0 30px 90px rgba(0,0,0,0.88),
+      0 8px 24px rgba(0,0,0,0.64),
+      /* soft gold underlight */
+      0 0 48px rgba(240,192,96,0.05),
+      /* inner top highlight */
+      inset 0 1px 0 rgba(255,255,255,0.09),
+      /* inner bottom shadow */
+      inset 0 -1px 0 rgba(0,0,0,0.72) !important;
+    backdrop-filter: blur(64px) saturate(3.2) brightness(0.96) !important;
+    -webkit-backdrop-filter: blur(64px) saturate(3.2) brightness(0.96) !important;
   }
 
+  /* ── Tab items ── */
   .mobile-bottom-nav a {
-    font-size: 8px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 3.5px !important;
+    min-width: 0 !important;
+    padding: 6px 4px 5px !important;
+    border-radius: 26px !important;
+    border: 1px solid transparent !important;
+    text-decoration: none !important;
+    color: rgba(148, 148, 172, 0.46) !important;
+    font-size: 7px !important;
     font-weight: 500 !important;
-    letter-spacing: 0.01em !important;
-    gap: 4px !important;
-    border-radius: 22px !important;
-    padding: 5px 3px !important;
-    color: rgba(180, 180, 200, 0.56) !important;
+    letter-spacing: 0.03em !important;
+    text-transform: uppercase !important;
+    line-height: 1 !important;
     transition:
-      color 160ms ease,
-      background 160ms ease,
-      box-shadow 160ms ease,
-      transform 140ms cubic-bezier(0.34,1.56,0.64,1) !important;
+      color        160ms ease,
+      background   160ms ease,
+      border-color 160ms ease,
+      box-shadow   160ms ease,
+      transform    120ms cubic-bezier(0.34, 1.56, 0.64, 1) !important;
   }
 
+  /* ── Icon (letter monogram) ── */
+  .mobile-bottom-nav a span {
+    display: block !important;
+    font-family: var(--fu), sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 200 !important;
+    letter-spacing: -0.02em !important;
+    line-height: 1 !important;
+    color: inherit !important;
+    opacity: 1 !important;
+  }
+
+  /* ── Tap feedback ── */
   .mobile-bottom-nav a:active {
-    transform: scale(0.90) !important;
+    transform: scale(0.86) !important;
   }
 
+  /* ── Active tab: gold glow pill ── */
   .mobile-bottom-nav a.active {
-    background: rgba(240,192,96,0.10) !important;
-    border: 1px solid rgba(240,192,96,0.20) !important;
-    color: rgba(240,192,96,0.94) !important;
-    box-shadow: 0 0 14px rgba(240,192,96,0.14), inset 0 1px 0 rgba(240,192,96,0.08) !important;
+    background: rgba(240, 192, 96, 0.09) !important;
+    border-color: rgba(240, 192, 96, 0.16) !important;
+    color: rgba(240, 192, 96, 0.95) !important;
+    box-shadow:
+      0 0 18px rgba(240,192,96,0.12),
+      inset 0 1px 0 rgba(240,192,96,0.12),
+      inset 0 -1px 0 rgba(0,0,0,0.30) !important;
   }
 
-  /* Navbar on mobile: even lighter */
-  .navbar {
-    background: rgba(2, 2, 6, 0.50) !important;
-    border-bottom-color: rgba(255,255,255,0.04) !important;
+  .mobile-bottom-nav a.active span {
+    font-weight: 300 !important;
   }
 }
