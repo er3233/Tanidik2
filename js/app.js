@@ -2616,6 +2616,7 @@ if (loginBtn) {
         return;
       }
 
+      await window.playEarthZoomTransition?.();
       window.location.href = "./index.html";
     } catch (error) {
       console.log(error);

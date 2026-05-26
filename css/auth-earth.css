@@ -14,6 +14,31 @@ body.auth-page.ae-form-open {
 }
 
 /* ───────────────────────────────────────
+   FORM ENTRANCE / EXIT
+   ae-earth-ready is added by JS when Three.js init succeeds.
+   Without it these rules stay dormant — safe fallback.
+─────────────────────────────────────── */
+body.auth-page.ae-earth-ready .auth-container {
+  opacity: 0;
+  transform: translateY(22px) scale(0.985);
+  pointer-events: none;
+  visibility: hidden;
+  transition: none;
+}
+
+body.auth-page.ae-earth-ready.ae-form-open .auth-container {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  visibility: visible;
+  /* 80 ms delay — lets overlay start fading first */
+  transition:
+    opacity   580ms ease-out   80ms,
+    transform 580ms cubic-bezier(0.16, 1, 0.3, 1) 80ms,
+    visibility 0ms linear 80ms;
+}
+
+/* ───────────────────────────────────────
    FULLSCREEN INTRO OVERLAY
 ─────────────────────────────────────── */
 #ae-intro {
@@ -42,15 +67,55 @@ body.auth-page.ae-form-open {
   height: 100% !important;
   z-index: 1;
   display: block;
+  transform-origin: center center;
   transition:
-    filter  840ms cubic-bezier(0.4, 0, 0.2, 1),
-    opacity 840ms ease;
+    filter    900ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity   900ms ease,
+    transform 900ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* When the form opens: blur + darken Earth behind the auth card */
+/* Cinematic arrival: Earth rushes in before blur-out */
 #ae-canvas.ae-canvas--bg {
-  filter: blur(14px) brightness(0.14) saturate(0.4);
-  opacity: 0.45;
+  filter: blur(18px) brightness(0.11) saturate(0.30);
+  opacity: 0.40;
+  transform: scale(1.14);
+}
+
+/* ───────────────────────────────────────
+   HYPERSPEED FLASH — radial light impulse
+─────────────────────────────────────── */
+.ae-hyperspeed {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse 80% 80% at 50% 50%,
+    rgba(200, 220, 255, 0.13) 0%,
+    rgba(255, 255, 255, 0.05) 38%,
+    transparent 70%
+  );
+  transform: scale(0.15);
+  opacity: 0;
+  /* expand outward from center — hyperspeed impulse */
+  transition:
+    transform 320ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity   320ms ease;
+}
+
+.ae-hyperspeed--active {
+  transform: scale(3.2);
+  opacity: 1;
+}
+
+/* fast erase — no spring, just rush through */
+.ae-hyperspeed--out {
+  transform: scale(5.5);
+  opacity: 0;
+  transition:
+    transform 240ms cubic-bezier(0.55, 0, 1, 0.45),
+    opacity   200ms ease-in;
 }
 
 /* ── Deep-space vignette ── */
@@ -381,6 +446,101 @@ body.auth-page.ae-form-open {
 }
 
 /* ───────────────────────────────────────
+   ATMOSPHERE ENTRY GLOW — builds before dive
+─────────────────────────────────────── */
+.ae-atmos-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 62% 62% at 50% 50%,
+    rgba(77, 178, 255, 0.30) 0%,
+    rgba(40, 120, 220, 0.16) 38%,
+    rgba(188, 73, 11, 0.07) 60%,
+    transparent 72%
+  );
+  opacity: 0;
+  transition: opacity 720ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ae-atmos-glow--active {
+  opacity: 1;
+}
+
+/* ───────────────────────────────────────
+   ZOOM GLOW STREAK — speed-rush feeling
+─────────────────────────────────────── */
+.ae-zoom-streak {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 48% 48% at 50% 50%,
+    rgba(180, 220, 255, 0.28) 0%,
+    rgba(100, 160, 255, 0.12) 36%,
+    transparent 62%
+  );
+  animation: aeZoomStreak 960ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes aeZoomStreak {
+  0%   { opacity: 0;   transform: scale(0.4);  }
+  10%  { opacity: 1;                            }
+  100% { opacity: 0;   transform: scale(6.5);  }
+}
+
+/* ───────────────────────────────────────
+   PREMIUM BLACK-GOLD FORM INPUTS
+   Overrides style.css — scoped to auth-page
+─────────────────────────────────────── */
+body.auth-page .auth-card {
+  background:
+    linear-gradient(160deg, rgba(255,255,255,0.055), rgba(255,255,255,0.015)),
+    rgba(2, 2, 6, 0.90) !important;
+  border: 1px solid rgba(240, 192, 96, 0.20) !important;
+  box-shadow:
+    0 48px 110px rgba(0, 0, 0, 0.78),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 0 70px rgba(240, 192, 96, 0.07) !important;
+  backdrop-filter: blur(32px) !important;
+}
+
+body.auth-page .auth-fields label {
+  color: rgba(240, 192, 96, 0.58) !important;
+  letter-spacing: 0.13em !important;
+  font-size: 9px !important;
+}
+
+body.auth-page .auth-container input {
+  background: rgba(3, 2, 6, 0.82) !important;
+  border: 1px solid rgba(240, 192, 96, 0.16) !important;
+  border-radius: 12px !important;
+  color: rgba(255, 248, 228, 0.90) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 4px 14px rgba(0, 0, 0, 0.45) !important;
+  transition:
+    border-color 220ms ease,
+    background   220ms ease,
+    box-shadow   220ms ease !important;
+}
+
+body.auth-page .auth-container input::placeholder {
+  color: rgba(255, 240, 200, 0.22) !important;
+}
+
+body.auth-page .auth-container input:focus {
+  border-color: rgba(240, 192, 96, 0.52) !important;
+  background: rgba(5, 3, 8, 0.92) !important;
+  box-shadow:
+    0 0 0 3px rgba(240, 192, 96, 0.09),
+    inset 0 1px 0 rgba(240, 192, 96, 0.06),
+    0 6px 20px rgba(0, 0, 0, 0.55) !important;
+}
+
+/* ───────────────────────────────────────
    REDUCED MOTION
 ─────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
@@ -396,6 +556,12 @@ body.auth-page.ae-form-open {
   #ae-intro {
     transition: opacity 300ms ease !important;
     filter: none !important;
+    transform: none !important;
+  }
+
+  .ae-hyperspeed,
+  .ae-zoom-streak {
+    display: none !important;
   }
 
   .ae-particle {

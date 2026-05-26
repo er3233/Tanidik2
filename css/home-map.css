@@ -452,123 +452,254 @@ body.home-walk-active .maplibregl-ctrl-bottom-right {
   }
 }
 
-/* ── Home Map Premium Redesign: Apple Maps / Airbnb style ── */
+/* ═══════════════════════════════════════════════════════
+   CINEMATIC OS POLISH — index.html scoped overrides
+   home-map.css is only loaded on index.html, so all
+   rules here safely override style.css for this page.
+   ═══════════════════════════════════════════════════════ */
 
-/* Satellite: natural colors, slight brightness/contrast lift */
-.home-map-canvas {
-  filter: saturate(1.06) contrast(1.04) brightness(1.0) !important;
+/* ── Navbar: floating glass, remove heavy box ── */
+.navbar {
+  background: rgba(3, 3, 8, 0.46) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05),
+    0 6px 28px rgba(0, 0, 0, 0.22) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.05) !important;
 }
 
-/* Lighter cinematic overlay so the map breathes */
+.navbar h1 {
+  font-size: 1.02rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.09em !important;
+  color: rgba(255, 255, 255, 0.80) !important;
+}
+
+/* ── Satellite: noir depth + strong ocean contrast ── */
+.home-map-canvas {
+  filter: saturate(0.76) contrast(1.36) brightness(0.66) !important;
+}
+
+/* Walk mode: slightly lighter than ambient */
+body.home-walk-active .home-map-canvas {
+  filter: saturate(0.86) contrast(1.22) brightness(0.78) !important;
+}
+
+/* ── Depth vignette: strong cinematic edges ── */
 .home-map-hero::after {
   background:
-    linear-gradient(90deg, rgba(0,0,0,0.48), transparent 52%, rgba(0,0,0,0.18)),
-    linear-gradient(180deg, rgba(0,0,0,0.38), transparent 38%, rgba(0,0,0,0.52)),
-    radial-gradient(circle at 52% 56%, transparent 0 24%, rgba(0,0,0,0.18) 70%),
-    radial-gradient(ellipse at center, transparent 0 42%, rgba(0,0,0,0.28) 100%) !important;
+    linear-gradient(90deg, rgba(0,0,0,0.80) 0%, rgba(0,0,0,0.14) 46%, rgba(0,0,0,0.34) 100%),
+    linear-gradient(180deg, rgba(0,0,0,0.58) 0%, transparent 36%, rgba(0,0,0,0.82) 100%),
+    radial-gradient(ellipse 66% 60% at 52% 54%,
+      transparent 0 18%,
+      rgba(0,0,0,0.44) 62%,
+      rgba(0,0,0,0.70) 100%) !important;
 }
 
-/* Apple Maps-style minimal dot markers */
+/* ── Cloud shadow drift — subtle fog over map ── */
+@keyframes homeCloudDrift {
+  0%, 100% { opacity: 0.46; transform: translate(0, 0) scale(1); }
+  30%       { opacity: 0.62; transform: translate(-2.5%, -1.8%) scale(1.03); }
+  65%       { opacity: 0.38; transform: translate(3.5%, 2.2%) scale(1.02); }
+}
+
+.home-map-hero::before {
+  background:
+    radial-gradient(ellipse 48% 34% at 66% 24%, rgba(0,0,0,0.22), transparent 60%),
+    radial-gradient(ellipse 38% 28% at 28% 68%, rgba(0,0,0,0.16), transparent 54%),
+    radial-gradient(ellipse 30% 22% at 52% 76%, rgba(0,0,0,0.12), transparent 50%),
+    linear-gradient(rgba(255,255,255,0.016) 1px, transparent 1px),
+    radial-gradient(circle at 72% 18%, rgba(250,204,21,0.07), transparent 22%);
+  background-size: 100% 100%, 100% 100%, 100% 100%, 100% 4px, 100% 100%;
+  mix-blend-mode: multiply !important;
+  animation: homeCloudDrift 30s ease-in-out infinite !important;
+  opacity: 0.46 !important;
+}
+
+/* ── TANIDIK headline: smaller, cleaner ── */
+.home-map-overlay h2 {
+  font-size: clamp(44px, 9.5vw, 108px) !important;
+  letter-spacing: 0.03em !important;
+  margin-bottom: 14px !important;
+  text-shadow:
+    0 10px 40px rgba(0,0,0,0.84),
+    0 0 28px rgba(250,204,21,0.09) !important;
+}
+
+/* ── Body copy: quieter ── */
+.home-map-overlay p {
+  font-size: clamp(13px, 1.7vw, 16px) !important;
+  color: rgba(210, 210, 210, 0.68) !important;
+  margin-bottom: 22px !important;
+}
+
+/* ── DISCOVER + Walk Mode: thin dark glass pills ── */
+.home-map-actions .btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: unset !important;
+  height: 36px !important;
+  padding: 0 20px !important;
+  border-radius: 999px !important;
+  background: rgba(4, 4, 10, 0.80) !important;
+  color: rgba(240, 192, 96, 0.88) !important;
+  border: 1px solid rgba(240, 192, 96, 0.26) !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.18em !important;
+  text-transform: uppercase !important;
+  box-shadow:
+    0 0 12px rgba(240,192,96,0.09),
+    0 3px 14px rgba(0,0,0,0.52),
+    inset 0 1px 0 rgba(255,255,255,0.06) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  transition: border-color 200ms ease, box-shadow 200ms ease, color 200ms ease !important;
+}
+
+.home-map-actions .btn::before {
+  display: none !important;
+}
+
+.home-map-actions .btn:hover {
+  transform: none !important;
+  border-color: rgba(240,192,96,0.50) !important;
+  color: rgba(240,192,96,1) !important;
+  box-shadow:
+    0 0 20px rgba(240,192,96,0.18),
+    0 4px 18px rgba(0,0,0,0.56),
+    inset 0 1px 0 rgba(255,255,255,0.08) !important;
+}
+
+.home-map-actions .btn:active {
+  transform: scale(0.97) !important;
+  filter: none !important;
+}
+
+.home-walk-button {
+  height: 36px !important;
+  min-height: unset !important;
+  padding: 0 20px !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.16em !important;
+  text-transform: uppercase !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  background: rgba(4, 4, 10, 0.74) !important;
+  box-shadow:
+    0 3px 14px rgba(0,0,0,0.48),
+    inset 0 1px 0 rgba(255,255,255,0.05) !important;
+  backdrop-filter: blur(24px) !important;
+}
+
+.home-walk-button:hover,
+.home-walk-button[aria-pressed="true"] {
+  border-color: rgba(250,204,21,0.40) !important;
+  background: rgba(4, 4, 10, 0.86) !important;
+  color: rgba(240,192,96,0.92) !important;
+}
+
+/* ── Venue preview: deep glass card ── */
+.home-venue-preview {
+  border-radius: 20px !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  background: rgba(6, 6, 12, 0.84) !important;
+  backdrop-filter: blur(44px) saturate(2.2) !important;
+  -webkit-backdrop-filter: blur(44px) saturate(2.2) !important;
+  box-shadow:
+    0 40px 120px rgba(0,0,0,0.72),
+    0 0 0 1px rgba(255,255,255,0.04),
+    inset 0 1px 0 rgba(255,255,255,0.07) !important;
+}
+
+/* ── Markers: smaller premium glow pins ── */
 .home-map-marker {
-  width: 16px !important;
-  height: 16px !important;
-  border: 2.5px solid rgba(255,255,255,0.96) !important;
+  width: 13px !important;
+  height: 13px !important;
+  border: 1.5px solid rgba(255,255,255,0.90) !important;
   border-radius: 50% !important;
   background: #facc15 !important;
   box-shadow:
-    0 0 0 4px rgba(250,204,21,0.22),
-    0 0 18px rgba(250,204,21,0.64),
-    0 3px 10px rgba(0,0,0,0.48) !important;
+    0 0 0 3px rgba(0,0,0,0.52),
+    0 0 0 5px rgba(250,204,21,0.22),
+    0 0 16px rgba(250,204,21,0.70),
+    0 2px 8px rgba(0,0,0,0.62) !important;
+  transition: transform 160ms cubic-bezier(0.34,1.56,0.64,1),
+              box-shadow 160ms ease !important;
 }
 
 .home-map-marker::after {
-  inset: -7px !important;
+  inset: -8px !important;
+  border: 1px solid rgba(250,204,21,0.20) !important;
+  animation: homeMarkerPulse 3.2s ease-out infinite !important;
 }
 
 .home-map-marker:hover,
 .home-map-marker:focus-visible {
-  transform: scale(1.28) !important;
+  transform: scale(1.32) !important;
   box-shadow:
-    0 0 0 6px rgba(250,204,21,0.3),
-    0 0 26px rgba(250,204,21,0.84),
-    0 4px 14px rgba(0,0,0,0.5) !important;
+    0 0 0 3px rgba(0,0,0,0.44),
+    0 0 0 6px rgba(250,204,21,0.26),
+    0 0 24px rgba(250,204,21,0.88),
+    0 3px 10px rgba(0,0,0,0.64) !important;
 }
 
 .home-map-marker--real {
-  background: #f7d366 !important;
+  background: #edd060 !important;
   box-shadow:
-    0 0 0 4px rgba(255,255,255,0.16),
-    0 0 20px rgba(255,236,179,0.78),
-    0 3px 10px rgba(0,0,0,0.46) !important;
+    0 0 0 3px rgba(0,0,0,0.48),
+    0 0 0 5px rgba(255,255,255,0.09),
+    0 0 18px rgba(255,224,140,0.80),
+    0 2px 8px rgba(0,0,0,0.60) !important;
 }
 
-/* Pin label — pill beneath each marker */
+@keyframes homeMarkerPulse {
+  0%   { opacity: 0.80; transform: scale(0.62); }
+  65%  { opacity: 0.14; transform: scale(1.38); }
+  100% { opacity: 0;    transform: scale(1.54); }
+}
+
+/* ── Pin label: minimal luxury pill ── */
 .home-map-pin-label {
   position: absolute;
-  top: calc(100% + 7px);
+  top: calc(100% + 6px);
   left: 50%;
   transform: translateX(-50%);
   white-space: nowrap;
-  max-width: 110px;
+  max-width: 90px;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding: 3px 8px;
+  padding: 2px 7px;
   border-radius: 999px;
-  background: rgba(8,8,10,0.84);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255,255,255,0.1);
-  color: rgba(255,255,255,0.92);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
+  background: rgba(4, 4, 8, 0.90);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.09);
+  color: rgba(255,255,255,0.88);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   pointer-events: none;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.44);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.58);
 }
 
-/* Walk mode: subtle darken over satellite */
-body.home-walk-active .home-map-canvas {
-  filter: saturate(0.92) contrast(1.1) brightness(0.86) !important;
-}
-
-/* Markers need stronger contrast against bright satellite */
-.home-map-marker {
-  box-shadow:
-    0 0 0 3px rgba(0,0,0,0.55),
-    0 0 0 5px rgba(250,204,21,0.28),
-    0 0 18px rgba(250,204,21,0.7),
-    0 3px 12px rgba(0,0,0,0.6) !important;
-}
-
-.home-map-pin-label {
-  background: rgba(4,4,6,0.88) !important;
-  border: 1px solid rgba(255,255,255,0.14) !important;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.55) !important;
-}
-
-/* Airbnb-style floating preview card */
-.home-venue-preview {
-  border-radius: 18px !important;
-  border: 1px solid rgba(255,255,255,0.1) !important;
-  background: linear-gradient(160deg, rgba(14,14,16,0.9), rgba(5,5,7,0.86)) !important;
-  backdrop-filter: blur(32px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(32px) saturate(180%) !important;
-  box-shadow:
-    0 32px 96px rgba(0,0,0,0.66),
-    0 0 0 1px rgba(255,255,255,0.04),
-    inset 0 1px 0 rgba(255,255,255,0.08) !important;
-}
-
-/* Mobile: iOS Maps-style layout */
+/* ─────────────────────────────────────────────────────
+   MOBILE: iOS / futuristic glass system
+───────────────────────────────────────────────────── */
 @media (max-width: 700px) {
-  /* Lighter overlay — let the map show through */
-  .home-map-hero::after {
-    background:
-      linear-gradient(180deg, rgba(0,0,0,0.26) 0%, transparent 42%, rgba(0,0,0,0.64) 100%),
-      linear-gradient(90deg, rgba(0,0,0,0.16), transparent 58%) !important;
+  /* Lighter satellite on mobile — screen is smaller */
+  .home-map-canvas {
+    filter: saturate(0.80) contrast(1.28) brightness(0.72) !important;
   }
 
-  /* Anchor overlay to bottom like iOS Maps bottom sheet */
+  /* Simpler overlay on mobile */
+  .home-map-hero::after {
+    background:
+      linear-gradient(180deg, rgba(0,0,0,0.32) 0%, transparent 42%, rgba(0,0,0,0.80) 100%),
+      linear-gradient(90deg, rgba(0,0,0,0.20) 0%, transparent 62%) !important;
+  }
+
+  /* iOS Maps-style bottom-anchored overlay */
   .home-map-overlay {
     position: absolute !important;
     bottom: 0 !important;
@@ -578,38 +709,87 @@ body.home-walk-active .home-map-canvas {
     width: 100% !important;
     min-height: unset !important;
     margin-left: 0 !important;
-    padding: 18px 20px 96px !important;
+    padding: 20px 20px 88px !important;
     justify-content: flex-end !important;
     align-items: flex-start !important;
-    background: linear-gradient(0deg, rgba(0,0,0,0.76) 0%, rgba(0,0,0,0.4) 68%, transparent 100%) !important;
+    background: linear-gradient(0deg,
+      rgba(0,0,4,0.82) 0%,
+      rgba(0,0,4,0.42) 68%,
+      transparent 100%) !important;
   }
 
-  /* Hide heavy headline + body text on mobile — map is the hero */
   .home-map-overlay h2,
   .home-map-overlay p {
     display: none !important;
   }
 
-  /* Compact kicker */
   .home-map-kicker {
     font-size: 10px !important;
     padding: 5px 10px !important;
     margin-bottom: 10px !important;
   }
 
-  /* Preview card: full-width above bottom nav */
+  /* Floating preview card */
   .home-venue-preview {
     left: 12px !important;
     right: 12px !important;
-    bottom: 76px !important;
+    bottom: 80px !important;
     top: auto !important;
     width: auto !important;
     padding: 14px 16px !important;
-    border-radius: 16px !important;
+    border-radius: 18px !important;
   }
 
-  /* Hide description in preview on mobile to save space */
   .home-venue-preview p {
     display: none !important;
+  }
+
+  /* ── Bottom nav: futuristic iOS glass pill ── */
+  .mobile-bottom-nav {
+    border-radius: 28px !important;
+    padding: 5px !important;
+    min-height: 60px !important;
+    gap: 2px !important;
+    background: rgba(3, 3, 8, 0.88) !important;
+    border: 1px solid rgba(255,255,255,0.07) !important;
+    box-shadow:
+      0 -1px 0 rgba(255,255,255,0.04),
+      0 32px 90px rgba(0,0,0,0.80),
+      inset 0 1px 0 rgba(255,255,255,0.06),
+      inset 0 -1px 0 rgba(0,0,0,0.40) !important;
+    backdrop-filter: blur(52px) saturate(2.4) !important;
+    -webkit-backdrop-filter: blur(52px) saturate(2.4) !important;
+  }
+
+  .mobile-bottom-nav a {
+    font-size: 8px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.01em !important;
+    gap: 4px !important;
+    border-radius: 22px !important;
+    padding: 5px 3px !important;
+    color: rgba(180, 180, 200, 0.56) !important;
+    transition:
+      color 160ms ease,
+      background 160ms ease,
+      box-shadow 160ms ease,
+      transform 140ms cubic-bezier(0.34,1.56,0.64,1) !important;
+  }
+
+  .mobile-bottom-nav a:active {
+    transform: scale(0.90) !important;
+  }
+
+  .mobile-bottom-nav a.active {
+    background: rgba(240,192,96,0.10) !important;
+    border: 1px solid rgba(240,192,96,0.20) !important;
+    color: rgba(240,192,96,0.94) !important;
+    box-shadow: 0 0 14px rgba(240,192,96,0.14), inset 0 1px 0 rgba(240,192,96,0.08) !important;
+  }
+
+  /* Navbar on mobile: even lighter */
+  .navbar {
+    background: rgba(2, 2, 6, 0.50) !important;
+    border-bottom-color: rgba(255,255,255,0.04) !important;
   }
 }
