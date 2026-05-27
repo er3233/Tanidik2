@@ -14,27 +14,27 @@ const PLACEHOLDER_IMAGE =
 const STORAGE_BUCKET = "tanidik-images";
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 const VENUE_CATEGORIES = [
-  ["night_club", "Night Club"],
+  ["night_club", "Gece Kulübü"],
   ["bar", "Bar"],
-  ["restaurant", "Restaurant"],
-  ["cafe", "Cafe"],
-  ["beach", "Beach"],
-  ["hotel", "Hotel"],
-  ["live_music", "Live Music"],
-  ["event_venue", "Event Venue"],
-  ["sports_fitness", "Sports / Fitness"],
+  ["restaurant", "Restoran"],
+  ["cafe", "Kafe"],
+  ["beach", "Plaj"],
+  ["hotel", "Otel"],
+  ["live_music", "Canlı Müzik"],
+  ["event_venue", "Etkinlik Mekanı"],
+  ["sports_fitness", "Spor / Fitness"],
   ["wellness", "Wellness"],
-  ["other", "Other"],
+  ["other", "Diğer"],
 ];
 const DEFAULT_VENUE_CATEGORY = "other";
 const BOOKING_WEEKDAYS = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
+  "Pazar",
+  "Pazartesi",
+  "Salı",
+  "Çarşamba",
+  "Perşembe",
+  "Cuma",
+  "Cumartesi",
 ];
 
 const email = document.getElementById("email");
@@ -74,6 +74,39 @@ let venueReservationSlotState = {
 
 function getBusinessStatus(business) {
   return safeText(business.status).toLowerCase().trim();
+}
+
+function getBusinessVerificationStatus(business) {
+  return safeText(business && business.verification_status)
+    .toLowerCase()
+    .trim();
+}
+
+function isApprovedBusinessRecord(business) {
+  return ["approved", "active", "verified"].includes(
+    getBusinessStatus(business)
+  ) || ["approved", "active", "verified"].includes(
+    getBusinessVerificationStatus(business)
+  );
+}
+
+function isPendingBusinessRecord(business) {
+  return ["pending", "review", "in_review"].includes(
+    getBusinessStatus(business)
+  ) || ["pending", "review", "in_review"].includes(
+    getBusinessVerificationStatus(business)
+  );
+}
+
+function getBusinessDisplayStatus(business) {
+  if (isApprovedBusinessRecord(business)) return "approved";
+  if (isPendingBusinessRecord(business)) return "pending";
+
+  return (
+    getBusinessStatus(business) ||
+    getBusinessVerificationStatus(business) ||
+    "pending"
+  );
 }
 
 function safeText(value) {
@@ -1432,13 +1465,13 @@ function getReservationStatusValue(status) {
 function getReservationStatusLabel(status) {
   const value = getReservationStatusValue(status);
   const labels = {
-    pending: "Waiting approval",
-    approved: "Approved",
-    rejected: "Rejected",
-    cancelled: "Cancelled",
+    pending: "Beklemede",
+    approved: "Onaylandı",
+    rejected: "Reddedildi",
+    cancelled: "İptal Edildi",
   };
 
-  return labels[value] || value.charAt(0).toUpperCase() + value.slice(1);
+  return labels[value] || value;
 }
 
 function createStatusBadge(status) {
@@ -1488,8 +1521,8 @@ function getReservationGuestLabel(reservation) {
     safeText(reservation.user_email) ||
     safeText(reservation.email) ||
     (reservation.user_id
-      ? `Guest #${String(reservation.user_id).slice(0, 8)}`
-      : "Guest")
+      ? `Misafir #${String(reservation.user_id).slice(0, 8)}`
+      : "Misafir")
   );
 }
 
@@ -2594,6 +2627,15 @@ async function setupReservationForm(venueId) {
 }
 
 if (loginBtn) {
+  function queueHomeMapIntro() {
+    try {
+      sessionStorage.setItem("tanidik.playMapIntro", "1");
+      console.log("[home-map-intro] flag yazıldı");
+    } catch (error) {
+      console.log("[auth] Map intro flag unavailable:", error);
+    }
+  }
+
   loginBtn.addEventListener("click", async () => {
     if (loginBtn.disabled) return;
 
@@ -2617,6 +2659,7 @@ if (loginBtn) {
       }
 
       await window.playEarthZoomTransition?.();
+      queueHomeMapIntro();
       window.location.href = "./index.html";
     } catch (error) {
       console.log(error);
@@ -2848,7 +2891,7 @@ function ensureBusinessApplicationSection() {
   section.dataset.panel = "business";
 
   const heading = document.createElement("h2");
-  heading.textContent = "Business Application";
+  heading.textContent = "İşletme Başvurusu";
   section.appendChild(heading);
 
   const applicationsList = document.createElement("div");
@@ -2863,25 +2906,92 @@ function ensureBusinessApplicationSection() {
   const nameInput = document.createElement("input");
   nameInput.type = "text";
   nameInput.id = "businessApplicationName";
-  nameInput.placeholder = "Business Name";
+  nameInput.placeholder = "İşletme Adı";
   nameInput.required = true;
   form.appendChild(nameInput);
+
+  const categorySelect = document.createElement("select");
+  categorySelect.id = "businessApplicationCategory";
+  const categoryPlaceholder = document.createElement("option");
+  categoryPlaceholder.value = "";
+  categoryPlaceholder.textContent = "Kategori Seç";
+  categorySelect.appendChild(categoryPlaceholder);
+  VENUE_CATEGORIES.forEach(([value, label]) => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    categorySelect.appendChild(option);
+  });
+  form.appendChild(categorySelect);
+
+  const cityInput = document.createElement("input");
+  cityInput.type = "text";
+  cityInput.id = "businessApplicationCity";
+  cityInput.placeholder = "Şehir / Bölge";
+  form.appendChild(cityInput);
 
   const phoneInput = document.createElement("input");
   phoneInput.type = "tel";
   phoneInput.id = "businessApplicationPhone";
-  phoneInput.placeholder = "Phone";
+  phoneInput.placeholder = "Telefon";
   form.appendChild(phoneInput);
+
+  const emailInput = document.createElement("input");
+  emailInput.type = "email";
+  emailInput.id = "businessApplicationEmail";
+  emailInput.placeholder = "E-posta";
+  form.appendChild(emailInput);
+
+  const instagramInput = document.createElement("input");
+  instagramInput.type = "text";
+  instagramInput.id = "businessApplicationInstagram";
+  instagramInput.placeholder = "Instagram";
+  form.appendChild(instagramInput);
 
   const addressInput = document.createElement("input");
   addressInput.type = "text";
   addressInput.id = "businessApplicationAddress";
-  addressInput.placeholder = "Address";
+  addressInput.placeholder = "Adres";
   form.appendChild(addressInput);
+
+  const imageInput = document.createElement("input");
+  imageInput.type = "text";
+  imageInput.id = "businessApplicationImage";
+  imageInput.placeholder = "Kapak fotoğrafı URL";
+  form.appendChild(imageInput);
+
+  const galleryInput = document.createElement("textarea");
+  galleryInput.id = "businessApplicationGalleryUrls";
+  galleryInput.placeholder =
+    "Galeri fotoğraf URL'leri, her satıra bir tane";
+  form.appendChild(galleryInput);
+
+  const hoursInput = document.createElement("input");
+  hoursInput.type = "text";
+  hoursInput.id = "businessApplicationHours";
+  hoursInput.placeholder = "Çalışma saatleri";
+  form.appendChild(hoursInput);
+
+  const reservationsLabel = document.createElement("label");
+  reservationsLabel.className = "booking-toggle-field";
+  const reservationsInput = document.createElement("input");
+  reservationsInput.type = "checkbox";
+  reservationsInput.id = "businessApplicationAcceptsReservations";
+  reservationsLabel.appendChild(reservationsInput);
+  reservationsLabel.append("Rezervasyon kabul ediyor");
+  form.appendChild(reservationsLabel);
+
+  const averagePriceInput = document.createElement("input");
+  averagePriceInput.type = "number";
+  averagePriceInput.id = "businessApplicationAveragePrice";
+  averagePriceInput.placeholder = "Ortalama kişi başı fiyat";
+  averagePriceInput.min = "0";
+  averagePriceInput.step = "1";
+  form.appendChild(averagePriceInput);
 
   const descriptionInput = document.createElement("textarea");
   descriptionInput.id = "businessApplicationDescription";
-  descriptionInput.placeholder = "Tell us about your business";
+  descriptionInput.placeholder = "Açıklama";
   descriptionInput.required = true;
   form.appendChild(descriptionInput);
 
@@ -2891,7 +3001,7 @@ function ensureBusinessApplicationSection() {
   const submitButton = document.createElement("button");
   submitButton.type = "submit";
   submitButton.className = "btn";
-  submitButton.textContent = "Apply";
+  submitButton.textContent = "Başvur";
   actions.appendChild(submitButton);
 
   form.appendChild(actions);
@@ -3150,9 +3260,8 @@ function renderProfileBusinessApplications(businesses) {
 
   const records = businesses || [];
   const hasPendingOrApproved = records.some((business) =>
-    ["pending", "approved"].includes(
-      getBusinessStatus(business)
-    )
+    isPendingBusinessRecord(business) ||
+    isApprovedBusinessRecord(business)
   );
 
   if (form) {
@@ -3178,7 +3287,7 @@ function renderProfileBusinessApplications(businesses) {
     title.textContent = safeText(business.name);
     item.appendChild(title);
 
-    item.appendChild(createStatusBadge(business.status));
+    item.appendChild(createStatusBadge(getBusinessDisplayStatus(business)));
 
     if (business.description) {
       const description = document.createElement("p");
@@ -3231,14 +3340,80 @@ async function loadProfileBusinessApplications(userId) {
     return;
   }
 
+  console.log("[business-debug] applications", data);
+  logBusinessStatusFields(data || []);
   renderProfileBusinessApplications(data || []);
 }
 
 function clearBusinessApplicationForm() {
   setAdminValue("businessApplicationName", "");
+  setAdminValue("businessApplicationCategory", "");
+  setAdminValue("businessApplicationCity", "");
   setAdminValue("businessApplicationPhone", "");
+  setAdminValue("businessApplicationEmail", "");
+  setAdminValue("businessApplicationInstagram", "");
   setAdminValue("businessApplicationAddress", "");
+  setAdminValue("businessApplicationImage", "");
+  setAdminValue("businessApplicationGalleryUrls", "");
+  setAdminValue("businessApplicationHours", "");
+  setAdminValue("businessApplicationAveragePrice", "");
+  setAdminChecked("businessApplicationAcceptsReservations", false);
   setAdminValue("businessApplicationDescription", "");
+}
+
+function getBusinessApplicationCategoryLabel() {
+  const category = getAdminValue("businessApplicationCategory");
+  const match = VENUE_CATEGORIES.find(
+    ([value]) => value === category
+  );
+
+  return match ? match[1] : "";
+}
+
+function getBusinessApplicationDescription() {
+  const description = getAdminValue(
+    "businessApplicationDescription"
+  );
+  const acceptsReservationsInput =
+    document.getElementById(
+      "businessApplicationAcceptsReservations"
+    );
+  const extraFields = [
+    ["Kategori", getBusinessApplicationCategoryLabel()],
+    ["Şehir / Bölge", getAdminValue("businessApplicationCity")],
+    ["E-posta", getAdminValue("businessApplicationEmail")],
+    ["Instagram", getAdminValue("businessApplicationInstagram")],
+    ["Kapak Fotoğrafı", getAdminValue("businessApplicationImage")],
+    [
+      "Galeri Fotoğrafları",
+      getAdminValue("businessApplicationGalleryUrls"),
+    ],
+    ["Çalışma Saatleri", getAdminValue("businessApplicationHours")],
+    [
+      "Rezervasyon Kabul Ediyor",
+      acceptsReservationsInput
+        ? getAdminChecked("businessApplicationAcceptsReservations")
+          ? "Evet"
+          : "Hayır"
+        : "",
+    ],
+    [
+      "Ortalama Kişi Başı Fiyat",
+      getAdminValue("businessApplicationAveragePrice"),
+    ],
+  ].filter(([, value]) => value);
+
+  if (extraFields.length === 0) {
+    return description;
+  }
+
+  const details = extraFields
+    .map(([label, value]) => `${label}: ${value}`)
+    .join("\n");
+
+  return [description, `Başvuru detayları:\n${details}`]
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 function setupBusinessApplicationForm(userId) {
@@ -3246,6 +3421,9 @@ function setupBusinessApplicationForm(userId) {
     document.getElementById("businessApplicationForm");
 
   if (!form) return;
+  if (form.dataset.bound === "true") return;
+
+  form.dataset.bound = "true";
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -3262,9 +3440,7 @@ function setupBusinessApplicationForm(userId) {
       name: getAdminValue("businessApplicationName"),
       phone: getAdminValue("businessApplicationPhone"),
       address: getAdminValue("businessApplicationAddress"),
-      description: getAdminValue(
-        "businessApplicationDescription"
-      ),
+      description: getBusinessApplicationDescription(),
       status: "pending",
       rejection_reason: "",
     };
@@ -3275,16 +3451,25 @@ function setupBusinessApplicationForm(userId) {
         .insert([payload]);
 
     if (error) {
-      showSafeError(error, "Application could not be submitted.");
+      showSafeError(error, "Başvuru gönderilemedi.");
       return;
     }
 
-    showToast("Application submitted");
+    showToast(
+      "Başvurun alındı. Admin onayından sonra işletmen panelde görünecek."
+    );
     clearBusinessApplicationForm();
     await loadProfileBusinessApplications(userId);
     await setupBusinessProfileLink(userId);
+
+    if (
+      document.getElementById("businessPage") &&
+      businessDashboardState.session
+    ) {
+      await refreshBusinessDashboard();
+    }
     } catch (error) {
-      showSafeError(error, "Application could not be submitted.");
+      showSafeError(error, "Başvuru gönderilemedi.");
     } finally {
       form.dataset.submitting = "false";
     }
@@ -4499,11 +4684,25 @@ function getAdminValue(id) {
   return element ? element.value.trim() : "";
 }
 
+function getAdminChecked(id) {
+  const element = document.getElementById(id);
+
+  return Boolean(element && element.checked);
+}
+
 function setAdminValue(id, value) {
   const element = document.getElementById(id);
 
   if (element) {
     element.value = value || "";
+  }
+}
+
+function setAdminChecked(id, value) {
+  const element = document.getElementById(id);
+
+  if (element) {
+    element.checked = Boolean(value);
   }
 }
 
@@ -4701,14 +4900,14 @@ function createAdminActions(onEdit, onDelete) {
   const editButton = document.createElement("button");
   editButton.type = "button";
   editButton.className = "secondary-btn";
-  editButton.textContent = "Edit";
+  editButton.textContent = "Düzenle";
   bindReservationAction(editButton, onEdit);
   actions.appendChild(editButton);
 
   const deleteButton = document.createElement("button");
   deleteButton.type = "button";
   deleteButton.className = "admin-delete-btn";
-  deleteButton.textContent = "Delete";
+  deleteButton.textContent = "Sil";
   bindReservationAction(deleteButton, onDelete);
   actions.appendChild(deleteButton);
 
@@ -5160,6 +5359,8 @@ async function loadAdminBusinessApplications() {
     return;
   }
 
+  console.log("[business-debug] applications", data);
+  logBusinessStatusFields(data || []);
   renderAdminBusinessApplications(data || []);
 }
 
@@ -5351,6 +5552,13 @@ async function updateBusinessApplicationStatus(
       status === "rejected" ? rejectionReason.trim() : "",
   };
 
+  console.log("[business-debug] application approval update", {
+    id,
+    status,
+    business,
+    payload,
+  });
+
   const { error } =
     await supabaseClient
       .from("businesses")
@@ -5429,6 +5637,145 @@ function setupAdminForms() {
   }
 }
 
+function setBusinessEmptyStateVisible(isVisible) {
+  const emptyState =
+    document.getElementById("businessEmptyState");
+
+  if (emptyState) {
+    emptyState.hidden = !isVisible;
+  }
+}
+
+function setBusinessEmptyStateContent(options = {}) {
+  const emptyState =
+    document.getElementById("businessEmptyState");
+
+  if (!emptyState) return;
+
+  const title = emptyState.querySelector("h2");
+  const message = emptyState.querySelector("p");
+  const button =
+    document.getElementById("businessEmptyStateAddButton");
+
+  emptyState.hidden = !options.visible;
+
+  if (title && options.title) {
+    title.textContent = options.title;
+  }
+
+  if (message && options.message) {
+    message.textContent = options.message;
+  }
+
+  if (button) {
+    button.textContent = options.buttonText || "İşletme Ekle";
+    button.hidden = options.buttonVisible === false;
+  }
+}
+
+function updateBusinessDashboardEmptyState() {
+  const businesses = businessDashboardState.businesses || [];
+  const approvedBusinesses = businesses.filter(
+    isApprovedBusinessRecord
+  );
+  const pendingBusinesses = businesses.filter(
+    isPendingBusinessRecord
+  );
+
+  if (businesses.length === 0) {
+    setBusinessEmptyStateContent({
+      visible: true,
+      title: "Henüz işletme eklemedin",
+      message: "İlk işletmeni ekleyerek rezervasyon, etkinlik ve profil yönetimine başlayabilirsin.",
+      buttonText: "İşletme Ekle",
+      buttonVisible: true,
+    });
+    return;
+  }
+
+  if (pendingBusinesses.length > 0 && approvedBusinesses.length === 0) {
+    setBusinessEmptyStateContent({
+      visible: true,
+      title: "Başvurun incelemede",
+      message: "Admin onayından sonra işletmen burada görünecek.",
+      buttonVisible: false,
+    });
+    return;
+  }
+
+  if (
+    approvedBusinesses.length > 0 &&
+    businessDashboardState.venues.length === 0
+  ) {
+    setBusinessEmptyStateContent({
+      visible: true,
+      title: "İşletme onaylandı",
+      message: "İşletme profilini tamamlayarak mekan, rezervasyon ve etkinlik yönetimine başlayabilirsin.",
+      buttonText: "İşletme profilini tamamla",
+      buttonVisible: true,
+    });
+    return;
+  }
+
+  setBusinessEmptyStateVisible(false);
+}
+
+function openBusinessCreationForm() {
+  const hasApprovedBusiness =
+    getBusinessDashboardBusinessIds().length > 0;
+  const form = hasApprovedBusiness
+    ? document.getElementById("businessVenueForm")
+    : document.getElementById("businessApplicationForm");
+
+  if (!form) return;
+
+  const section =
+    form.closest(".dashboard-section") || form;
+
+  if (section.hidden) {
+    section.hidden = false;
+  }
+
+  form.style.display = "";
+  section.classList.add("is-expanded", "is-open");
+
+  if (hasApprovedBusiness) {
+    const venuesPanelButton = document.querySelector(
+      '[data-business-panel="venues"]'
+    );
+
+    if (venuesPanelButton) {
+      venuesPanelButton.classList.add("is-active");
+      venuesPanelButton.setAttribute("aria-expanded", "true");
+    }
+  }
+
+  section.scrollIntoView({
+    behavior: "smooth",
+    block: "start",
+  });
+
+  const firstField = form.querySelector("input, select, textarea");
+
+  if (firstField) {
+    window.setTimeout(() => firstField.focus(), 260);
+  }
+}
+
+function setupBusinessCreationButtons() {
+  [
+    "businessAddButton",
+    "businessEmptyStateAddButton",
+  ].forEach((buttonId) => {
+    const button = document.getElementById(buttonId);
+
+    if (!button || button.dataset.bound === "true") return;
+
+    button.dataset.bound = "true";
+    button.addEventListener("click", openBusinessCreationForm);
+  });
+}
+
 async function initAdminPanel() {
   const adminPage = document.getElementById("adminPage");
 
@@ -5458,8 +5805,8 @@ function renderBusinessRecords(businesses) {
   if (!businesses || businesses.length === 0) {
     renderEmptyState(
       list,
-      "No business yet",
-      "Your business records will appear here after approval."
+      "Henüz işletme yok",
+      "Onay sonrası işletme kayıtların burada görünecek."
     );
     return;
   }
@@ -5474,7 +5821,7 @@ function renderBusinessRecords(businesses) {
     title.textContent = safeText(business.name);
     item.appendChild(title);
 
-    item.appendChild(createStatusBadge(business.status));
+    item.appendChild(createStatusBadge(getBusinessDisplayStatus(business)));
 
     if (business.description) {
       const description = document.createElement("p");
@@ -5516,20 +5863,20 @@ function renderBusinessAnalytics(metrics) {
   grid.innerHTML = "";
 
   const cards = [
-    ["Total Venues", analytics.totalVenues],
-    ["Total Events", analytics.totalEvents],
-    ["Total Reservations", analytics.totalReservations],
-    ["Pending Reservations", analytics.pendingReservations],
-    ["Approved Reservations", analytics.approvedReservations],
-    ["Favorites", analytics.totalFavorites],
-    ["Reviews", analytics.totalReviews],
+    ["Toplam Mekan", analytics.totalVenues],
+    ["Toplam Etkinlik", analytics.totalEvents],
+    ["Toplam Rezervasyon", analytics.totalReservations],
+    ["Bekleyen Rezervasyon", analytics.pendingReservations],
+    ["Onaylı Rezervasyon", analytics.approvedReservations],
+    ["Favoriler", analytics.totalFavorites],
+    ["Yorumlar", analytics.totalReviews],
     [
-      "Average Rating",
+      "Ortalama Puan",
       analytics.totalReviews
         ? analytics.averageRating.toFixed(1)
-        : "No ratings",
+        : "Puan yok",
     ],
-    ["RSVP / Attendees", analytics.totalAttendees],
+    ["Katılımcılar", analytics.totalAttendees],
   ];
 
   const fragment = document.createDocumentFragment();
@@ -5569,7 +5916,7 @@ function ensureBusinessAnalyticsSection() {
   section.className = "business-section";
 
   const heading = document.createElement("h2");
-  heading.textContent = "Analytics";
+  heading.textContent = "Analitik";
   section.appendChild(heading);
 
   const grid = document.createElement("div");
@@ -5582,9 +5929,7 @@ function ensureBusinessAnalyticsSection() {
 
 function getBusinessDashboardBusinessIds() {
   return businessDashboardState.businesses
-    .filter(
-      (business) => getBusinessStatus(business) === "approved"
-    )
+    .filter(isApprovedBusinessRecord)
     .map((business) => String(business.id));
 }
 
@@ -5609,7 +5954,7 @@ function getBusinessDashboardVenueName(venueId) {
     (item) => String(item.id) === String(venueId)
   );
 
-  return venue ? safeText(venue.name) : `Venue #${venueId}`;
+  return venue ? safeText(venue.name) : `Mekan #${venueId}`;
 }
 
 function populateBusinessDashboardSelects() {
@@ -5619,13 +5964,13 @@ function populateBusinessDashboardSelects() {
     document.getElementById("businessEventVenueId");
   const approvedBusinesses =
     businessDashboardState.businesses.filter(
-      (business) => getBusinessStatus(business) === "approved"
+      isApprovedBusinessRecord
     );
 
   if (businessSelect) {
     const selectedValue = businessSelect.value;
     businessSelect.innerHTML =
-      '<option value="">Choose Business</option>';
+      '<option value="">İşletme Seç</option>';
 
     approvedBusinesses.forEach((business) => {
       const option = document.createElement("option");
@@ -5642,7 +5987,7 @@ function populateBusinessDashboardSelects() {
   if (venueSelect) {
     const selectedValue = venueSelect.value;
     venueSelect.innerHTML =
-      '<option value="">Choose Venue</option>';
+      '<option value="">Mekan Seç</option>';
 
     businessDashboardState.venues.forEach((venue) => {
       const option = document.createElement("option");
@@ -5660,10 +6005,19 @@ function populateBusinessDashboardSelects() {
 function updateBusinessOwnerCrudVisibility() {
   const hasApprovedBusiness =
     getBusinessDashboardBusinessIds().length > 0;
+  const hasPendingOrApprovedBusiness =
+    businessDashboardState.businesses.some((business) =>
+      isPendingBusinessRecord(business) ||
+      isApprovedBusinessRecord(business)
+    );
   const venueForm =
     document.getElementById("businessVenueForm");
   const eventForm =
     document.getElementById("businessEventForm");
+  const applicationSection =
+    document.getElementById("businessApplicationSection");
+  const applicationForm =
+    document.getElementById("businessApplicationForm");
 
   if (venueForm) {
     venueForm.style.display = hasApprovedBusiness ? "" : "none";
@@ -5672,6 +6026,17 @@ function updateBusinessOwnerCrudVisibility() {
   if (eventForm) {
     eventForm.style.display = hasApprovedBusiness ? "" : "none";
   }
+
+  if (applicationSection) {
+    applicationSection.hidden = true;
+  }
+
+  if (applicationForm) {
+    applicationForm.style.display =
+      hasPendingOrApprovedBusiness ? "none" : "";
+  }
+
+  updateBusinessDashboardEmptyState();
 }
 
 function clearBusinessVenueForm() {
@@ -5713,8 +6078,8 @@ function renderBusinessVenues(venues) {
   if (!venues || venues.length === 0) {
     renderEmptyState(
       list,
-      "No linked venues",
-      "Venues linked to your businesses will appear here."
+      "Henüz mekan yok",
+      "İşletmelerine bağlı mekanlar burada görünecek."
     );
     return;
   }
@@ -5797,7 +6162,7 @@ function populateBusinessMenuVenueSelect() {
 
   const placeholder = document.createElement("option");
   placeholder.value = "";
-  placeholder.textContent = "Choose Venue";
+  placeholder.textContent = "Mekan Seç";
   select.appendChild(placeholder);
 
   businessDashboardState.venues.forEach((venue) => {
@@ -5872,7 +6237,7 @@ async function loadVenueMenuForBusiness(venueId) {
     if (categoriesResult.error || itemsResult.error) {
       showSafeError(
         categoriesResult.error || itemsResult.error,
-        "Menu could not be loaded."
+        "Menü yüklenemedi."
       );
       return { categories: [], items: [] };
     }
@@ -5882,7 +6247,7 @@ async function loadVenueMenuForBusiness(venueId) {
       items: itemsResult.data || [],
     };
   } catch (error) {
-    showSafeError(error, "Menu could not be loaded.");
+    showSafeError(error, "Menü yüklenemedi.");
     return { categories: [], items: [] };
   }
 }
@@ -5897,7 +6262,7 @@ function populateBusinessMenuCategorySelect(categories) {
 
   const placeholder = document.createElement("option");
   placeholder.value = "";
-  placeholder.textContent = "No category";
+  placeholder.textContent = "Kategori yok";
   select.appendChild(placeholder);
 
   (categories || []).forEach((category) => {
@@ -5939,7 +6304,7 @@ function createBusinessMenuRow(title, meta, onDelete) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "admin-delete-btn";
-    button.textContent = "Delete";
+    button.textContent = "Sil";
     button.addEventListener("click", onDelete);
     item.appendChild(button);
   }
@@ -5961,8 +6326,8 @@ function renderBusinessVenueMenu(menuData) {
   ) {
     renderEmptyState(
       list,
-      "No menu yet.",
-      "Create categories and items for the selected venue."
+      "Henüz menü yok.",
+      "Seçili mekan için kategori ve ürün oluştur."
     );
     return;
   }
@@ -5971,14 +6336,14 @@ function renderBusinessVenueMenu(menuData) {
   categoriesGroup.className = "business-menu-group";
 
   const categoriesTitle = document.createElement("h3");
-  categoriesTitle.textContent = "Categories";
+  categoriesTitle.textContent = "Kategoriler";
   categoriesGroup.appendChild(categoriesTitle);
 
   (menuData.categories || []).forEach((category) => {
     categoriesGroup.appendChild(
       createBusinessMenuRow(
         category.name,
-        `${category.is_active ? "Active" : "Hidden"} · Sort ${category.sort_order || 0}`,
+        `${category.is_active ? "Aktif" : "Gizli"} · Sıra ${category.sort_order || 0}`,
         () => deleteMenuCategory(category.id)
       )
     );
@@ -5990,16 +6355,16 @@ function renderBusinessVenueMenu(menuData) {
   itemsGroup.className = "business-menu-group";
 
   const itemsTitle = document.createElement("h3");
-  itemsTitle.textContent = "Items";
+  itemsTitle.textContent = "Ürünler";
   itemsGroup.appendChild(itemsTitle);
 
   (menuData.items || []).forEach((item) => {
     const price = formatMenuPrice(item);
-    const availability = item.is_available ? "Available" : "Hidden";
+    const availability = item.is_available ? "Mevcut" : "Gizli";
     itemsGroup.appendChild(
       createBusinessMenuRow(
         item.name,
-        [price, availability, `Sort ${item.sort_order || 0}`]
+        [price, availability, `Sıra ${item.sort_order || 0}`]
           .filter(Boolean)
           .join(" · "),
         () => deleteMenuItem(item.id)
@@ -6020,8 +6385,8 @@ async function refreshBusinessVenueMenu() {
     populateBusinessMenuCategorySelect([]);
     renderEmptyState(
       list,
-      "Choose a venue.",
-      "Select an owned venue to manage its menu."
+      "Bir mekan seç.",
+      "Menüsünü yönetmek için sana ait bir mekan seç."
     );
     return;
   }
@@ -6035,14 +6400,14 @@ async function createMenuCategory(event) {
   const venueId = getSelectedBusinessMenuVenueId();
 
   if (!venueId) {
-    showToast("Choose one of your venues");
+    showToast("Mekanlarından birini seç");
     return;
   }
 
   const name = getAdminValue("businessMenuCategoryName");
 
   if (!name) {
-    showToast("Category name required");
+    showToast("Kategori adı gerekli");
     return;
   }
 
@@ -6059,13 +6424,13 @@ async function createMenuCategory(event) {
     }]);
 
   if (error) {
-    showSafeError(error, "Category could not be saved.");
+    showSafeError(error, "Kategori kaydedilemedi.");
     return;
   }
 
   setAdminValue("businessMenuCategoryName", "");
   setAdminValue("businessMenuCategorySort", "0");
-  showToast("Category saved");
+  showToast("Kategori kaydedildi");
   await refreshBusinessVenueMenu();
 }
 
@@ -6075,14 +6440,14 @@ async function createMenuItem(event) {
   const venueId = getSelectedBusinessMenuVenueId();
 
   if (!venueId) {
-    showToast("Choose one of your venues");
+    showToast("Mekanlarından birini seç");
     return;
   }
 
   const name = getAdminValue("businessMenuItemName");
 
   if (!name) {
-    showToast("Item name required");
+    showToast("Ürün adı gerekli");
     return;
   }
 
@@ -6113,7 +6478,7 @@ async function createMenuItem(event) {
     }]);
 
   if (error) {
-    showSafeError(error, "Menu item could not be saved.");
+    showSafeError(error, "Menü ürünü kaydedilemedi.");
     return;
   }
 
@@ -6123,12 +6488,12 @@ async function createMenuItem(event) {
   setAdminValue("businessMenuItemImage", "");
   clearAdminFile("businessMenuItemImageFile");
   setAdminValue("businessMenuItemSort", "0");
-  showToast("Menu item saved");
+  showToast("Menü ürünü kaydedildi");
   await refreshBusinessVenueMenu();
 }
 
 async function deleteMenuCategory(categoryId) {
-  if (!categoryId || !confirm("Delete this category?")) return;
+  if (!categoryId || !confirm("Bu kategoriyi silmek istiyor musun?")) return;
 
   const { error } = await supabaseClient
     .from("venue_menu_categories")
@@ -6136,16 +6501,16 @@ async function deleteMenuCategory(categoryId) {
     .eq("id", categoryId);
 
   if (error) {
-    showSafeError(error, "Category could not be deleted.");
+    showSafeError(error, "Kategori silinemedi.");
     return;
   }
 
-  showToast("Category deleted");
+  showToast("Kategori silindi");
   await refreshBusinessVenueMenu();
 }
 
 async function deleteMenuItem(itemId) {
-  if (!itemId || !confirm("Delete this menu item?")) return;
+  if (!itemId || !confirm("Bu menü ürününü silmek istiyor musun?")) return;
 
   const { error } = await supabaseClient
     .from("venue_menu_items")
@@ -6153,11 +6518,11 @@ async function deleteMenuItem(itemId) {
     .eq("id", itemId);
 
   if (error) {
-    showSafeError(error, "Menu item could not be deleted.");
+    showSafeError(error, "Menü ürünü silinemedi.");
     return;
   }
 
-  showToast("Menu item deleted");
+  showToast("Menü ürünü silindi");
   await refreshBusinessVenueMenu();
 }
 
@@ -6171,7 +6536,7 @@ function populateBusinessStoreVenueSelect() {
 
   const placeholder = document.createElement("option");
   placeholder.value = "";
-  placeholder.textContent = "Choose Venue";
+  placeholder.textContent = "Mekan Seç";
   select.appendChild(placeholder);
 
   businessDashboardState.venues.forEach((venue) => {
@@ -6247,7 +6612,7 @@ async function loadVenueProductsForBusiness(venueId) {
     if (categoriesResult.error || productsResult.error) {
       showSafeError(
         categoriesResult.error || productsResult.error,
-        "Store could not be loaded."
+        "Mağaza yüklenemedi."
       );
       return { categories: [], products: [] };
     }
@@ -6257,7 +6622,7 @@ async function loadVenueProductsForBusiness(venueId) {
       products: productsResult.data || [],
     };
   } catch (error) {
-    showSafeError(error, "Store could not be loaded.");
+    showSafeError(error, "Mağaza yüklenemedi.");
     return { categories: [], products: [] };
   }
 }
@@ -6272,7 +6637,7 @@ function populateBusinessProductCategorySelect(categories) {
 
   const placeholder = document.createElement("option");
   placeholder.value = "";
-  placeholder.textContent = "No category";
+  placeholder.textContent = "Kategori yok";
   select.appendChild(placeholder);
 
   (categories || []).forEach((category) => {
@@ -6306,8 +6671,8 @@ function renderBusinessVenueProducts(productData) {
   ) {
     renderEmptyState(
       list,
-      "No products yet.",
-      "Create product categories and showcase products for the selected venue."
+      "Henüz ürün yok.",
+      "Seçili mekan için ürün kategorileri ve ürünler oluştur."
     );
     return;
   }
@@ -6316,14 +6681,14 @@ function renderBusinessVenueProducts(productData) {
   categoriesGroup.className = "business-menu-group business-store-group";
 
   const categoriesTitle = document.createElement("h3");
-  categoriesTitle.textContent = "Product Categories";
+  categoriesTitle.textContent = "Ürün Kategorileri";
   categoriesGroup.appendChild(categoriesTitle);
 
   (productData.categories || []).forEach((category) => {
     categoriesGroup.appendChild(
       createBusinessMenuRow(
         category.name,
-        `${category.is_active ? "Active" : "Hidden"} · Sort ${category.sort_order || 0}`,
+        `${category.is_active ? "Aktif" : "Gizli"} · Sıra ${category.sort_order || 0}`,
         () => deleteProductCategory(category.id)
       )
     );
@@ -6335,7 +6700,7 @@ function renderBusinessVenueProducts(productData) {
   productsGroup.className = "business-menu-group business-store-group";
 
   const productsTitle = document.createElement("h3");
-  productsTitle.textContent = "Products";
+  productsTitle.textContent = "Ürünler";
   productsGroup.appendChild(productsTitle);
 
   (productData.products || []).forEach((product) => {
@@ -6345,12 +6710,12 @@ function renderBusinessVenueProducts(productData) {
       product.stock_quantity === undefined ||
       product.stock_quantity === ""
         ? ""
-        : `${product.stock_quantity} stock`;
-    const availability = product.is_active ? "Active" : "Hidden";
+        : `${product.stock_quantity} stok`;
+    const availability = product.is_active ? "Aktif" : "Gizli";
     productsGroup.appendChild(
       createBusinessMenuRow(
         product.name,
-        [price, stock, availability, `Sort ${product.sort_order || 0}`]
+        [price, stock, availability, `Sıra ${product.sort_order || 0}`]
           .filter(Boolean)
           .join(" · "),
         () => deleteVenueProduct(product.id)
@@ -6371,8 +6736,8 @@ async function refreshBusinessVenueProducts() {
     populateBusinessProductCategorySelect([]);
     renderEmptyState(
       list,
-      "Choose a venue.",
-      "Select an owned venue to manage its store catalog."
+      "Bir mekan seç.",
+      "Mağaza kataloğunu yönetmek için sana ait bir mekan seç."
     );
     return;
   }
@@ -6388,14 +6753,14 @@ async function createProductCategory(event) {
   const venueId = getSelectedBusinessStoreVenueId();
 
   if (!venueId) {
-    showToast("Choose one of your venues");
+    showToast("Mekanlarından birini seç");
     return;
   }
 
   const name = getAdminValue("businessProductCategoryName");
 
   if (!name) {
-    showToast("Category name required");
+    showToast("Kategori adı gerekli");
     return;
   }
 
@@ -6412,13 +6777,13 @@ async function createProductCategory(event) {
     }]);
 
   if (error) {
-    showSafeError(error, "Product category could not be saved.");
+    showSafeError(error, "Ürün kategorisi kaydedilemedi.");
     return;
   }
 
   setAdminValue("businessProductCategoryName", "");
   setAdminValue("businessProductCategorySort", "0");
-  showToast("Product category saved");
+  showToast("Ürün kategorisi kaydedildi");
   await refreshBusinessVenueProducts();
 }
 
@@ -6428,14 +6793,14 @@ async function createVenueProduct(event) {
   const venueId = getSelectedBusinessStoreVenueId();
 
   if (!venueId) {
-    showToast("Choose one of your venues");
+    showToast("Mekanlarından birini seç");
     return;
   }
 
   const name = getAdminValue("businessProductName");
 
   if (!name) {
-    showToast("Product name required");
+    showToast("Ürün adı gerekli");
     return;
   }
 
@@ -6468,7 +6833,7 @@ async function createVenueProduct(event) {
     }]);
 
   if (error) {
-    showSafeError(error, "Product could not be saved.");
+    showSafeError(error, "Ürün kaydedilemedi.");
     return;
   }
 
@@ -6479,12 +6844,12 @@ async function createVenueProduct(event) {
   clearAdminFile("businessProductImageFile");
   setAdminValue("businessProductStock", "");
   setAdminValue("businessProductSort", "0");
-  showToast("Product saved");
+  showToast("Ürün kaydedildi");
   await refreshBusinessVenueProducts();
 }
 
 async function deleteProductCategory(categoryId) {
-  if (!categoryId || !confirm("Delete this product category?")) return;
+  if (!categoryId || !confirm("Bu ürün kategorisini silmek istiyor musun?")) return;
 
   const { error } = await supabaseClient
     .from("venue_product_categories")
@@ -6492,16 +6857,16 @@ async function deleteProductCategory(categoryId) {
     .eq("id", categoryId);
 
   if (error) {
-    showSafeError(error, "Product category could not be deleted.");
+    showSafeError(error, "Ürün kategorisi silinemedi.");
     return;
   }
 
-  showToast("Product category deleted");
+  showToast("Ürün kategorisi silindi");
   await refreshBusinessVenueProducts();
 }
 
 async function deleteVenueProduct(productId) {
-  if (!productId || !confirm("Delete this product?")) return;
+  if (!productId || !confirm("Bu ürünü silmek istiyor musun?")) return;
 
   const { error } = await supabaseClient
     .from("venue_products")
@@ -6509,11 +6874,11 @@ async function deleteVenueProduct(productId) {
     .eq("id", productId);
 
   if (error) {
-    showSafeError(error, "Product could not be deleted.");
+    showSafeError(error, "Ürün silinemedi.");
     return;
   }
 
-  showToast("Product deleted");
+  showToast("Ürün silindi");
   await refreshBusinessVenueProducts();
 }
 
@@ -6527,8 +6892,8 @@ function renderBusinessEvents(events) {
   if (!events || events.length === 0) {
     renderEmptyState(
       list,
-      "No events yet",
-      "Create events for your venues to get started."
+      "Henüz etkinlik yok",
+      "Başlamak için mekanlarına etkinlik oluştur."
     );
     return;
   }
@@ -6601,24 +6966,24 @@ function renderBusinessReservations(reservations) {
   if (!reservations || reservations.length === 0) {
     renderEmptyState(
       list,
-      "No reservations yet",
-      "Reservations for your venues will appear here."
+      "Henüz rezervasyon yok",
+      "Mekanların için gelen rezervasyonlar burada görünecek."
     );
     return;
   }
 
   const fragment = document.createDocumentFragment();
   const statuses = [
-    ["all", "All"],
-    ["pending", "Pending"],
-    ["approved", "Approved"],
-    ["rejected", "Rejected"],
-    ["cancelled", "Cancelled"],
+    ["all", "Tümü"],
+    ["pending", "Beklemede"],
+    ["approved", "Onaylandı"],
+    ["rejected", "Reddedildi"],
+    ["cancelled", "İptal Edildi"],
   ];
   const dateFilters = [
-    ["all", "All Dates"],
-    ["today", "Today"],
-    ["upcoming", "Upcoming"],
+    ["all", "Tüm Tarihler"],
+    ["today", "Bugün"],
+    ["upcoming", "Yaklaşan"],
   ];
   const activeStatus =
     window.businessReservationStatusFilter || "all";
@@ -6697,8 +7062,8 @@ function renderBusinessReservations(reservations) {
   if (visibleReservations.length === 0) {
     renderEmptyState(
       list,
-      `No ${getReservationStatusLabel(activeStatus)} reservations`,
-      "New booking activity will appear here when it matches this status."
+      `${getReservationStatusLabel(activeStatus)} rezervasyon yok`,
+      "Bu filtreyle eşleşen yeni rezervasyon hareketleri burada görünecek."
     );
     list.prepend(filters);
     return;
@@ -6857,7 +7222,7 @@ function normalizeReservationTime(value) {
 }
 
 function getReservationTimeLabel(time) {
-  if (!time) return "Time not set";
+  if (!time) return "Saat belirlenmedi";
 
   const [hourValue, minuteValue = "00"] = time.split(":");
   const hour = Number(hourValue);
@@ -6956,7 +7321,7 @@ function getScheduleCustomerName(reservation) {
     safeText(reservation["profile.full_name"]) ||
     safeText(reservation.user_email) ||
     safeText(reservation.email) ||
-    "Guest"
+    "Misafir"
   );
 }
 
@@ -6978,7 +7343,7 @@ function getScheduleVenueName(reservation) {
     safeText(reservation["venue.name"]) ||
     safeText(reservation.business_name) ||
     safeText(getBusinessDashboardVenueName(reservation.venue_id)) ||
-    "Venue"
+    "Mekan"
   );
 }
 
@@ -7061,7 +7426,7 @@ function createReservationScheduleBooking(entries) {
     item.appendChild(time);
 
     const party = document.createElement("span");
-    party.textContent = `${booking.partySize || 0} guests`;
+    party.textContent = `${booking.partySize || 0} misafir`;
     item.appendChild(party);
 
     item.appendChild(createReservationScheduleBadge(booking.status));
@@ -7077,12 +7442,12 @@ function createReservationScheduleBooking(entries) {
   ).length;
   const heading = document.createElement("strong");
   heading.textContent = pendingCount
-    ? `${entries.length} bookings - ${pendingCount} pending`
-    : `${entries.length} bookings`;
+    ? `${entries.length} rezervasyon - ${pendingCount} beklemede`
+    : `${entries.length} rezervasyon`;
   item.appendChild(heading);
 
   const guests = document.createElement("span");
-  guests.textContent = `${totalGuests} guests`;
+  guests.textContent = `${totalGuests} misafir`;
   item.appendChild(guests);
 
   const names = document.createElement("span");
@@ -7127,14 +7492,14 @@ function renderBusinessReservationSchedule(reservations) {
   const emptyCorner = document.createElement("div");
   emptyCorner.className =
     "reservation-schedule-cell reservation-schedule-head";
-  emptyCorner.textContent = "Time";
+  emptyCorner.textContent = "Saat";
   table.appendChild(emptyCorner);
 
   schedule.weekDates.forEach((date) => {
     const header = document.createElement("div");
     header.className =
       "reservation-schedule-cell reservation-schedule-head";
-    header.textContent = date.toLocaleDateString("en-US", {
+    header.textContent = date.toLocaleDateString("tr-TR", {
       weekday: "short",
       month: "short",
       day: "numeric",
@@ -7159,7 +7524,7 @@ function renderBusinessReservationSchedule(reservations) {
           "reservation-schedule-cell reservation-schedule-available";
         const available = document.createElement("span");
         available.className = "reservation-schedule-empty";
-        available.textContent = "Available";
+        available.textContent = "Uygun";
         cell.appendChild(available);
       } else {
         cell.className =
@@ -7196,7 +7561,7 @@ function createBusinessReservationCard(reservation) {
   if (isPendingReservation(reservation)) {
     const newBadge = document.createElement("span");
     newBadge.className = "reservation-new-badge";
-    newBadge.textContent = "New";
+    newBadge.textContent = "Yeni";
     header.appendChild(newBadge);
   }
 
@@ -7206,25 +7571,25 @@ function createBusinessReservationCard(reservation) {
   meta.className = "reservation-meta-grid";
   meta.appendChild(
     createReservationMeta(
-      "Guest",
+      "Misafir",
       getReservationGuestLabel(reservation)
     )
   );
   meta.appendChild(
-    createReservationMeta("Date", reservation.reservation_date)
+    createReservationMeta("Tarih", reservation.reservation_date)
   );
   meta.appendChild(
-    createReservationMeta("Time", reservation.reservation_time)
+    createReservationMeta("Saat", reservation.reservation_time)
   );
   meta.appendChild(
     createReservationMeta(
-      "Party",
+      "Kişi",
       `${reservation.party_size || 0}`
     )
   );
   meta.appendChild(
     createReservationMeta(
-      "Status",
+      "Durum",
       getReservationStatusLabel(reservation.status)
     )
   );
@@ -7245,7 +7610,7 @@ function createBusinessReservationCard(reservation) {
     const approveButton = document.createElement("button");
     approveButton.type = "button";
     approveButton.className = "btn";
-    approveButton.textContent = "Approve";
+    approveButton.textContent = "Onayla";
     bindReservationAction(approveButton, () => {
       updateBusinessReservationStatus(
         reservation.id,
@@ -7257,7 +7622,7 @@ function createBusinessReservationCard(reservation) {
     const rejectButton = document.createElement("button");
     rejectButton.type = "button";
     rejectButton.className = "admin-delete-btn";
-    rejectButton.textContent = "Reject";
+    rejectButton.textContent = "Reddet";
     bindReservationAction(rejectButton, () => {
       updateBusinessReservationStatus(
         reservation.id,
@@ -7270,7 +7635,7 @@ function createBusinessReservationCard(reservation) {
   const messageButton = document.createElement("button");
   messageButton.type = "button";
   messageButton.className = "secondary-btn";
-  messageButton.textContent = "Message User";
+  messageButton.textContent = "Kullanıcıya Mesaj Gönder";
   bindReservationAction(messageButton, () => {
     openReservationConversation(reservation.id);
   });
@@ -7282,24 +7647,109 @@ function createBusinessReservationCard(reservation) {
   return item;
 }
 
-async function loadBusinessBusinesses(session) {
+function mergeBusinessRecords(records) {
+  const seen = new Set();
+  const merged = [];
+
+  records.flat().forEach((record) => {
+    const key = record && record.id ? String(record.id) : "";
+
+    if (!key || seen.has(key)) return;
+
+    seen.add(key);
+    merged.push(record);
+  });
+
+  return merged;
+}
+
+function logBusinessStatusFields(records) {
+  console.log(
+    "[business-debug] status fields",
+    (records || []).map((business) => ({
+      id: business.id,
+      owner_id: business.owner_id,
+      user_id: business.user_id,
+      business_owner_id: business.business_owner_id,
+      status: business.status,
+      verification_status: business.verification_status,
+    }))
+  );
+}
+
+async function queryBusinessRecordsByOwnerField(
+  field,
+  userId,
+  options = {}
+) {
   const { data, error } =
     await supabaseClient
       .from("businesses")
       .select("*")
-      .eq("owner_id", session.user.id)
+      .eq(field, userId)
       .order("created_at", { ascending: false });
 
   if (error) {
-    showSafeError(error, "Businesses could not be loaded.");
+    console.log("[business-debug] applications query error", {
+      field,
+      error,
+    });
+    if (options.showError) {
+      showSafeError(error, "İşletmeler yüklenemedi.");
+    }
     return [];
   }
+
+  console.log("[business-debug] applications", {
+    field,
+    data,
+  });
 
   return data || [];
 }
 
+async function loadBusinessBusinesses(session) {
+  const userId = session && session.user ? session.user.id : "";
+
+  console.log("[business-debug] user", userId);
+
+  const ownerRecords =
+    await queryBusinessRecordsByOwnerField(
+      "owner_id",
+      userId,
+      { showError: true }
+    );
+  const fallbackRecords = [];
+
+  if (ownerRecords.length === 0) {
+    fallbackRecords.push(
+      await queryBusinessRecordsByOwnerField("user_id", userId)
+    );
+    fallbackRecords.push(
+      await queryBusinessRecordsByOwnerField(
+        "business_owner_id",
+        userId
+      )
+    );
+  }
+
+  const businesses = mergeBusinessRecords([
+    ownerRecords,
+    ...fallbackRecords,
+  ]);
+
+  logBusinessStatusFields(businesses);
+
+  return businesses;
+}
+
 async function loadBusinessVenues() {
   const businessIds = getBusinessDashboardBusinessIds();
+  const userId =
+    businessDashboardState.session &&
+    businessDashboardState.session.user
+      ? businessDashboardState.session.user.id
+      : "";
 
   if (businessIds.length === 0) return [];
 
@@ -7311,11 +7761,57 @@ async function loadBusinessVenues() {
       .order("id", { ascending: false });
 
   if (error) {
-    showSafeError(error, "Venues could not be loaded.");
+    showSafeError(error, "Mekanlar yüklenemedi.");
     return [];
   }
 
-  return data || [];
+  console.log("[business-debug] approved venues", {
+    businessIds,
+    venues: data,
+  });
+  console.log(
+    "[business-debug] venue owner fields",
+    (data || []).map((venue) => ({
+      id: venue.id,
+      business_id: venue.business_id,
+      owner_id: venue.owner_id,
+      user_id: venue.user_id,
+      business_owner_id: venue.business_owner_id,
+      status: venue.status,
+      verification_status: venue.verification_status,
+    }))
+  );
+
+  if ((data || []).length > 0 || !userId) {
+    return data || [];
+  }
+
+  const fallbackVenues = [];
+
+  for (const field of ["owner_id", "user_id", "business_owner_id"]) {
+    const { data: fallbackData, error: fallbackError } =
+      await supabaseClient
+        .from("venues")
+        .select("*")
+        .eq(field, userId)
+        .order("id", { ascending: false });
+
+    if (fallbackError) {
+      console.log("[business-debug] approved venues query error", {
+        field,
+        error: fallbackError,
+      });
+      continue;
+    }
+
+    console.log("[business-debug] approved venues", {
+      field,
+      venues: fallbackData,
+    });
+    fallbackVenues.push(fallbackData || []);
+  }
+
+  return mergeBusinessRecords(fallbackVenues);
 }
 
 async function loadBusinessEvents() {
@@ -7331,7 +7827,7 @@ async function loadBusinessEvents() {
       .order("id", { ascending: false });
 
   if (error) {
-    showSafeError(error, "Events could not be loaded.");
+    showSafeError(error, "Etkinlikler yüklenemedi.");
     return [];
   }
 
@@ -7351,7 +7847,7 @@ async function loadBusinessReservations() {
       .order("created_at", { ascending: false });
 
   if (error) {
-    showSafeError(error, "Reservations could not be loaded.");
+    showSafeError(error, "Rezervasyonlar yüklenemedi.");
     return [];
   }
 
@@ -7426,14 +7922,14 @@ async function loadBusinessAnalytics() {
   ] = await Promise.all(statsRequests);
 
   if (favoritesResult.error) {
-    showSafeError(favoritesResult.error, "Analytics could not be fully loaded.");
+    showSafeError(favoritesResult.error, "Analitik tam yüklenemedi.");
   } else {
     analytics.totalFavorites =
       (favoritesResult.data || []).length;
   }
 
   if (reviewsResult.error) {
-    showSafeError(reviewsResult.error, "Analytics could not be fully loaded.");
+    showSafeError(reviewsResult.error, "Analitik tam yüklenemedi.");
   } else {
     const reviews = reviewsResult.data || [];
     analytics.totalReviews = reviews.length;
@@ -7448,7 +7944,7 @@ async function loadBusinessAnalytics() {
   }
 
   if (attendeesResult.error) {
-    showSafeError(attendeesResult.error, "Analytics could not be fully loaded.");
+    showSafeError(attendeesResult.error, "Analitik tam yüklenemedi.");
   } else {
     analytics.totalAttendees =
       (attendeesResult.data || []).length;
@@ -7469,6 +7965,7 @@ async function refreshBusinessDashboard() {
     businessDashboardState.venues = [];
     businessDashboardState.events = [];
     businessDashboardState.reservations = [];
+    updateBusinessDashboardEmptyState();
     renderBusinessAnalytics(getEmptyBusinessAnalytics());
     populateBusinessDashboardSelects();
     populateBusinessMenuVenueSelect();
@@ -7482,7 +7979,7 @@ async function refreshBusinessDashboard() {
     renderBusinessBookingRules(null);
     renderBusinessBlackoutDates([]);
     setBusinessBookingStatus(
-      "Add an approved business and venue to manage booking settings."
+      "Rezervasyon ayarlarını yönetmek için onaylı bir işletme ve mekan ekle."
     );
     await refreshBusinessVenueMenu();
     await refreshBusinessVenueProducts();
@@ -7495,6 +7992,7 @@ async function refreshBusinessDashboard() {
   populateBusinessStoreVenueSelect();
   updateBusinessBookingVenueOptions();
   renderBusinessVenues(businessDashboardState.venues);
+  updateBusinessDashboardEmptyState();
   await refreshBusinessVenueMenu();
   await refreshBusinessVenueProducts();
   await loadBusinessBookingSettings();
@@ -7517,6 +8015,9 @@ async function refreshBusinessDashboard() {
 async function saveBusinessVenue(event) {
   event.preventDefault();
 
+  const user =
+    businessDashboardState.session &&
+    businessDashboardState.session.user;
   const id = getAdminValue("businessVenueId");
   const businessId = getAdminValue("businessVenueBusinessId");
   const latitudeValue =
@@ -7526,18 +8027,23 @@ async function saveBusinessVenue(event) {
   const hasLatitude = latitudeValue !== "";
   const hasLongitude = longitudeValue !== "";
 
+  if (!user || !user.id) {
+    showToast("Oturum bulunamadı. Lütfen tekrar giriş yap.");
+    return;
+  }
+
   if (!ownsBusinessRecord(businessId)) {
-    showToast("Choose one of your businesses");
+    showToast("İşletmelerinden birini seç");
     return;
   }
 
   if (id && !ownsVenueRecord(id)) {
-    showToast("You can only edit your own venues");
+    showToast("Yalnızca kendi mekanlarını düzenleyebilirsin");
     return;
   }
 
   if (hasLatitude !== hasLongitude) {
-    showToast("Enter both latitude and longitude");
+    showToast("Enlem ve boylamı birlikte gir");
     return;
   }
 
@@ -7545,7 +8051,7 @@ async function saveBusinessVenue(event) {
     hasLatitude &&
     !hasValidCoordinate(latitudeValue, longitudeValue)
   ) {
-    showToast("Latitude or longitude is out of range");
+    showToast("Enlem veya boylam geçerli aralıkta değil");
     return;
   }
 
@@ -7574,6 +8080,7 @@ async function saveBusinessVenue(event) {
 
   const payload = {
     business_id: businessId,
+    owner_id: user.id,
     name: getAdminValue("businessVenueName"),
     city: getAdminValue("businessVenueCity"),
     category: getVenueCategoryValue({
@@ -7586,6 +8093,9 @@ async function saveBusinessVenue(event) {
     longitude: hasLongitude ? Number(longitudeValue) : null,
     description: getAdminValue("businessVenueDescription"),
   };
+
+  console.log("[venue-insert-debug] payload", payload);
+  console.log("[venue-insert-debug] user", user.id);
 
   let error = null;
   let savedVenueId = id;
@@ -7612,13 +8122,13 @@ async function saveBusinessVenue(event) {
   }
 
   if (error) {
-    showSafeError(error, "Venue could not be saved.");
+    showSafeError(error, "Mekan kaydedilemedi.");
     return;
   }
 
   await saveVenueGalleryPhotos(savedVenueId, galleryImageUrls);
 
-  showToast(id ? "Venue updated" : "Venue created");
+  showToast(id ? "Mekan güncellendi" : "Mekan oluşturuldu");
   clearBusinessVenueForm();
   await refreshBusinessDashboard();
 }
@@ -7630,7 +8140,7 @@ async function saveBusinessEvent(event) {
   const venueId = getAdminValue("businessEventVenueId");
 
   if (!ownsVenueRecord(venueId)) {
-    showToast("Choose one of your venues");
+    showToast("Mekanlarından birini seç");
     return;
   }
 
@@ -7640,7 +8150,7 @@ async function saveBusinessEvent(event) {
       (eventItem) => String(eventItem.id) === String(id)
     )
   ) {
-    showToast("You can only edit your own events");
+    showToast("Yalnızca kendi etkinliklerini düzenleyebilirsin");
     return;
   }
 
@@ -7671,22 +8181,22 @@ async function saveBusinessEvent(event) {
   const { error } = await request;
 
   if (error) {
-    showSafeError(error, "Event could not be saved.");
+    showSafeError(error, "Etkinlik kaydedilemedi.");
     return;
   }
 
-  showToast(id ? "Event updated" : "Event created");
+  showToast(id ? "Etkinlik güncellendi" : "Etkinlik oluşturuldu");
   clearBusinessEventForm();
   await refreshBusinessDashboard();
 }
 
 async function deleteBusinessVenue(id) {
   if (!ownsVenueRecord(id)) {
-    showToast("You can only delete your own venues");
+    showToast("Yalnızca kendi mekanlarını silebilirsin");
     return;
   }
 
-  if (!confirm("Delete this venue?")) return;
+  if (!confirm("Bu mekanı silmek istiyor musun?")) return;
 
   const { error } =
     await supabaseClient
@@ -7696,11 +8206,11 @@ async function deleteBusinessVenue(id) {
       .in("business_id", getBusinessDashboardBusinessIds());
 
   if (error) {
-    showSafeError(error, "Venue could not be deleted.");
+    showSafeError(error, "Mekan silinemedi.");
     return;
   }
 
-  showToast("Venue deleted");
+  showToast("Mekan silindi");
   await refreshBusinessDashboard();
 }
 
@@ -7710,11 +8220,11 @@ async function deleteBusinessEvent(id) {
   );
 
   if (!eventRecord || !ownsVenueRecord(eventRecord.venue_id)) {
-    showToast("You can only delete your own events");
+    showToast("Yalnızca kendi etkinliklerini silebilirsin");
     return;
   }
 
-  if (!confirm("Delete this event?")) return;
+  if (!confirm("Bu etkinliği silmek istiyor musun?")) return;
 
   const { error } =
     await supabaseClient
@@ -7724,11 +8234,11 @@ async function deleteBusinessEvent(id) {
       .in("venue_id", getBusinessDashboardVenueIds());
 
   if (error) {
-    showSafeError(error, "Event could not be deleted.");
+    showSafeError(error, "Etkinlik silinemedi.");
     return;
   }
 
-  showToast("Event deleted");
+  showToast("Etkinlik silindi");
   await refreshBusinessDashboard();
 }
 
@@ -7739,7 +8249,7 @@ async function updateBusinessReservationStatus(id, status) {
     );
 
   if (!reservation || !ownsVenueRecord(reservation.venue_id)) {
-    showToast("You can only update your own reservations");
+    showToast("Yalnızca kendi rezervasyonlarını güncelleyebilirsin");
     return;
   }
 
@@ -7751,11 +8261,11 @@ async function updateBusinessReservationStatus(id, status) {
       .in("venue_id", getBusinessDashboardVenueIds());
 
   if (error) {
-    showSafeError(error, "Reservation status could not be updated.");
+    showSafeError(error, "Rezervasyon durumu güncellenemedi.");
     return;
   }
 
-  showToast(`Reservation ${status}`);
+  showToast(`Rezervasyon ${getReservationStatusLabel(status)}`);
   notifyUserReservationStatus(reservation, status);
   await refreshBusinessDashboard();
 }
@@ -10218,12 +10728,12 @@ function updateBusinessBookingVenueOptions() {
   if (!select) return;
 
   const selectedValue = select.value;
-  select.innerHTML = '<option value="">Choose Venue</option>';
+  select.innerHTML = '<option value="">Mekan Seç</option>';
 
   businessDashboardState.venues.forEach((venue) => {
     const option = document.createElement("option");
     option.value = venue.id;
-    option.textContent = safeText(venue.name) || `Venue #${venue.id}`;
+    option.textContent = safeText(venue.name) || `Mekan #${venue.id}`;
     select.appendChild(option);
   });
 
@@ -10275,11 +10785,11 @@ function renderBusinessOperatingHourRows(hours) {
     closedInput.dataset.bookingClosed = "true";
     closedInput.checked = Boolean(rowData.is_closed);
     closedLabel.appendChild(closedInput);
-    closedLabel.append("Closed");
+    closedLabel.append("Kapalı");
     row.appendChild(closedLabel);
 
     const opensLabel = document.createElement("label");
-    opensLabel.textContent = "Opens";
+    opensLabel.textContent = "Açılış";
     const opensInput = document.createElement("input");
     opensInput.type = "time";
     opensInput.dataset.bookingOpens = "true";
@@ -10290,7 +10800,7 @@ function renderBusinessOperatingHourRows(hours) {
     row.appendChild(opensLabel);
 
     const closesLabel = document.createElement("label");
-    closesLabel.textContent = "Closes";
+    closesLabel.textContent = "Kapanış";
     const closesInput = document.createElement("input");
     closesInput.type = "time";
     closesInput.dataset.bookingCloses = "true";
@@ -10361,7 +10871,7 @@ function renderBusinessBlackoutDates(rows) {
   if (!rows || !rows.length) {
     const empty = document.createElement("p");
     empty.className = "booking-empty-note";
-    empty.textContent = "No blackout dates yet.";
+    empty.textContent = "Henüz kapalı tarih yok.";
     container.appendChild(empty);
     return;
   }
@@ -10386,7 +10896,7 @@ function renderBusinessBlackoutDates(rows) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "admin-delete-btn";
-    button.textContent = "Delete";
+    button.textContent = "Sil";
     button.addEventListener("click", () => {
       deleteBusinessBlackoutDate(blackout.id);
     });
@@ -10456,7 +10966,7 @@ async function loadBusinessBookingSettings() {
     renderBusinessBookingRules(null);
     renderBusinessBlackoutDates([]);
     setBusinessBookingStatus(
-      "Create an owned venue before editing booking settings."
+      "Rezervasyon ayarlarını düzenlemeden önce sana ait bir mekan oluştur."
     );
     return;
   }
@@ -10493,7 +11003,7 @@ async function loadBusinessBookingSettings() {
   } catch (error) {
     console.warn("Booking settings could not be loaded.", error);
     setBusinessBookingStatus(
-      "Booking settings could not be loaded.",
+      "Rezervasyon ayarları yüklenemedi.",
       "error"
     );
   }
@@ -10506,7 +11016,7 @@ async function saveBusinessBookingSettings(event) {
 
   if (!venueId || !ownsVenueRecord(venueId)) {
     setBusinessBookingStatus(
-      "Choose an owned venue before saving.",
+      "Kaydetmeden önce sana ait bir mekan seç.",
       "error"
     );
     return;
@@ -10532,12 +11042,12 @@ async function saveBusinessBookingSettings(event) {
 
     if (rulesResult.error) throw rulesResult.error;
 
-    showToast("Booking settings saved.");
+    showToast("Rezervasyon ayarları kaydedildi.");
     await loadBusinessBookingSettings();
   } catch (error) {
     console.warn("Booking settings could not be saved.", error);
     setBusinessBookingStatus(
-      "Booking settings could not be saved.",
+      "Rezervasyon ayarları kaydedilemedi.",
       "error"
     );
   }
@@ -10552,7 +11062,7 @@ async function addBusinessBlackoutDate(event) {
 
   if (!venueId || !ownsVenueRecord(venueId) || !blackoutDate) {
     setBusinessBookingStatus(
-      "Choose a venue and date before adding a blackout.",
+      "Kapalı tarih eklemeden önce mekan ve tarih seç.",
       "error"
     );
     return;
@@ -10571,12 +11081,12 @@ async function addBusinessBlackoutDate(event) {
 
     setAdminValue("businessBlackoutDate", "");
     setAdminValue("businessBlackoutReason", "");
-    showToast("Blackout date added.");
+    showToast("Kapalı tarih eklendi.");
     await loadBusinessBookingSettings();
   } catch (error) {
     console.warn("Blackout date could not be added.", error);
     setBusinessBookingStatus(
-      "Blackout date could not be added.",
+      "Kapalı tarih eklenemedi.",
       "error"
     );
   }
@@ -10593,12 +11103,12 @@ async function deleteBusinessBlackoutDate(blackoutId) {
 
     if (result.error) throw result.error;
 
-    showToast("Blackout date deleted.");
+    showToast("Kapalı tarih silindi.");
     await loadBusinessBookingSettings();
   } catch (error) {
     console.warn("Blackout date could not be deleted.", error);
     setBusinessBookingStatus(
-      "Blackout date could not be deleted.",
+      "Kapalı tarih silinemedi.",
       "error"
     );
   }
@@ -10813,6 +11323,8 @@ async function initBusinessDashboard() {
   businessDashboardState.session = session;
   setupBusinessMobilePanels();
   setupBusinessForms();
+  setupBusinessApplicationForm(session.user.id);
+  setupBusinessCreationButtons();
   setupBusinessMenuManager();
   setupBusinessStoreManager();
   setupBusinessBookingSettings();

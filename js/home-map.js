@@ -7,7 +7,26 @@
 
   if (!hero || !mapElement || !walkButton || !preview) return;
 
+  const mapProviderDefaults = {
+    atmosphere: "night",
+    mapTiler: {
+      enabled: true,
+      apiBaseUrl: "https://api.maptiler.com",
+      styleId: "hybrid",
+      styleUrl: "",
+      terrainSourceId: "maptilerTerrain",
+      terrainTilesetId: "terrain-rgb-v2",
+      apiKey: "",
+      apiKeyMetaName: "maptiler-api-key",
+    },
+    fallback: {
+      terrainSourceId: "terrainDem",
+    },
+  };
+  const homeMapIntroFlagKey = "tanidik.playMapIntro";
+  const mapProviderConfig = getMapProviderConfig();
   const bodrum = [27.4305, 37.0344];
+  const homeMapIntro = createHomeMapIntroState();
   const demoVenues = [
     {
       id: null,
@@ -102,9 +121,162 @@
   };
 
   let map = null;
+  let activeMapProvider = "fallback";
+  let activeMapTilerApiKey = "";
 
   function showFallback() {
     hero.classList.add("home-map-fallback-active");
+    finishHomeMapIntro();
+  }
+
+  function logHomeMapIntro(message) {
+    console.log(`[home-map-intro] ${message}`);
+  }
+
+  function prefersReducedMotion() {
+    return !!(
+      window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
+  }
+
+  function hasHomeMapIntroFlag() {
+    try {
+      const shouldPlay =
+        sessionStorage.getItem(homeMapIntroFlagKey) === "1";
+
+      if (shouldPlay) {
+        logHomeMapIntro("flag bulundu");
+      }
+
+      return shouldPlay;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function clearHomeMapIntroFlag() {
+    try {
+      sessionStorage.removeItem(homeMapIntroFlagKey);
+    } catch (error) {
+      console.log("[home-map-intro] flag silinemedi:", error);
+    }
+  }
+
+  function setHomeMapIntroClasses(active) {
+    document.body.classList.toggle("home-map-intro-active", active);
+    hero.classList.toggle("home-map-intro-active", active);
+    document.body.classList.toggle("home-map-intro-done", !active);
+    hero.classList.toggle("home-map-intro-done", !active);
+  }
+
+  function createHomeMapIntroState() {
+    const flagFound = hasHomeMapIntroFlag();
+    const reducedMotion = prefersReducedMotion();
+    const requested = flagFound && !reducedMotion;
+
+    if (flagFound && reducedMotion) {
+      clearHomeMapIntroFlag();
+      logHomeMapIntro("reduced motion nedeniyle atlandı");
+    }
+
+    setHomeMapIntroClasses(requested);
+
+    return {
+      requested,
+      completed: !requested,
+      fallbackTimer: null,
+    };
+  }
+
+  function finishHomeMapIntro() {
+    if (homeMapIntro.completed) return;
+
+    homeMapIntro.completed = true;
+    window.clearTimeout(homeMapIntro.fallbackTimer);
+    clearHomeMapIntroFlag();
+    setHomeMapIntroClasses(false);
+    logHomeMapIntro("intro tamamlandı");
+  }
+
+  function getMapProviderConfig() {
+    const runtimeConfig = window.TANIDIK_MAP_CONFIG || {};
+    const runtimeMapTiler =
+      runtimeConfig.mapTiler || runtimeConfig.maptiler || {};
+
+    return {
+      atmosphere: runtimeConfig.atmosphere || mapProviderDefaults.atmosphere,
+      mapTiler: {
+        ...mapProviderDefaults.mapTiler,
+        ...runtimeMapTiler,
+      },
+      fallback: {
+        ...mapProviderDefaults.fallback,
+        ...(runtimeConfig.fallback || {}),
+      },
+    };
+  }
+
+  function getMetaContent(name) {
+    if (!name) return "";
+
+    const meta = document.querySelector(`meta[name="${name}"]`);
+    return meta ? meta.content.trim() : "";
+  }
+
+  function getMapTilerApiKey() {
+    const configuredKey = String(mapProviderConfig.mapTiler.apiKey || "").trim();
+
+    return (
+      configuredKey ||
+      getMetaContent(mapProviderConfig.mapTiler.apiKeyMetaName)
+    );
+  }
+
+  function appendQueryParam(url, key, value) {
+    const separator = url.includes("?") ? "&" : "?";
+
+    return `${url}${separator}${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
+  }
+
+  function getMapTilerBaseUrl() {
+    return String(mapProviderConfig.mapTiler.apiBaseUrl || "")
+      .trim()
+      .replace(/\/+$/, "");
+  }
+
+  function getMapTilerStyleUrl(apiKey) {
+    const configuredUrl = String(mapProviderConfig.mapTiler.styleUrl || "").trim();
+
+    if (configuredUrl) {
+      return appendQueryParam(configuredUrl, "key", apiKey);
+    }
+
+    const styleId = encodeURIComponent(mapProviderConfig.mapTiler.styleId);
+    return appendQueryParam(
+      `${getMapTilerBaseUrl()}/maps/${styleId}/style.json`,
+      "key",
+      apiKey
+    );
+  }
+
+  function getMapTilerTerrainUrl(apiKey) {
+    const tilesetId = encodeURIComponent(
+      mapProviderConfig.mapTiler.terrainTilesetId
+    );
+
+    return appendQueryParam(
+      `${getMapTilerBaseUrl()}/tiles/${tilesetId}/tiles.json`,
+      "key",
+      apiKey
+    );
+  }
+
+  function setMapPresentation(provider) {
+    activeMapProvider = provider;
+    hero.classList.toggle("home-map-provider-maptiler", provider === "maptiler");
+    hero.classList.toggle("home-map-provider-fallback", provider !== "maptiler");
+    hero.dataset.mapAtmosphere = mapProviderConfig.atmosphere || "night";
   }
 
   function escapeHtml(value) {
@@ -250,7 +422,7 @@
     }
   }
 
-  function getSatelliteStyle() {
+  function getFallbackSatelliteStyle() {
     return {
       version: 8,
       sources: {
@@ -279,6 +451,117 @@
         },
       ],
     };
+  }
+
+  function getMapStyle() {
+    const apiKey = getMapTilerApiKey();
+
+    if (mapProviderConfig.mapTiler.enabled && apiKey) {
+      activeMapTilerApiKey = apiKey;
+      setMapPresentation("maptiler");
+      return getMapTilerStyleUrl(apiKey);
+    }
+
+    activeMapTilerApiKey = "";
+    setMapPresentation("fallback");
+
+    if (mapProviderConfig.mapTiler.enabled) {
+      console.log("[home-map] MapTiler API key missing; Esri fallback used.");
+    }
+
+    return getFallbackSatelliteStyle();
+  }
+
+  function addMapTilerTerrainSource() {
+    const sourceId = mapProviderConfig.mapTiler.terrainSourceId;
+
+    if (!activeMapTilerApiKey || !sourceId || map.getSource(sourceId)) return;
+
+    map.addSource(sourceId, {
+      type: "raster-dem",
+      url: getMapTilerTerrainUrl(activeMapTilerApiKey),
+      encoding: "mapbox",
+      maxzoom: 14,
+    });
+  }
+
+  function setupTerrainAndSky() {
+    try {
+      const terrainSourceId =
+        activeMapProvider === "maptiler"
+          ? mapProviderConfig.mapTiler.terrainSourceId
+          : mapProviderConfig.fallback.terrainSourceId;
+
+      if (activeMapProvider === "maptiler") {
+        addMapTilerTerrainSource();
+      }
+
+      if (terrainSourceId && map.getSource(terrainSourceId)) {
+        map.setTerrain({
+          source: terrainSourceId,
+          exaggeration: activeMapProvider === "maptiler" ? 1.18 : 1.5,
+        });
+      }
+
+      if (!map.getLayer("sky")) {
+        map.addLayer({
+          id: "sky",
+          type: "sky",
+          paint: {
+            "sky-type": "atmosphere",
+            "sky-atmosphere-sun": [0.0, 30.0],
+            "sky-atmosphere-sun-intensity": 15,
+          },
+        });
+      }
+    } catch (e) {
+      console.log("[home-map] Terrain/sky unavailable:", e);
+    }
+  }
+
+  function getInitialCamera() {
+    if (homeMapIntro.requested) {
+      return {
+        center: [0, 20],
+        zoom: 1.5,
+        pitch: 0,
+        bearing: 0,
+      };
+    }
+
+    return {
+      center: bodrum,
+      zoom: 13.8,
+      pitch: 65,
+      bearing: -28,
+    };
+  }
+
+  function playHomeMapIntro() {
+    if (!homeMapIntro.requested || !map) {
+      finishHomeMapIntro();
+      return;
+    }
+
+    logHomeMapIntro("intro başladı");
+    clearHomeMapIntroFlag();
+    map.once("moveend", finishHomeMapIntro);
+    homeMapIntro.fallbackTimer = window.setTimeout(
+      finishHomeMapIntro,
+      3400
+    );
+
+    logHomeMapIntro("flyTo başladı");
+    map.flyTo({
+      center: bodrum,
+      zoom: 14,
+      pitch: 65,
+      bearing: -20,
+      duration: 2800,
+      curve: 1.45,
+      speed: 1.2,
+      essential: true,
+    });
   }
 
   function addMarkers(venues) {
@@ -485,6 +768,24 @@
     });
   }
 
+  async function handleMapLoaded() {
+    logHomeMapIntro("map loaded");
+    setupTerrainAndSky();
+    mapElement.classList.add("is-ready");
+    playHomeMapIntro();
+    const mapVenues = await loadMapVenues();
+    addMarkers(mapVenues);
+  }
+
+  function whenMapLoaded(callback) {
+    if (typeof map.loaded === "function" && map.loaded()) {
+      callback();
+      return;
+    }
+
+    map.once("load", callback);
+  }
+
   function initMap() {
     if (!window.maplibregl) {
       showFallback();
@@ -492,13 +793,15 @@
     }
 
     try {
+      const initialCamera = getInitialCamera();
+
       map = new maplibregl.Map({
         container: mapElement,
-        style: getSatelliteStyle(),
-        center: bodrum,
-        zoom: 13.8,
-        pitch: 65,
-        bearing: -28,
+        style: getMapStyle(),
+        center: initialCamera.center,
+        zoom: initialCamera.zoom,
+        pitch: initialCamera.pitch,
+        bearing: initialCamera.bearing,
         attributionControl: false,
         antialias: true,
       });
@@ -512,24 +815,8 @@
       map.touchZoomRotate.enableRotation();
       setupWalkControls();
 
-      map.on("load", async () => {
-        try {
-          map.setTerrain({ source: "terrainDem", exaggeration: 1.5 });
-          map.addLayer({
-            id: "sky",
-            type: "sky",
-            paint: {
-              "sky-type": "atmosphere",
-              "sky-atmosphere-sun": [0.0, 30.0],
-              "sky-atmosphere-sun-intensity": 15,
-            },
-          });
-        } catch (e) {
-          console.log("[home-map] Terrain/sky unavailable:", e);
-        }
-        mapElement.classList.add("is-ready");
-        const mapVenues = await loadMapVenues();
-        addMarkers(mapVenues);
+      whenMapLoaded(() => {
+        handleMapLoaded();
       });
 
       map.on("error", showFallback);
