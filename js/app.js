@@ -7745,11 +7745,6 @@ async function loadBusinessBusinesses(session) {
 
 async function loadBusinessVenues() {
   const businessIds = getBusinessDashboardBusinessIds();
-  const userId =
-    businessDashboardState.session &&
-    businessDashboardState.session.user
-      ? businessDashboardState.session.user.id
-      : "";
 
   if (businessIds.length === 0) return [];
 
@@ -7770,48 +7765,16 @@ async function loadBusinessVenues() {
     venues: data,
   });
   console.log(
-    "[business-debug] venue owner fields",
+    "[business-debug] venue relationship fields",
     (data || []).map((venue) => ({
       id: venue.id,
       business_id: venue.business_id,
-      owner_id: venue.owner_id,
-      user_id: venue.user_id,
-      business_owner_id: venue.business_owner_id,
       status: venue.status,
       verification_status: venue.verification_status,
     }))
   );
 
-  if ((data || []).length > 0 || !userId) {
-    return data || [];
-  }
-
-  const fallbackVenues = [];
-
-  for (const field of ["owner_id", "user_id", "business_owner_id"]) {
-    const { data: fallbackData, error: fallbackError } =
-      await supabaseClient
-        .from("venues")
-        .select("*")
-        .eq(field, userId)
-        .order("id", { ascending: false });
-
-    if (fallbackError) {
-      console.log("[business-debug] approved venues query error", {
-        field,
-        error: fallbackError,
-      });
-      continue;
-    }
-
-    console.log("[business-debug] approved venues", {
-      field,
-      venues: fallbackData,
-    });
-    fallbackVenues.push(fallbackData || []);
-  }
-
-  return mergeBusinessRecords(fallbackVenues);
+  return data || [];
 }
 
 async function loadBusinessEvents() {
@@ -8032,7 +7995,14 @@ async function saveBusinessVenue(event) {
     return;
   }
 
-  if (!ownsBusinessRecord(businessId)) {
+  const approvedBusiness = businessDashboardState.businesses.find(
+    (business) =>
+      String(business.id) === String(businessId) &&
+      String(business.owner_id) === String(user.id) &&
+      isApprovedBusinessRecord(business)
+  );
+
+  if (!approvedBusiness) {
     showToast("İşletmelerinden birini seç");
     return;
   }
@@ -8079,8 +8049,7 @@ async function saveBusinessVenue(event) {
   }
 
   const payload = {
-    business_id: businessId,
-    owner_id: user.id,
+    business_id: approvedBusiness.id,
     name: getAdminValue("businessVenueName"),
     city: getAdminValue("businessVenueCity"),
     category: getVenueCategoryValue({
@@ -8096,6 +8065,7 @@ async function saveBusinessVenue(event) {
 
   console.log("[venue-insert-debug] payload", payload);
   console.log("[venue-insert-debug] user", user.id);
+  console.log("[venue-insert-debug] approved business", approvedBusiness);
 
   let error = null;
   let savedVenueId = id;
