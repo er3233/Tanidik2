@@ -51,6 +51,7 @@
     href="./css/style.css"
   />
   <link rel="stylesheet" href="./css/auth-earth.css" />
+  <link rel="stylesheet" href="./css/social-profile-media.css" />
 </head>
 
 <body class="auth-page">
@@ -164,6 +165,45 @@
             autocomplete="new-password"
             style="display:none"
           />
+
+          <div id="signupIdentityFields" class="auth-signup-identity">
+            <label for="signupFullName">
+              Full Name
+            </label>
+
+            <input
+              type="text"
+              id="signupFullName"
+              placeholder="Ad Soyad"
+              autocomplete="name"
+              maxlength="80"
+            />
+
+            <label for="signupUsername">
+              Username
+            </label>
+
+            <input
+              type="text"
+              id="signupUsername"
+              placeholder="kullanici_adi"
+              autocomplete="username"
+              maxlength="20"
+              autocapitalize="off"
+              spellcheck="false"
+            />
+
+            <p class="profile-identity-hint">
+              3–20 karakter: a-z, 0-9, _
+            </p>
+
+            <p
+              id="signupUsernameStatus"
+              class="profile-username-status"
+              role="status"
+              aria-live="polite"
+            ></p>
+          </div>
         </div>
 
         <p
@@ -219,10 +259,18 @@
       var authMsg      = document.getElementById('authMessage');
       var registerBtn  = document.getElementById('registerBtn');
 
+      var signupIdentity = document.getElementById('signupIdentityFields');
+
       function showConfirm(show) {
         confirmInput.style.display = show ? '' : 'none';
         confirmLabel.style.display = show ? '' : 'none';
-        if (!show) { confirmInput.value = ''; authMsg.textContent = ''; }
+        if (signupIdentity) {
+          signupIdentity.classList.toggle('is-visible', show);
+        }
+        if (!show) {
+          confirmInput.value = '';
+          authMsg.textContent = '';
+        }
       }
 
       tabs[0].addEventListener('click', function () {

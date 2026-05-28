@@ -48,6 +48,7 @@
 
   <link rel="stylesheet" href="./css/style.css" />
   <link rel="stylesheet" href="./css/venue-premium.css" />
+  <link rel="stylesheet" href="./css/social-profile-media.css" />
 </head>
 
 <body>
@@ -115,11 +116,16 @@
     <!-- ─── Scrollable content ─── -->
     <div class="vp-content">
 
-      <!-- Photo gallery strip -->
-      <div
-        id="venueGallery"
-        class="venue-photo-gallery vp-gallery"
-      ></div>
+      <!-- Photo gallery carousel -->
+      <div id="venueGalleryCarousel" class="venue-gallery-carousel" hidden>
+        <div class="venue-gallery-main">
+          <button type="button" id="venueGalleryPrev" class="venue-gallery-nav venue-gallery-nav--prev" aria-label="Previous photo">‹</button>
+          <img id="venueGallerySlide" class="venue-gallery-slide" alt="Venue photo" />
+          <button type="button" id="venueGalleryNext" class="venue-gallery-nav venue-gallery-nav--next" aria-label="Next photo">›</button>
+        </div>
+        <div id="venueGalleryThumbs" class="venue-gallery-thumbs"></div>
+      </div>
+      <div id="venueGallery" class="venue-photo-gallery vp-gallery" hidden></div>
 
       <!-- Action pill row (always visible, panels toggle on mobile) -->
       <div
@@ -127,6 +133,7 @@
         aria-label="Venue actions"
       >
         <button type="button" data-open-panel="reservation" class="vp-action--primary">Reserve</button>
+        <a id="venueOrderLink" class="vp-action vp-action--order" href="#" hidden>Sipariş Ver</a>
         <button type="button" data-open-panel="reviews">Reviews</button>
         <button type="button" data-open-panel="location">Location</button>
         <button type="button" data-open-panel="events">Events</button>

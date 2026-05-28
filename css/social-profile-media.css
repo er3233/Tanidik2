@@ -1,0 +1,231 @@
+/* Social / profile / messaging / venue gallery — scoped additions */
+
+.profile-hero-card .profile-avatar {
+  overflow: hidden;
+  border-radius: 50%;
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.profile-hero-card .profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-identity-panel .profile-identity-form {
+  display: grid;
+  gap: 12px;
+  max-width: 420px;
+}
+
+.profile-identity-hint {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.55);
+  margin: 0;
+}
+
+.profile-username-status[data-status="ok"] {
+  color: rgba(120, 220, 160, 0.9);
+}
+
+.profile-username-status[data-status="error"] {
+  color: rgba(255, 120, 100, 0.9);
+}
+
+.auth-signup-identity {
+  display: none;
+}
+
+.auth-signup-identity.is-visible {
+  display: contents;
+}
+
+.message-thread {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.message-thread-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.message-thread-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.message-thread-body {
+  min-width: 0;
+}
+
+.message-thread.unread .message-thread-title {
+  color: #f5e6b8;
+}
+
+.message-thread-identity-line {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.message-bubble-with-avatar {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 8px;
+  align-items: end;
+  max-width: 88%;
+}
+
+.message-bubble-with-avatar.message-bubble-row--own {
+  grid-template-columns: 1fr 32px;
+  margin-left: auto;
+}
+
+.message-bubble-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.message-bubble-content {
+  min-width: 0;
+}
+
+.venue-gallery-carousel {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.venue-gallery-main {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.venue-gallery-slide {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  cursor: pointer;
+}
+
+.venue-gallery-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  border: none;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.venue-gallery-nav--prev { left: 8px; }
+.venue-gallery-nav--next { right: 8px; }
+
+.venue-gallery-thumbs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 10px 2px 4px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.venue-gallery-thumb {
+  flex: 0 0 64px;
+  height: 48px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  scroll-snap-align: start;
+  cursor: pointer;
+  padding: 0;
+  background: none;
+}
+
+.venue-gallery-thumb.is-active {
+  border-color: rgba(240, 192, 96, 0.85);
+}
+
+.venue-gallery-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.venue-gallery-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(0, 0, 0, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.venue-gallery-lightbox[hidden] {
+  display: none;
+}
+
+.venue-gallery-lightbox img {
+  max-width: 100%;
+  max-height: 90vh;
+  object-fit: contain;
+}
+
+.venue-gallery-lightbox-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  border: none;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.venue-gallery-manager .vg-thumb {
+  position: relative;
+}
+
+.venue-gallery-manager .vg-reorder {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}

@@ -196,6 +196,14 @@
         Menü
       </button>
 
+      <a href="./restaurant-menu.html?manage=1">
+        Menü Yönetimi
+      </a>
+
+      <a href="./restaurant-orders.html">
+        Siparişler
+      </a>
+
       <button
         type="button"
         data-business-panel="store"
@@ -375,6 +383,23 @@
         id="businessVenuesList"
         class="business-list"
       >
+      </div>
+
+      <div class="venue-gallery-manager product-gallery-manager" id="venueGalleryManager">
+        <h3 class="product-gallery-heading">Mekan Galerisi (10+ foto)</h3>
+
+        <select id="vgVenueSelect" class="product-gallery-select">
+          <option value="">— Mekan seç —</option>
+        </select>
+
+        <div id="vgCurrentPhotos" class="product-gallery-grid"></div>
+
+        <label class="product-gallery-upload-label">
+          <span>+ Fotoğraf Ekle</span>
+          <input id="vgFileInput" type="file" accept="image/*" multiple class="product-gallery-file-input" />
+        </label>
+
+        <p id="vgStatus" class="product-gallery-status"></p>
       </div>
 
     </section>
@@ -1320,6 +1345,159 @@
   if (!storeSection && venueSelect) {
     venueSelect.addEventListener('change', populateProductSelect);
   }
+})();
+</script>
+
+<script>
+/* Mekan galeri yöneticisi (venue_photos) */
+(function () {
+  var venueSelect = document.getElementById('vgVenueSelect');
+  var currentPhotos = document.getElementById('vgCurrentPhotos');
+  var fileInput = document.getElementById('vgFileInput');
+  var status = document.getElementById('vgStatus');
+  var manager = document.getElementById('venueGalleryManager');
+  var BUCKET = 'tanidik-images';
+
+  if (!manager) return;
+
+  function setStatus(msg, isErr) {
+    status.textContent = msg;
+    status.style.color = isErr ? 'rgba(220,80,60,0.80)' : 'rgba(240,192,96,0.70)';
+  }
+
+  async function populateVenueSelect() {
+    if (!venueSelect) return;
+    var { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session) return;
+
+    var { data: businesses } = await supabaseClient
+      .from('businesses')
+      .select('id')
+      .eq('owner_id', session.user.id)
+      .in('status', ['approved', 'active', 'verified']);
+
+    var businessIds = (businesses || []).map(function (b) { return b.id; });
+    venueSelect.innerHTML = '<option value="">— Mekan seç —</option>';
+    currentPhotos.innerHTML = '';
+
+    if (!businessIds.length) {
+      setStatus('Onaylı işletme gerekli.');
+      return;
+    }
+
+    var { data: venues } = await supabaseClient
+      .from('venues')
+      .select('id, name')
+      .in('business_id', businessIds)
+      .order('name');
+
+    (venues || []).forEach(function (v) {
+      var opt = document.createElement('option');
+      opt.value = v.id;
+      opt.textContent = v.name;
+      venueSelect.appendChild(opt);
+    });
+  }
+
+  async function loadGallery(venueId) {
+    currentPhotos.innerHTML = '';
+    if (!venueId) return;
+
+    var { data, error } = await supabaseClient
+      .from('venue_photos')
+      .select('id, image_url, sort_order')
+      .eq('venue_id', venueId)
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: true });
+
+    if (error) { setStatus('Fotoğraflar yüklenemedi.', true); return; }
+    if (!data || !data.length) { setStatus('Henüz galeri fotoğrafı yok.'); return; }
+
+    setStatus(data.length + ' fotoğraf');
+    data.forEach(function (img, index) {
+      var wrap = document.createElement('div');
+      wrap.className = 'pg-thumb vg-thumb';
+      wrap.innerHTML =
+        '<img src="' + img.image_url + '" alt="" loading="lazy" />' +
+        '<div class="vg-reorder">' +
+        '<button type="button" class="secondary-btn" data-move="up" data-id="' + img.id + '" data-idx="' + index + '">↑</button>' +
+        '<button type="button" class="secondary-btn" data-move="down" data-id="' + img.id + '" data-idx="' + index + '">↓</button>' +
+        '</div>' +
+        '<button class="pg-delete-btn" data-id="' + img.id + '" type="button" aria-label="Sil">✕</button>';
+      currentPhotos.appendChild(wrap);
+    });
+
+    currentPhotos.querySelectorAll('.pg-delete-btn').forEach(function (btn) {
+      btn.addEventListener('click', async function () {
+        await supabaseClient.from('venue_photos').delete().eq('id', btn.dataset.id);
+        loadGallery(venueSelect.value);
+      });
+    });
+
+    currentPhotos.querySelectorAll('[data-move]').forEach(function (btn) {
+      btn.addEventListener('click', async function () {
+        var idx = Number(btn.dataset.idx);
+        var dir = btn.dataset.move;
+        var next = dir === 'up' ? idx - 1 : idx + 1;
+        if (next < 0 || next >= data.length) return;
+        var swapped = data.slice();
+        var tmp = swapped[idx];
+        swapped[idx] = swapped[next];
+        swapped[next] = tmp;
+        for (var i = 0; i < swapped.length; i++) {
+          await supabaseClient.from('venue_photos').update({ sort_order: i }).eq('id', swapped[i].id);
+        }
+        loadGallery(venueSelect.value);
+      });
+    });
+  }
+
+  async function uploadFiles(files, venueId) {
+    if (!files || !files.length || !venueId) return;
+    setStatus('Yükleniyor…');
+    var { data: existing } = await supabaseClient
+      .from('venue_photos')
+      .select('id', { count: 'exact', head: true })
+      .eq('venue_id', venueId);
+    var baseOrder = existing ? 0 : 0;
+    var { count } = await supabaseClient
+      .from('venue_photos')
+      .select('*', { count: 'exact', head: true })
+      .eq('venue_id', venueId);
+    var start = count || 0;
+
+    for (var i = 0; i < files.length; i++) {
+      var file = files[i];
+      var ext = file.name.split('.').pop();
+      var path = 'venues/' + venueId + '/gallery_' + Date.now() + '_' + i + '.' + ext;
+      var { error: upErr } = await supabaseClient.storage.from(BUCKET).upload(path, file);
+      if (upErr) { setStatus(upErr.message, true); continue; }
+      var { data: pub } = supabaseClient.storage.from(BUCKET).getPublicUrl(path);
+      await supabaseClient.from('venue_photos').insert({
+        venue_id: Number(venueId),
+        image_url: pub.publicUrl,
+        sort_order: start + i
+      });
+    }
+    setStatus('Yüklendi.');
+    loadGallery(venueId);
+  }
+
+  if (venueSelect) {
+    venueSelect.addEventListener('change', function () {
+      loadGallery(venueSelect.value);
+    });
+  }
+
+  if (fileInput) {
+    fileInput.addEventListener('change', function () {
+      uploadFiles(fileInput.files, venueSelect.value);
+      fileInput.value = '';
+    });
+  }
+
+  populateVenueSelect();
+  setInterval(populateVenueSelect, 15000);
 })();
 </script>
 

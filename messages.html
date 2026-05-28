@@ -50,6 +50,8 @@
     rel="stylesheet"
     href="./css/style.css"
   />
+  <link rel="stylesheet" href="./css/social-profile-media.css" />
+  <link rel="stylesheet" href="./css/ai-concierge.css" />
 </head>
 
 <body>
@@ -184,6 +186,28 @@
           class="conversation-typing-indicator"
           aria-live="polite"
         >
+        </div>
+
+        <div
+          id="aiConciergeQuickPrompts"
+          class="ai-concierge-quick-prompts"
+          hidden
+        >
+          <span class="ai-concierge-quick-prompts__label">Hızlı öneri</span>
+          <div class="ai-concierge-quick-prompts__buttons">
+            <button type="button" class="secondary-btn" data-ai-prompt="Canlı müzik">
+              Canlı müzik
+            </button>
+            <button type="button" class="secondary-btn" data-ai-prompt="Date mekanı">
+              Date mekanı
+            </button>
+            <button type="button" class="secondary-btn" data-ai-prompt="After party">
+              After party
+            </button>
+            <button type="button" class="secondary-btn" data-ai-prompt="Sakin cafe">
+              Sakin cafe
+            </button>
+          </div>
         </div>
 
         <form

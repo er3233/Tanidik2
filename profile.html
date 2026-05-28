@@ -50,6 +50,7 @@
     rel="stylesheet"
     href="./css/style.css"
   />
+  <link rel="stylesheet" href="./css/social-profile-media.css" />
 </head>
 
 <body>
@@ -91,7 +92,7 @@
   <div class="profile-dashboard">
 
     <header class="dashboard-header dashboard-header--profile profile-hero-card">
-      <div class="profile-avatar" aria-hidden="true">
+      <div class="profile-avatar" id="profileAvatar" aria-hidden="true">
         T
       </div>
 
@@ -100,9 +101,11 @@
           Member Profile
         </span>
 
-        <h1>
+        <h1 id="profileDisplayName">
           Your Profile
         </h1>
+
+        <p id="profileUsernameLine" class="profile-identity-hint"></p>
 
         <p>
           <span>Signed in as</span>
@@ -110,6 +113,8 @@
             Loading...
           </strong>
         </p>
+
+        <p id="profileBioLine" class="profile-identity-hint"></p>
       </div>
     </header>
 
@@ -122,6 +127,13 @@
         onclick="window.location.href='./my-reservations.html'"
       >
         My Reservations
+      </button>
+
+      <button
+        type="button"
+        onclick="window.location.href='./orders.html'"
+      >
+        Siparişlerim
       </button>
 
       <button
@@ -159,6 +171,40 @@
         Settings / Profile Info
       </button>
     </div>
+
+    <section
+      class="profile-mobile-panel profile-identity-panel dashboard-section"
+      data-panel="settings"
+    >
+      <h2>Profile Identity</h2>
+
+      <form id="profileIdentityForm" class="profile-identity-form">
+        <label for="profileEditFullName">Full Name</label>
+        <input type="text" id="profileEditFullName" maxlength="80" required />
+
+        <label for="profileEditUsername">Username</label>
+        <input
+          type="text"
+          id="profileEditUsername"
+          maxlength="20"
+          autocapitalize="off"
+          spellcheck="false"
+          required
+        />
+        <p class="profile-identity-hint">3–20 karakter: a-z, 0-9, _</p>
+        <p id="profileEditUsernameStatus" class="profile-username-status" role="status"></p>
+
+        <label for="profileEditBio">Bio (optional)</label>
+        <textarea id="profileEditBio" rows="3" maxlength="280" placeholder="Kısa bio"></textarea>
+
+        <label for="profileEditAvatarUrl">Avatar URL (optional)</label>
+        <input type="url" id="profileEditAvatarUrl" placeholder="https://..." />
+
+        <input type="file" id="profileEditAvatarFile" accept="image/*" class="admin-file-input" />
+
+        <button type="submit" class="btn">Save Profile</button>
+      </form>
+    </section>
 
     <section
       class="profile-mobile-panel profile-info-panel"
@@ -354,6 +400,13 @@
           class="secondary-btn"
         >
           My Reservations
+        </a>
+
+        <a
+          href="./orders.html"
+          class="secondary-btn"
+        >
+          Siparişlerim
         </a>
 
         <a

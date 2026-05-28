@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sipariş Detayı | TANIDIK</title>
+  <meta name="theme-color" content="#050505" />
+  <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+
+<body>
+  <nav class="navbar">
+    <h1>TANIDIK</h1>
+    <button class="nav-toggle" type="button" aria-label="Menü" aria-expanded="false">Menü</button>
+    <div class="nav-links">
+      <a href="./orders.html">Siparişlerim</a>
+      <a href="./profile.html" id="authLink">Profil</a>
+    </div>
+  </nav>
+
+  <main id="orderDetailPage" class="profile-dashboard order-page">
+    <header class="dashboard-header">
+      <span class="dashboard-kicker">Sipariş</span>
+      <h1 id="orderDetailTitle">Sipariş Detayı</h1>
+      <a href="./orders.html" class="secondary-btn profile-back-link">← Siparişlerim</a>
+    </header>
+
+    <section class="dashboard-section">
+      <div id="orderDetailContent" class="order-detail-card" aria-live="polite"></div>
+      <div id="orderStatusHistory" class="order-history-list"></div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="./js/app.js"></script>
+  <div id="toast" class="toast"></div>
+</body>
+
+</html>

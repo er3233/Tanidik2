@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Siparişlerim | TANIDIK</title>
+  <meta name="description" content="TANIDIK restoran sipariş geçmişiniz." />
+  <meta name="theme-color" content="#050505" />
+  <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+
+<body>
+  <nav class="navbar">
+    <h1>TANIDIK</h1>
+    <button class="nav-toggle" type="button" aria-label="Menü" aria-expanded="false">Menü</button>
+    <div class="nav-links">
+      <a href="./index.html">Ana Sayfa</a>
+      <a href="./discover.html">Keşfet</a>
+      <a href="./events.html">Etkinlikler</a>
+      <a href="./profile.html" id="authLink">Profil</a>
+    </div>
+  </nav>
+
+  <main id="ordersPage" class="profile-dashboard profile-library-page order-page">
+    <header class="dashboard-header">
+      <span class="dashboard-kicker">Profil</span>
+      <h1>Siparişlerim</h1>
+      <p class="page-message">Restoran siparişlerinizi ve durumlarını takip edin.</p>
+      <a href="./profile.html" class="secondary-btn profile-back-link">Profile Dön</a>
+    </header>
+
+    <section class="dashboard-section">
+      <div id="userOrdersList" class="order-list" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <nav class="mobile-bottom-nav" aria-label="Mobil navigasyon">
+    <a href="./index.html" data-nav-page="index.html"><span aria-hidden="true">A</span>Ana Sayfa</a>
+    <a href="./discover.html" data-nav-page="discover.html"><span aria-hidden="true">K</span>Keşfet</a>
+    <a href="./messages.html" data-nav-page="messages.html"><span aria-hidden="true">M</span>Mesajlar</a>
+    <a href="./profile.html" data-nav-page="profile.html"><span aria-hidden="true">P</span>Profil</a>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="./js/app.js"></script>
+  <div id="toast" class="toast"></div>
+</body>
+
+</html>

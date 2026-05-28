@@ -12311,3 +12311,138 @@ p.reservation-note {
     gap: 8px !important;
   }
 }
+
+/* Restaurant ordering + courier MVP */
+.order-page .order-list {
+  display: grid;
+  gap: 14px;
+}
+
+.order-card {
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.order-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.order-card-head h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.order-card-meta {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.9rem;
+  margin: 0 0 10px;
+}
+
+.order-card-items {
+  margin: 0 0 12px;
+  padding-left: 18px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.order-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.order-menu-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.order-menu-item {
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.order-cart-panel {
+  margin-top: 24px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.order-cart-lines {
+  margin: 0 0 12px;
+  padding-left: 18px;
+}
+
+.order-type-fieldset {
+  border: none;
+  margin: 12px 0;
+  padding: 0;
+  display: flex;
+  gap: 16px;
+}
+
+.order-filter-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.order-select {
+  width: 100%;
+  max-width: 360px;
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.35);
+  color: inherit;
+}
+
+.order-address-input {
+  width: 100%;
+  min-height: 72px;
+  margin-bottom: 10px;
+}
+
+.order-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.order-history-items {
+  margin: 12px 0 0;
+  padding-left: 18px;
+}
+
+.btn--small {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+}
+
+.status-preparing,
+.status-ready_for_pickup,
+.status-out_for_delivery {
+  background: rgba(90, 140, 255, 0.2);
+}
+
+.status-delivered {
+  background: rgba(80, 200, 120, 0.2);
+}
+
+.vp-action--order {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}

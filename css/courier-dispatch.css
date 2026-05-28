@@ -1,0 +1,125 @@
+/* Scoped: courier dispatch panel only */
+.courier-page {
+  padding-bottom: 2rem;
+}
+
+.courier-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.courier-toolbar .page-message {
+  margin: 0;
+  flex: 1 1 100%;
+}
+
+.courier-refresh-meta {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.courier-access-denied {
+  padding: 1.25rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 80, 80, 0.35);
+  background: rgba(80, 20, 20, 0.25);
+}
+
+.courier-profile-card {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.courier-profile-card dt {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.55);
+  margin: 0;
+}
+
+.courier-profile-card dd {
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+
+.courier-delivery-card {
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.courier-delivery-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.courier-delivery-card__head h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.courier-delivery-card__venue {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.courier-delivery-card__row {
+  margin: 0 0 6px;
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.courier-delivery-card__items {
+  margin: 8px 0 12px;
+  padding-left: 18px;
+  font-size: 0.85rem;
+}
+
+.courier-delivery-card__time {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 12px;
+}
+
+.courier-delivery-card__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.courier-nav-btn {
+  flex: 1 1 140px;
+}
+
+.courier-delivery-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.courier-delivery-card__actions .btn,
+.courier-delivery-card__actions .secondary-btn {
+  flex: 1 1 auto;
+  min-width: 120px;
+}
+
+@media (max-width: 480px) {
+  .courier-delivery-card__actions .btn,
+  .courier-delivery-card__actions .secondary-btn {
+    width: 100%;
+  }
+}

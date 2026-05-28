@@ -38,6 +38,11 @@ const BOOKING_WEEKDAYS = [
 ];
 
 const email = document.getElementById("email");
+const signupFullName = document.getElementById("signupFullName");
+const signupUsername = document.getElementById("signupUsername");
+const signupUsernameStatus = document.getElementById(
+  "signupUsernameStatus"
+);
 const password = document.getElementById("password");
 
 const loginBtn = document.getElementById("loginBtn");
@@ -244,15 +249,276 @@ function showSignupConfirmPassword() {
   }
 }
 
+function normalizeUsernameValue(value) {
+  return safeText(value).trim().toLowerCase();
+}
+
+function isValidUsernameFormat(username) {
+  return /^[a-z0-9_]{3,20}$/.test(normalizeUsernameValue(username));
+}
+
+function setUsernameStatusMessage(element, message, status = "info") {
+  if (!element) return;
+  element.textContent = safeText(message);
+  element.dataset.status = status;
+}
+
+async function isUsernameAvailable(username, excludeUserId = null) {
+  const normalized = normalizeUsernameValue(username);
+
+  if (!isValidUsernameFormat(normalized)) {
+    return false;
+  }
+
+  try {
+    const { data, error } = await supabaseClient.rpc(
+      "check_username_available",
+      {
+        p_username: normalized,
+        p_exclude_user_id: excludeUserId || null,
+      }
+    );
+
+    if (!error) return data === true;
+  } catch (rpcError) {
+    console.warn("Username RPC unavailable.", rpcError);
+  }
+
+  let query = supabaseClient
+    .from("profiles")
+    .select("id")
+    .eq("username", normalized);
+
+  if (excludeUserId) {
+    query = query.neq("id", excludeUserId);
+  }
+
+  const { data: rows, error } = await query.limit(1);
+
+  if (error) {
+    console.warn(error);
+    return false;
+  }
+
+  return !(rows && rows.length);
+}
+
+async function loadUserProfile(userId) {
+  if (!userId) return null;
+  return loadProfileRecordByUserId(userId);
+}
+
+async function upsertUserProfile(userId, fields = {}) {
+  if (!userId) return { error: { message: "User required" } };
+
+  const payload = {
+    id: userId,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (fields.full_name !== undefined) {
+    payload.full_name = safeText(fields.full_name).trim();
+  }
+
+  if (fields.username !== undefined) {
+    payload.username = normalizeUsernameValue(fields.username);
+  }
+
+  if (fields.bio !== undefined) {
+    payload.bio = safeText(fields.bio).trim();
+  }
+
+  if (fields.avatar_url !== undefined) {
+    payload.avatar_url = safeText(fields.avatar_url).trim();
+  }
+
+  return supabaseClient
+    .from("profiles")
+    .upsert(payload, { onConflict: "id" });
+}
+
+async function syncProfileFromAuthMetadata(session) {
+  if (!session || !session.user) return;
+
+  const metadata = session.user.user_metadata || {};
+  const username =
+    metadata.username || metadata.preferred_username || "";
+  const fullName = metadata.full_name || metadata.name || "";
+
+  if (!username && !fullName) return;
+
+  const existing = await loadUserProfile(session.user.id);
+
+  if (existing && existing.username && existing.full_name) return;
+
+  await upsertUserProfile(session.user.id, {
+    username: existing && existing.username ? existing.username : username,
+    full_name:
+      existing && existing.full_name ? existing.full_name : fullName,
+  });
+}
+
+function renderProfileAvatarElement(element, profile) {
+  if (!element) return;
+
+  element.innerHTML = "";
+  const avatar = getProfileAvatar(profile);
+  const label =
+    getProfileDisplayName(profile).charAt(0).toUpperCase() || "T";
+
+  if (avatar) {
+    const image = document.createElement("img");
+    image.src = getImage(avatar);
+    image.alt = getProfileDisplayName(profile);
+    image.addEventListener(
+      "error",
+      () => {
+        element.textContent = label;
+      },
+      { once: true }
+    );
+    element.appendChild(image);
+    return;
+  }
+
+  element.textContent = label;
+}
+
+async function loadAndRenderProfileIdentity(userId) {
+  const profile = await loadUserProfile(userId);
+
+  const displayName = document.getElementById("profileDisplayName");
+  const usernameLine = document.getElementById("profileUsernameLine");
+  const bioLine = document.getElementById("profileBioLine");
+  const avatar = document.getElementById("profileAvatar");
+
+  if (displayName) {
+    displayName.textContent = getProfileDisplayName(profile);
+  }
+
+  if (usernameLine) {
+    const username = safeText(profile && profile.username);
+    usernameLine.textContent = username ? `@${username}` : "";
+  }
+
+  if (bioLine) {
+    bioLine.textContent = safeText(profile && profile.bio) || "";
+  }
+
+  renderProfileAvatarElement(avatar, profile);
+
+  const form = document.getElementById("profileIdentityForm");
+  if (!form || form.dataset.bound === "true") return;
+
+  form.dataset.bound = "true";
+
+  const fullNameInput = document.getElementById("profileEditFullName");
+  const usernameInput = document.getElementById("profileEditUsername");
+  const bioInput = document.getElementById("profileEditBio");
+  const avatarUrlInput = document.getElementById("profileEditAvatarUrl");
+  const usernameStatus = document.getElementById("profileEditUsernameStatus");
+
+  if (profile) {
+    if (fullNameInput) fullNameInput.value = safeText(profile.full_name);
+    if (usernameInput) usernameInput.value = safeText(profile.username);
+    if (bioInput) bioInput.value = safeText(profile.bio);
+    if (avatarUrlInput) avatarUrlInput.value = safeText(profile.avatar_url);
+  }
+
+  if (usernameInput) {
+    usernameInput.addEventListener("input", async () => {
+      const value = normalizeUsernameValue(usernameInput.value);
+      if (!value) {
+        setUsernameStatusMessage(usernameStatus, "");
+        return;
+      }
+      if (!isValidUsernameFormat(value)) {
+        setUsernameStatusMessage(
+          usernameStatus,
+          "Geçersiz format",
+          "error"
+        );
+        return;
+      }
+      const available = await isUsernameAvailable(value, userId);
+      setUsernameStatusMessage(
+        usernameStatus,
+        available ? "Kullanılabilir" : "Alınmış",
+        available ? "ok" : "error"
+      );
+    });
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const fullName = fullNameInput ? fullNameInput.value.trim() : "";
+    const username = usernameInput
+      ? normalizeUsernameValue(usernameInput.value)
+      : "";
+
+    if (!fullName) {
+      showToast("Ad soyad gerekli");
+      return;
+    }
+
+    if (!isValidUsernameFormat(username)) {
+      showToast("Geçersiz kullanıcı adı");
+      return;
+    }
+
+    if (!(await isUsernameAvailable(username, userId))) {
+      showToast("Bu kullanıcı adı alınmış");
+      return;
+    }
+
+    let avatarUrl = avatarUrlInput ? avatarUrlInput.value.trim() : "";
+    const avatarFile = document.getElementById("profileEditAvatarFile");
+    const file =
+      avatarFile && avatarFile.files && avatarFile.files[0]
+        ? avatarFile.files[0]
+        : null;
+
+    if (file) {
+      const uploaded = await uploadAdminImage(file, `avatars/${userId}`);
+      if (!uploaded) return;
+      avatarUrl = uploaded;
+    }
+
+    const { error } = await upsertUserProfile(userId, {
+      full_name: fullName,
+      username,
+      bio: bioInput ? bioInput.value : "",
+      avatar_url: avatarUrl,
+    });
+
+    if (error) {
+      showSafeError(error, "Profil kaydedilemedi.");
+      return;
+    }
+
+    showToast("Profil güncellendi");
+    await loadAndRenderProfileIdentity(userId);
+  });
+}
+
 function validateAuthForm(mode) {
   const isSignup = mode === "signup";
   const confirmInput = document.getElementById("confirmPassword");
   const emailValue = normalizeEmail(email && email.value);
   const passwordValue = password ? password.value : "";
+  const fullNameValue = signupFullName
+    ? signupFullName.value.trim()
+    : "";
+  const usernameValue = signupUsername
+    ? normalizeUsernameValue(signupUsername.value)
+    : "";
 
   setFieldValidity(email, true);
   setFieldValidity(password, true);
   setFieldValidity(confirmInput, true);
+  setFieldValidity(signupFullName, true);
+  setFieldValidity(signupUsername, true);
 
   if (!emailValue) {
     setFieldValidity(email, false);
@@ -318,12 +584,30 @@ function validateAuthForm(mode) {
         message: "Şifre tekrarını gir.",
       };
     }
+
+    if (!fullNameValue) {
+      setFieldValidity(signupFullName, false);
+      return {
+        ok: false,
+        message: "Ad soyadını gir.",
+      };
+    }
+
+    if (!isValidUsernameFormat(usernameValue)) {
+      setFieldValidity(signupUsername, false);
+      return {
+        ok: false,
+        message: "Kullanıcı adı 3-20 karakter (a-z, 0-9, _) olmalı.",
+      };
+    }
   }
 
   return {
     ok: true,
     email: emailValue,
     password: passwordValue,
+    fullName: fullNameValue,
+    username: usernameValue,
   };
 }
 
@@ -480,31 +764,170 @@ function createGalleryPhotoLink(photo) {
   return link;
 }
 
+const venueGalleryCarouselState = {
+  photos: [],
+  index: 0,
+};
+
+function openVenueGalleryLightbox(imageUrl) {
+  let lightbox = document.getElementById("venueGalleryLightbox");
+
+  if (!lightbox) {
+    lightbox = document.createElement("div");
+    lightbox.id = "venueGalleryLightbox";
+    lightbox.className = "venue-gallery-lightbox";
+    lightbox.hidden = true;
+
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "venue-gallery-lightbox-close";
+    closeBtn.textContent = "✕";
+    closeBtn.setAttribute("aria-label", "Close");
+    closeBtn.addEventListener("click", () => {
+      lightbox.hidden = true;
+    });
+    lightbox.appendChild(closeBtn);
+
+    const image = document.createElement("img");
+    image.id = "venueGalleryLightboxImage";
+    image.alt = "Venue photo";
+    lightbox.appendChild(image);
+
+    lightbox.addEventListener("click", (event) => {
+      if (event.target === lightbox) lightbox.hidden = true;
+    });
+
+    document.body.appendChild(lightbox);
+  }
+
+  const image = document.getElementById("venueGalleryLightboxImage");
+  if (image) image.src = getImage(imageUrl);
+  lightbox.hidden = false;
+}
+
+function setVenueGalleryCarouselIndex(nextIndex) {
+  const photos = venueGalleryCarouselState.photos;
+  if (!photos.length) return;
+
+  const total = photos.length;
+  venueGalleryCarouselState.index =
+    ((nextIndex % total) + total) % total;
+
+  const photo = photos[venueGalleryCarouselState.index];
+  const imageUrl = safeText(photo.image_url || photo.image);
+  const slide = document.getElementById("venueGallerySlide");
+  const thumbs = document.getElementById("venueGalleryThumbs");
+
+  if (slide) {
+    slide.src = getImage(imageUrl);
+    slide.onclick = () => openVenueGalleryLightbox(imageUrl);
+  }
+
+  if (thumbs) {
+    thumbs.querySelectorAll(".venue-gallery-thumb").forEach((button, idx) => {
+      button.classList.toggle("is-active", idx === venueGalleryCarouselState.index);
+    });
+  }
+}
+
+function setupVenueGalleryCarouselTouch() {
+  const main = document.querySelector(".venue-gallery-main");
+  if (!main || main.dataset.touchBound === "true") return;
+
+  main.dataset.touchBound = "true";
+  let startX = 0;
+
+  main.addEventListener(
+    "touchstart",
+    (event) => {
+      startX = event.changedTouches[0].clientX;
+    },
+    { passive: true }
+  );
+
+  main.addEventListener(
+    "touchend",
+    (event) => {
+      const delta = event.changedTouches[0].clientX - startX;
+      if (Math.abs(delta) < 40) return;
+      setVenueGalleryCarouselIndex(
+        venueGalleryCarouselState.index + (delta < 0 ? 1 : -1)
+      );
+    },
+    { passive: true }
+  );
+}
+
 function renderVenueGallery(photos) {
-  const gallery = document.getElementById("venueGallery");
-
-  if (!gallery) return;
-
-  gallery.innerHTML = "";
+  const legacyGallery = document.getElementById("venueGallery");
+  const carousel = document.getElementById("venueGalleryCarousel");
+  const thumbs = document.getElementById("venueGalleryThumbs");
+  const slide = document.getElementById("venueGallerySlide");
+  const prevBtn = document.getElementById("venueGalleryPrev");
+  const nextBtn = document.getElementById("venueGalleryNext");
 
   const validPhotos = (photos || []).filter((photo) =>
     safeText(photo.image_url || photo.image)
   );
 
-  if (validPhotos.length === 0) {
-    gallery.hidden = true;
+  venueGalleryCarouselState.photos = validPhotos;
+  venueGalleryCarouselState.index = 0;
+
+  if (legacyGallery) {
+    legacyGallery.innerHTML = "";
+    legacyGallery.hidden = true;
+  }
+
+  if (!carousel || !slide) {
+    if (legacyGallery && validPhotos.length) {
+      legacyGallery.hidden = false;
+      validPhotos.forEach((photo) => {
+        const item = createGalleryPhotoLink(photo);
+        if (item) legacyGallery.appendChild(item);
+      });
+    }
     return;
   }
 
-  gallery.hidden = false;
+  if (!validPhotos.length) {
+    carousel.hidden = true;
+    return;
+  }
 
-  validPhotos.forEach((photo) => {
-    const item = createGalleryPhotoLink(photo);
+  carousel.hidden = false;
 
-    if (item) {
-      gallery.appendChild(item);
-    }
-  });
+  if (thumbs) {
+    thumbs.innerHTML = "";
+    validPhotos.forEach((photo, index) => {
+      const imageUrl = safeText(photo.image_url || photo.image);
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "venue-gallery-thumb";
+      const image = document.createElement("img");
+      image.src = getImage(imageUrl);
+      image.alt = `Thumbnail ${index + 1}`;
+      button.appendChild(image);
+      button.addEventListener("click", () => setVenueGalleryCarouselIndex(index));
+      thumbs.appendChild(button);
+    });
+  }
+
+  if (prevBtn && !prevBtn.dataset.bound) {
+    prevBtn.dataset.bound = "true";
+    prevBtn.addEventListener("click", () => {
+      setVenueGalleryCarouselIndex(venueGalleryCarouselState.index - 1);
+    });
+  }
+
+  if (nextBtn && !nextBtn.dataset.bound) {
+    nextBtn.dataset.bound = "true";
+    nextBtn.addEventListener("click", () => {
+      setVenueGalleryCarouselIndex(venueGalleryCarouselState.index + 1);
+    });
+  }
+
+  setVenueGalleryCarouselIndex(0);
+  setupVenueGalleryCarouselTouch();
 }
 
 function setupVenueMenuToggle() {
@@ -3123,6 +3546,30 @@ if (loginBtn) {
   });
 }
 
+if (signupUsername) {
+  signupUsername.addEventListener("input", async () => {
+    const value = normalizeUsernameValue(signupUsername.value);
+    if (!value) {
+      setUsernameStatusMessage(signupUsernameStatus, "");
+      return;
+    }
+    if (!isValidUsernameFormat(value)) {
+      setUsernameStatusMessage(
+        signupUsernameStatus,
+        "Geçersiz format",
+        "error"
+      );
+      return;
+    }
+    const available = await isUsernameAvailable(value);
+    setUsernameStatusMessage(
+      signupUsernameStatus,
+      available ? "Kullanılabilir" : "Alınmış",
+      available ? "ok" : "error"
+    );
+  });
+}
+
 if (registerBtn) {
   registerBtn.addEventListener("click", async () => {
     if (registerBtn.disabled) return;
@@ -3142,12 +3589,37 @@ if (registerBtn) {
     registerBtn.disabled = true;
 
     try {
+      const usernameAvailable = await isUsernameAvailable(
+        validation.username
+      );
+
+      if (!usernameAvailable) {
+        setAuthMessage("Bu kullanıcı adı alınmış.", "error");
+        setUsernameStatusMessage(
+          signupUsernameStatus,
+          "Alınmış",
+          "error"
+        );
+        return;
+      }
+
+      setUsernameStatusMessage(
+        signupUsernameStatus,
+        "Kullanılabilir",
+        "ok"
+      );
+
       const { data, error } =
         await supabaseClient.auth.signUp({
           email: validation.email,
           password: validation.password,
           options: {
             emailRedirectTo: getAuthEmailRedirectTo(),
+            data: {
+              full_name: validation.fullName,
+              username: validation.username,
+              preferred_username: validation.username,
+            },
           },
         });
 
@@ -3157,6 +3629,21 @@ if (registerBtn) {
           "error"
         );
         return;
+      }
+
+      if (data && data.user) {
+        const profileResult = await upsertUserProfile(data.user.id, {
+          full_name: validation.fullName,
+          username: validation.username,
+        });
+
+        if (profileResult.error) {
+          setAuthMessage(
+            "Hesap oluştu ancak profil kaydı tamamlanamadı. Profilden tekrar dene.",
+            "error"
+          );
+          return;
+        }
       }
 
       if (data && data.session) {
@@ -3249,6 +3736,8 @@ async function initAuthPage() {
   const session = await getSafeSession();
 
   if (!session) return;
+
+  await syncProfileFromAuthMetadata(session);
 
   const authType =
     hashParams.get("type") || queryParams.get("type") || "";
@@ -3367,10 +3856,12 @@ async function checkUser() {
     }
 
     userEmail.innerText = session.user.email;
+    await syncProfileFromAuthMetadata(session);
     ensureBusinessApplicationSection();
     setupProfileMobilePanels();
     setupBusinessApplicationForm(session.user.id);
     await loadProfileStats(session.user.id);
+    await loadAndRenderProfileIdentity(session.user.id);
   }
 }
 
@@ -5056,6 +5547,7 @@ async function loadVenueDetails() {
   await setupVenueReviewForm(venue.id);
   await loadUserReservations(venue.id);
   await setupReservationForm(venue.id);
+  setupVenueOrderLink(venue.id);
 
   let events = [];
   let eventsError = null;
@@ -8845,7 +9337,11 @@ async function updateBusinessReservationStatus(id, status) {
 
 function getConversationIdFromUrl() {
   const params = new URLSearchParams(window.location.search);
-  return params.get("conversation");
+  return (
+    params.get("conversation") ||
+    params.get("conversation_id") ||
+    ""
+  );
 }
 
 function getUserIdFromUrl() {
@@ -8867,6 +9363,385 @@ let messageTypingClearTimer = null;
 let messageTypingPollTimer = null;
 let messageSessionUserId = "";
 
+const AI_CONCIERGE_CONVERSATION_ID = "ai-concierge";
+const AI_CONCIERGE_BOT_SENDER_ID = "ai-concierge-assistant";
+let aiConciergePending = false;
+
+function isAIConciergeConversationId(conversationId) {
+  return String(conversationId) === AI_CONCIERGE_CONVERSATION_ID;
+}
+
+function isAIConciergeConversation(conversation) {
+  return (
+    conversation && isAIConciergeConversationId(conversation.id)
+  );
+}
+
+function buildAIConciergeConversation() {
+  return {
+    id: AI_CONCIERGE_CONVERSATION_ID,
+    conversation_type: "ai_concierge",
+    name: "Tanıdık AI",
+    description: "Mekan, etkinlik ve gece planı önerileri",
+    updated_at: new Date().toISOString(),
+  };
+}
+
+function getAIConciergeStorageKey(userId) {
+  return `tanidik.ai-concierge.v1.${String(userId)}`;
+}
+
+function loadAIConciergeMessagesFromStorage(userId) {
+  if (!userId) return [];
+
+  try {
+    const raw = window.localStorage.getItem(
+      getAIConciergeStorageKey(userId)
+    );
+    if (!raw) return [];
+
+    const parsed = JSON.parse(raw);
+    const messages = Array.isArray(parsed?.messages)
+      ? parsed.messages
+      : [];
+
+    return messages
+      .filter((message) => safeText(message.body))
+      .map((message, index) => ({
+        id:
+          safeText(message.id) ||
+          `ai-local-${index}-${message.created_at || ""}`,
+        sender_id: safeText(message.sender_id),
+        body: safeText(message.body),
+        created_at:
+          message.created_at || new Date().toISOString(),
+      }));
+  } catch (error) {
+    console.log(error);
+    return [];
+  }
+}
+
+function saveAIConciergeMessagesToStorage(userId, messages) {
+  if (!userId) return;
+
+  try {
+    window.localStorage.setItem(
+      getAIConciergeStorageKey(userId),
+      JSON.stringify({ messages: messages || [] })
+    );
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+function hydrateAIConciergeInboxPreview(conversation, userId) {
+  const messages = loadAIConciergeMessagesFromStorage(userId);
+  const lastMessage = messages[messages.length - 1];
+
+  if (!lastMessage) {
+    conversation.last_message_preview = "";
+    conversation.last_message_at = "";
+    conversation.last_message_sender_id = "";
+    return;
+  }
+
+  conversation.last_message_preview = lastMessage.body;
+  conversation.last_message_at = lastMessage.created_at || "";
+  conversation.last_message_sender_id = lastMessage.sender_id || "";
+}
+
+function prependAIConciergeToInbox(conversations) {
+  const aiConversation = buildAIConciergeConversation();
+  hydrateAIConciergeInboxPreview(
+    aiConversation,
+    messageSessionUserId
+  );
+  return [aiConversation, ...(conversations || [])];
+}
+
+function getAIConciergeHistoryForApi(userId, messages) {
+  return (messages || [])
+    .slice(-8)
+    .map((message) => ({
+      role:
+        String(message.sender_id) === String(userId)
+          ? "user"
+          : "assistant",
+      content: safeText(message.body),
+    }))
+    .filter((item) => item.content);
+}
+
+function setAIConciergeQuickPromptsVisible(isVisible) {
+  const panel = document.getElementById("aiConciergeQuickPrompts");
+  if (!panel) return;
+  panel.hidden = !isVisible;
+}
+
+function setAIConciergeTypingVisible(isVisible) {
+  const indicator = document.getElementById(
+    "conversationTypingIndicator"
+  );
+  if (!indicator) return;
+
+  if (!isVisible) {
+    indicator.innerHTML = "";
+    indicator.hidden = true;
+    return;
+  }
+
+  indicator.hidden = false;
+  indicator.innerHTML =
+    '<span class="ai-concierge-typing">Tanıdık AI yazıyor…</span>';
+}
+
+function renderAIConciergeEmptyState(container) {
+  if (!container) return;
+
+  container.innerHTML = "";
+  const wrap = document.createElement("div");
+  wrap.className = "ai-concierge-empty";
+
+  const title = document.createElement("h3");
+  title.textContent = "Bu gece için öneri iste";
+  wrap.appendChild(title);
+
+  const hint = document.createElement("p");
+  hint.textContent =
+    "Mekan, etkinlik veya gece planı için kısa bir soru yaz.";
+  wrap.appendChild(hint);
+
+  container.appendChild(wrap);
+  setAIConciergeQuickPromptsVisible(true);
+}
+
+function setupAIConciergeQuickPrompts() {
+  const panel = document.getElementById("aiConciergeQuickPrompts");
+  if (!panel || panel.dataset.bound === "true") return;
+
+  panel.dataset.bound = "true";
+
+  panel.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-ai-prompt]");
+    if (!button) return;
+
+    const prompt = safeText(button.dataset.aiPrompt);
+    if (!prompt) return;
+
+    const bodyInput = document.getElementById("messageBody");
+    if (bodyInput) {
+      bodyInput.value = prompt;
+    }
+
+    await sendAIConciergeMessage(prompt);
+  });
+}
+
+async function loadAIConciergeConversation() {
+  const panel = document.getElementById("conversationPanel");
+  const messagesContainer =
+    document.getElementById("conversationMessages");
+
+  if (!panel || !messagesContainer) return null;
+
+  const {
+    data: { session },
+  } = await supabaseClient.auth.getSession();
+
+  if (!session) {
+    setMessageFormEnabled(false);
+    window.location.href = "./auth.html";
+    return null;
+  }
+
+  messageSessionUserId = session.user.id;
+  stopConversationTypingPoll();
+  setAIConciergeTypingVisible(false);
+
+  const conversation = buildAIConciergeConversation();
+  const messages = loadAIConciergeMessagesFromStorage(
+    session.user.id
+  );
+
+  setMessageFormEnabled(true);
+  updateMessageComposerForConversation(conversation);
+  updateConversationHeader(conversation, session.user.id);
+  resetConversationContextHeader();
+  panel.dataset.conversationId = conversation.id;
+  panel.dataset.userId = "";
+  panel.dataset.businessOwnerId = "";
+
+  if (!messages.length) {
+    renderAIConciergeEmptyState(messagesContainer);
+  } else {
+    setAIConciergeQuickPromptsVisible(false);
+    renderConversationMessages(
+      messages,
+      session.user.id,
+      conversation,
+      {},
+      []
+    );
+    if (aiConciergePending) {
+      appendAIConciergeLoadingBubble(
+        messagesContainer,
+        session.user.id
+      );
+    }
+  }
+
+  setupMessageForm(conversation.id);
+  setupAIConciergeQuickPrompts();
+  return conversation;
+}
+
+function appendAIConciergeLoadingBubble(container, sessionUserId) {
+  if (!container) return;
+
+  const row = document.createElement("div");
+  row.className =
+    "message-bubble-with-avatar ai-concierge-loading-row";
+  row.id = "aiConciergeLoadingBubble";
+
+  const avatar = document.createElement("div");
+  avatar.className = "message-bubble-avatar";
+  avatar.textContent = "🤖";
+  row.appendChild(avatar);
+
+  const bubble = document.createElement("div");
+  bubble.className =
+    "message-bubble message-bubble-content ai-concierge-loading-bubble";
+  bubble.innerHTML =
+    '<span class="ai-concierge-typing-dots" aria-hidden="true"><span></span><span></span><span></span></span>';
+  row.appendChild(bubble);
+
+  container.appendChild(row);
+  container.scrollTop = container.scrollHeight;
+}
+
+function removeAIConciergeLoadingBubble() {
+  document
+    .getElementById("aiConciergeLoadingBubble")
+    ?.remove();
+}
+
+async function sendAIConciergeMessage(body) {
+  const text = safeText(body);
+  if (!text) {
+    showToast("Write a message");
+    return false;
+  }
+
+  const {
+    data: { session },
+  } = await supabaseClient.auth.getSession();
+
+  if (!session) {
+    window.location.href = "./auth.html";
+    return false;
+  }
+
+  if (aiConciergePending) {
+    showToast("AI is still responding");
+    return false;
+  }
+
+  const userId = session.user.id;
+  const conversation = buildAIConciergeConversation();
+  const messages = loadAIConciergeMessagesFromStorage(userId);
+  const userMessage = {
+    id: `ai-user-${Date.now()}`,
+    sender_id: userId,
+    body: text,
+    created_at: new Date().toISOString(),
+  };
+
+  messages.push(userMessage);
+  saveAIConciergeMessagesToStorage(userId, messages);
+  hydrateAIConciergeInboxPreview(conversation, userId);
+
+  const messagesContainer =
+    document.getElementById("conversationMessages");
+  setAIConciergeQuickPromptsVisible(false);
+
+  if (messagesContainer) {
+    renderConversationMessages(
+      messages,
+      userId,
+      conversation,
+      {},
+      []
+    );
+  }
+
+  aiConciergePending = true;
+  setAIConciergeTypingVisible(true);
+  appendAIConciergeLoadingBubble(messagesContainer, userId);
+
+  try {
+    const history = getAIConciergeHistoryForApi(
+      userId,
+      messages.slice(0, -1)
+    );
+
+    const { data, error } = await supabaseClient.functions.invoke(
+      "ask-ai-concierge",
+      {
+        body: {
+          message: text,
+          history,
+        },
+      }
+    );
+
+    if (error) {
+      throw error;
+    }
+
+    const reply = safeText(data?.reply);
+    if (!reply) {
+      throw new Error(
+        safeText(data?.error) || "AI response unavailable"
+      );
+    }
+
+    messages.push({
+      id: `ai-bot-${Date.now()}`,
+      sender_id: AI_CONCIERGE_BOT_SENDER_ID,
+      body: reply,
+      created_at: new Date().toISOString(),
+    });
+    saveAIConciergeMessagesToStorage(userId, messages);
+    hydrateAIConciergeInboxPreview(conversation, userId);
+
+    if (messagesContainer) {
+      renderConversationMessages(
+        messages,
+        userId,
+        conversation,
+        {},
+        []
+      );
+    }
+
+    return true;
+  } catch (error) {
+    console.log(error);
+    const message =
+      error?.message ||
+      (error?.context?.status === 429
+        ? "Çok fazla istek. Biraz sonra tekrar dene."
+        : "AI yanıt veremedi");
+    showToast(message);
+    return false;
+  } finally {
+    aiConciergePending = false;
+    setAIConciergeTypingVisible(false);
+    removeAIConciergeLoadingBubble();
+  }
+}
+
 function getConversationIdFromNotificationLink(linkUrl) {
   if (!linkUrl) return "";
 
@@ -8876,7 +9751,11 @@ function getConversationIdFromNotificationLink(linkUrl) {
 
     if (path !== "messages.html") return "";
 
-    return url.searchParams.get("conversation") || "";
+    return (
+      url.searchParams.get("conversation") ||
+      url.searchParams.get("conversation_id") ||
+      ""
+    );
   } catch (error) {
     console.log(error);
     return "";
@@ -9441,23 +10320,55 @@ function getOtherConversationParticipantId(conversation, userId) {
 function getConversationTitle(conversation) {
   if (!conversation) return "Conversation";
 
+  if (isAIConciergeConversation(conversation)) {
+    return "Tanıdık AI";
+  }
+
   if (isDirectConversation(conversation)) {
-    return safeText(conversation.direct_participant_name) ||
-      "Direct message";
+    const fullName =
+      safeText(conversation.direct_participant_full_name) ||
+      safeText(conversation.direct_participant_name);
+    const username = safeText(conversation.direct_participant_username);
+
+    if (fullName && username) {
+      return `${fullName} (@${username})`;
+    }
+
+    return fullName || (username ? `@${username}` : "Direct message");
   }
 
   if (conversation.reservation_id) {
-    return `Reservation #${conversation.reservation_id}`;
+    const businessName = safeText(conversation.business_display_name);
+    return businessName
+      ? `${businessName} · Rezervasyon #${conversation.reservation_id}`
+      : `Reservation #${conversation.reservation_id}`;
+  }
+
+  if (safeText(conversation.business_display_name)) {
+    return safeText(conversation.business_display_name);
   }
 
   return `Conversation #${safeText(conversation.id)}`;
 }
 
 function getConversationSubtitle(conversation) {
+  if (isAIConciergeConversation(conversation)) {
+    return (
+      safeText(conversation.description) ||
+      "Mekan, etkinlik ve gece planı önerileri"
+    );
+  }
+
   const parts = [];
 
   if (isDirectConversation(conversation)) {
-    parts.push("Profile conversation");
+    const username = safeText(conversation.direct_participant_username);
+    if (username) parts.push(`@${username}`);
+    parts.push("Direct message");
+  }
+
+  if (safeText(conversation.business_display_name)) {
+    parts.push(safeText(conversation.business_display_name));
   }
 
   if (conversation.venue_id) {
@@ -9477,6 +10388,10 @@ function getConversationSubtitle(conversation) {
 
 function getConversationRoleLabel(conversation, userId) {
   if (!conversation || !userId) return "";
+
+  if (isAIConciergeConversation(conversation)) {
+    return "AI Concierge";
+  }
 
   if (isDirectConversation(conversation)) {
     return "Direct message";
@@ -9500,9 +10415,19 @@ function getMessageSenderLabel(message, conversation, userId) {
     return "You";
   }
 
+  if (
+    String(message.sender_id) === AI_CONCIERGE_BOT_SENDER_ID
+  ) {
+    return "Tanıdık AI";
+  }
+
   if (isDirectConversation(conversation)) {
-    return safeText(conversation.direct_participant_name) ||
-      "Profile";
+    const fullName =
+      safeText(conversation.direct_participant_full_name) ||
+      safeText(conversation.direct_participant_name);
+    const username = safeText(conversation.direct_participant_username);
+    if (fullName && username) return `${fullName} (@${username})`;
+    return fullName || (username ? `@${username}` : "Profile");
   }
 
   if (
@@ -9517,10 +10442,87 @@ function getMessageSenderLabel(message, conversation, userId) {
     String(message.sender_id) ===
       String(conversation.business_owner_id)
   ) {
-    return "Business";
+    return (
+      safeText(conversation.business_display_name) || "Business"
+    );
   }
 
   return "Message";
+}
+
+function createMessageThreadAvatar(conversation) {
+  const avatar = document.createElement("div");
+  avatar.className = "message-thread-avatar";
+
+  if (isAIConciergeConversation(conversation)) {
+    avatar.classList.add("message-thread-avatar--ai");
+    avatar.textContent = "🤖";
+    return avatar;
+  }
+
+  if (isDirectConversation(conversation)) {
+    const imageUrl = safeText(conversation.direct_participant_avatar);
+    const label =
+      getProfileDisplayName({
+        full_name: conversation.direct_participant_full_name,
+        username: conversation.direct_participant_username,
+        display_name: conversation.direct_participant_name,
+      }).charAt(0) || "U";
+
+    if (imageUrl) {
+      const image = document.createElement("img");
+      image.src = getImage(imageUrl);
+      image.alt = "";
+      image.addEventListener("error", () => {
+        avatar.textContent = label;
+      }, { once: true });
+      avatar.appendChild(image);
+    } else {
+      avatar.textContent = label;
+    }
+    return avatar;
+  }
+
+  avatar.textContent = safeText(conversation.business_display_name)
+    .charAt(0)
+    .toUpperCase() || "B";
+  return avatar;
+}
+
+function createMessageBubbleAvatar(conversation, sessionUserId) {
+  const avatar = document.createElement("div");
+  avatar.className = "message-bubble-avatar";
+
+  if (isAIConciergeConversation(conversation)) {
+    avatar.textContent = "🤖";
+    return avatar;
+  }
+
+  if (isDirectConversation(conversation)) {
+    const imageUrl = safeText(conversation.direct_participant_avatar);
+    const label =
+      getProfileDisplayName({
+        full_name: conversation.direct_participant_full_name,
+        username: conversation.direct_participant_username,
+        display_name: conversation.direct_participant_name,
+      }).charAt(0) || "U";
+
+    if (imageUrl) {
+      const image = document.createElement("img");
+      image.src = getImage(imageUrl);
+      image.alt = "";
+      avatar.appendChild(image);
+    } else {
+      avatar.textContent = label;
+    }
+    return avatar;
+  }
+
+  avatar.textContent =
+    String(conversation.business_owner_id) === String(sessionUserId)
+      ? "B"
+      : "G";
+  return avatar;
 }
 
 function getProfileDisplayName(profile) {
@@ -9636,6 +10638,41 @@ async function hydrateDirectConversationProfiles(conversations) {
     conversation.direct_participant_id = participantId;
     conversation.direct_participant_name =
       getProfileDisplayName(profile);
+    conversation.direct_participant_full_name = safeText(
+      profile && profile.full_name
+    );
+    conversation.direct_participant_username = safeText(
+      profile && profile.username
+    );
+    conversation.direct_participant_avatar = getProfileAvatar(profile);
+  });
+}
+
+async function hydrateConversationBusinessNames(conversations) {
+  const ownerIds = [
+    ...new Set(
+      (conversations || [])
+        .map((c) => c.business_owner_id)
+        .filter(Boolean)
+    ),
+  ];
+
+  if (!ownerIds.length) return;
+
+  const { data: businesses } = await supabaseClient
+    .from("businesses")
+    .select("owner_id, name")
+    .in("owner_id", ownerIds);
+
+  const nameByOwner = new Map(
+    (businesses || []).map((b) => [String(b.owner_id), b.name])
+  );
+
+  (conversations || []).forEach((conversation) => {
+    if (conversation.business_owner_id) {
+      conversation.business_display_name =
+        nameByOwner.get(String(conversation.business_owner_id)) || "";
+    }
   });
 }
 
@@ -10436,8 +11473,30 @@ function setMessageFormEnabled(isEnabled) {
 
 function updateMessageComposerForConversation(conversation) {
   const bodyInput = document.getElementById("messageBody");
+  const attachControl = document.querySelector(
+    ".message-attach-control"
+  );
+  const attachInput = document.getElementById(
+    "messageAttachmentImage"
+  );
+  const isAi = isAIConciergeConversation(conversation);
+
+  if (attachControl) {
+    attachControl.hidden = isAi;
+  }
+
+  if (attachInput && isAi) {
+    attachInput.value = "";
+  }
 
   if (!bodyInput) return;
+
+  if (isAi) {
+    bodyInput.placeholder = "Gece planı için sor...";
+    return;
+  }
+
+  setAIConciergeQuickPromptsVisible(false);
 
   bodyInput.placeholder = isDirectConversation(conversation)
     ? "Write a message..."
@@ -10505,21 +11564,21 @@ async function loadMessageInbox() {
       .select("*")
       .order("updated_at", { ascending: false });
 
+  const conversations = data || [];
+
   if (error) {
     console.log(error);
-    renderEmptyState(
-      list,
-      "Messages unavailable",
-      "You may not have access to these conversations."
-    );
-    return [];
   }
 
-  const conversations = data || [];
-  await hydrateDirectConversationProfiles(conversations);
-  await hydrateConversationPreviews(conversations);
-  renderMessageInbox(conversations);
-  return conversations;
+  if (!error) {
+    await hydrateDirectConversationProfiles(conversations);
+    await hydrateConversationBusinessNames(conversations);
+    await hydrateConversationPreviews(conversations);
+  }
+
+  const inboxThreads = prependAIConciergeToInbox(conversations);
+  renderMessageInbox(inboxThreads);
+  return inboxThreads;
 }
 
 async function hydrateConversationPreviews(conversations) {
@@ -10577,8 +11636,8 @@ function renderMessageInbox(conversations) {
   if (!conversations || conversations.length === 0) {
     renderEmptyState(
       list,
-      "No messages yet",
-      "Direct messages and reservation conversations will appear here."
+      "Henüz mesaj yok",
+      "Rezervasyon veya doğrudan mesajlar burada görünecek."
     );
     return;
   }
@@ -10604,10 +11663,16 @@ function renderMessageInbox(conversations) {
       link.classList.add("unread");
     }
 
+    link.appendChild(createMessageThreadAvatar(conversation));
+
+    const body = document.createElement("div");
+    body.className = "message-thread-body";
+
     const topRow = document.createElement("div");
     topRow.className = "message-thread-top";
 
     const title = document.createElement("strong");
+    title.className = "message-thread-title";
     title.textContent = getConversationTitle(conversation);
     topRow.appendChild(title);
 
@@ -10629,15 +11694,25 @@ function renderMessageInbox(conversations) {
       topRow.appendChild(badge);
     }
 
-    link.appendChild(topRow);
+    body.appendChild(topRow);
 
     const subtitle = getConversationSubtitle(conversation);
+
+    if (isDirectConversation(conversation)) {
+      const identity = document.createElement("span");
+      identity.className = "message-thread-identity-line";
+      const username = safeText(conversation.direct_participant_username);
+      identity.textContent = username
+        ? `@${username} · ${safeText(conversation.direct_participant_full_name) || ""}`
+        : safeText(conversation.direct_participant_full_name);
+      body.appendChild(identity);
+    }
 
     if (subtitle) {
       const meta = document.createElement("span");
       meta.className = "message-thread-meta";
       meta.textContent = subtitle;
-      link.appendChild(meta);
+      body.appendChild(meta);
     }
 
     if (conversation.last_message_preview) {
@@ -10647,12 +11722,19 @@ function renderMessageInbox(conversations) {
         conversation.last_message_sender_id &&
         String(conversation.last_message_sender_id) ===
           String(messageSessionUserId || "");
+      const isAiReply =
+        isAIConciergeConversation(conversation) &&
+        String(conversation.last_message_sender_id) ===
+          AI_CONCIERGE_BOT_SENDER_ID;
       preview.textContent = isOwnPreview
-        ? `You: ${conversation.last_message_preview}`
-        : conversation.last_message_preview;
-      link.appendChild(preview);
+        ? `Sen: ${conversation.last_message_preview}`
+        : isAiReply
+          ? `Tanıdık AI: ${conversation.last_message_preview}`
+          : conversation.last_message_preview;
+      body.appendChild(preview);
     }
 
+    link.appendChild(body);
     fragment.appendChild(link);
   });
 
@@ -10669,6 +11751,7 @@ async function loadConversation(conversationId) {
   if (!conversationId) {
     setMessageFormEnabled(false);
     updateMessageComposerForConversation(null);
+    setAIConciergeQuickPromptsVisible(false);
     stopConversationTypingPoll();
     resetConversationHeader();
     resetConversationContextHeader();
@@ -10693,6 +11776,11 @@ async function loadConversation(conversationId) {
   }
 
   messageSessionUserId = session.user.id;
+
+  if (isAIConciergeConversationId(conversationId)) {
+    setAIConciergeQuickPromptsVisible(false);
+    return loadAIConciergeConversation();
+  }
 
   const { data: conversation, error: conversationError } =
     await supabaseClient
@@ -10719,6 +11807,7 @@ async function loadConversation(conversationId) {
   }
 
   await hydrateDirectConversationProfile(conversation);
+  await hydrateConversationBusinessNames([conversation]);
   setMessageFormEnabled(true);
   updateMessageComposerForConversation(conversation);
   updateConversationHeader(conversation, session.user.id);
@@ -10787,6 +11876,11 @@ function renderConversationMessages(
   messagesContainer.innerHTML = "";
 
   if (!messages || messages.length === 0) {
+    if (isAIConciergeConversation(conversation)) {
+      renderAIConciergeEmptyState(messagesContainer);
+      return;
+    }
+
     renderEmptyState(
       messagesContainer,
       "No messages yet",
@@ -10807,16 +11901,27 @@ function renderConversationMessages(
   let previousSenderId = "";
 
   messages.forEach((message) => {
-    const bubble = document.createElement("div");
     const isOwnMessage =
       String(message.sender_id) === String(sessionUserId);
     const isGrouped =
       previousSenderId &&
       String(previousSenderId) === String(message.sender_id);
-    bubble.className =
-      isOwnMessage
-        ? "message-bubble message-bubble--own"
-        : "message-bubble";
+
+    const row = document.createElement("div");
+    row.className = isOwnMessage
+      ? "message-bubble-with-avatar message-bubble-row--own"
+      : "message-bubble-with-avatar";
+
+    if (!isGrouped && !isOwnMessage) {
+      row.appendChild(createMessageBubbleAvatar(conversation, sessionUserId));
+    } else if (!isGrouped && isOwnMessage) {
+      row.appendChild(document.createElement("span"));
+    }
+
+    const bubble = document.createElement("div");
+    bubble.className = isOwnMessage
+      ? "message-bubble message-bubble--own message-bubble-content"
+      : "message-bubble message-bubble-content";
 
     if (isGrouped) {
       bubble.classList.add("message-bubble--grouped");
@@ -10873,7 +11978,16 @@ function renderConversationMessages(
       : formatNotificationDate(message.created_at);
     bubble.appendChild(meta);
 
-    fragment.appendChild(bubble);
+    row.appendChild(bubble);
+
+    if (!isGrouped && isOwnMessage) {
+      const ownSpacer = document.createElement("div");
+      ownSpacer.className = "message-bubble-avatar";
+      ownSpacer.textContent = "S";
+      row.appendChild(ownSpacer);
+    }
+
+    fragment.appendChild(row);
     previousSenderId = message.sender_id;
   });
 
@@ -10967,24 +12081,45 @@ function setupMessageForm(conversationId) {
     form.dataset.submitting = "true";
 
     try {
-      const sent =
-        await sendConversationMessage(
+      let sent = false;
+
+      if (isAIConciergeConversationId(form.dataset.conversationId)) {
+        if (attachmentFile) {
+          showToast("AI concierge supports text only");
+          return;
+        }
+
+        sent = await sendAIConciergeMessage(body);
+      } else {
+        sent = await sendConversationMessage(
           form.dataset.conversationId,
           body,
           attachmentFile
         );
+      }
 
       if (sent && bodyInput) {
         bodyInput.value = "";
       }
 
       if (sent) {
-        updateConversationTypingState(
-          form.dataset.conversationId,
-          messageSessionUserId,
-          false
-        );
+        if (!isAIConciergeConversationId(form.dataset.conversationId)) {
+          updateConversationTypingState(
+            form.dataset.conversationId,
+            messageSessionUserId,
+            false
+          );
+        }
         clearAdminFile("messageAttachmentImage");
+
+        if (isAIConciergeConversationId(form.dataset.conversationId)) {
+          const { data: inboxRows } = await supabaseClient
+            .from("message_conversations")
+            .select("*")
+            .order("updated_at", { ascending: false });
+          const threads = prependAIConciergeToInbox(inboxRows || []);
+          renderMessageInbox(threads);
+        }
       }
     } catch (error) {
       console.log(error);
@@ -11024,32 +12159,15 @@ async function notifyMessageRecipient(conversation, senderId) {
   }
 }
 
-async function notifyMessageRecipientByEmail(messageId) {
-  if (!messageId || !supabaseClient.functions) return;
-
-  try {
-    const { error } = await supabaseClient.functions.invoke(
-      "send-message-email-notification",
-      {
-        body: {
-          message_id: messageId,
-        },
-      }
-    );
-
-    if (error) {
-      console.warn("Message email notification unavailable.", error);
-    }
-  } catch (error) {
-    console.warn("Message email notification unavailable.", error);
-  }
-}
-
 async function sendConversationMessage(
   conversationId,
   body,
   attachmentFile = null
 ) {
+  if (isAIConciergeConversationId(conversationId)) {
+    return sendAIConciergeMessage(body);
+  }
+
   if (!conversationId) {
     showToast("Choose a conversation");
     return false;
@@ -11125,7 +12243,6 @@ async function sendConversationMessage(
   }
 
   await notifyMessageRecipient(conversation, session.user.id);
-  notifyMessageRecipientByEmail(messageId);
   await loadConversation(conversation.id);
   await loadMessageInbox();
   return true;
@@ -11267,6 +12384,7 @@ async function setupMessagesPage() {
   messageUnreadCountsByConversationId =
     await loadMessageUnreadCounts(session.user.id);
   updateMessagesBottomNavUnread(getTotalUnreadMessageCount());
+  setupAIConciergeQuickPrompts();
   await loadMessageInbox();
   await loadConversation(getConversationIdFromUrl());
 }
@@ -11904,6 +13022,1509 @@ async function initBusinessDashboard() {
   await refreshBusinessDashboard();
 }
 
+// ---------------------------------------------------------------------------
+// Restaurant ordering + courier MVP
+// ---------------------------------------------------------------------------
+
+const RESTAURANT_ORDER_STATUSES = {
+  pending: "Beklemede",
+  accepted: "Kabul Edildi",
+  rejected: "Reddedildi",
+  preparing: "Hazırlanıyor",
+  ready_for_pickup: "Teslime Hazır",
+  courier_assigned: "Kurye Atandı",
+  picked_up: "Kurye Aldı",
+  on_the_way: "Yolda",
+  out_for_delivery: "Yolda",
+  delivered: "Teslim Edildi",
+  cancelled: "İptal",
+};
+
+const DELIVERY_STATUS_LABELS = {
+  open: "Havuzda",
+  courier_assigned: "Kurye atandı",
+  picked_up: "Alındı",
+  on_the_way: "Yolda",
+  delivered: "Teslim edildi",
+  cancelled: "İptal",
+  pending: "Havuzda",
+  assigned: "Kurye atandı",
+  in_transit: "Yolda",
+};
+
+const COURIER_DELIVERY_NEXT_ACTIONS = {
+  courier_assigned: [["picked_up", "Siparişi Aldım"]],
+  picked_up: [["on_the_way", "Yola Çıktım"]],
+  on_the_way: [["delivered", "Teslim Edildi"]],
+};
+
+const courierPageState = {
+  refreshTimerId: null,
+  lastRefreshedAt: null,
+};
+
+const restaurantOrderCartState = {
+  venueId: null,
+  items: {},
+};
+
+function getRestaurantOrderStatusValue(status) {
+  return safeText(status).toLowerCase().trim() || "pending";
+}
+
+function getRestaurantOrderStatusLabel(status) {
+  const value = getRestaurantOrderStatusValue(status);
+  return RESTAURANT_ORDER_STATUSES[value] || value;
+}
+
+function createRestaurantOrderStatusBadge(status) {
+  const badge = document.createElement("span");
+  badge.className = `status-badge status-${getRestaurantOrderStatusValue(status)}`;
+  badge.textContent = getRestaurantOrderStatusLabel(status);
+  return badge;
+}
+
+function formatRestaurantOrderAmount(amount) {
+  const value = Number(amount) || 0;
+  return `₺${value.toFixed(2)}`;
+}
+
+function getOrderIdFromQuery() {
+  return safeText(new URLSearchParams(window.location.search).get("id")).trim();
+}
+
+function getVenueIdFromQuery() {
+  return safeText(new URLSearchParams(window.location.search).get("venue")).trim();
+}
+
+function isRestaurantMenuManageMode() {
+  return new URLSearchParams(window.location.search).get("manage") === "1";
+}
+
+async function ensureRestaurantMenuForVenue(venueId) {
+  const { data: existing } = await supabaseClient
+    .from("restaurant_menus")
+    .select("id, venue_id, name, is_active")
+    .eq("venue_id", venueId)
+    .maybeSingle();
+
+  if (existing) return existing;
+
+  const { data: created, error } = await supabaseClient
+    .from("restaurant_menus")
+    .insert({
+      venue_id: Number(venueId),
+      name: "Ana Menü",
+      is_active: true,
+    })
+    .select("id, venue_id, name, is_active")
+    .single();
+
+  if (error) {
+    console.log(error);
+    return null;
+  }
+
+  return created;
+}
+
+async function loadRestaurantMenu(venueId, options = {}) {
+  const normalizedVenueId = Number(venueId);
+  if (!normalizedVenueId) return { menu: null, items: [] };
+
+  const menu = await ensureRestaurantMenuForVenue(normalizedVenueId);
+  if (!menu) return { menu: null, items: [] };
+
+  let query = supabaseClient
+    .from("menu_items")
+    .select("*")
+    .eq("menu_id", menu.id)
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
+
+  if (!options.includeUnavailable) {
+    query = query.eq("is_available", true);
+  }
+
+  const { data: items, error } = await query;
+
+  if (error) {
+    console.log(error);
+    showSafeError(error, "Menü yüklenemedi.");
+    return { menu, items: [] };
+  }
+
+  return { menu, items: items || [] };
+}
+
+async function createOrder(payload) {
+  const session = await getSafeSession();
+  if (!session) {
+    redirectToAuthForCurrentPage();
+    return null;
+  }
+
+  const venueId = Number(payload && payload.venueId);
+  const orderType = safeText(payload && payload.orderType) || "pickup";
+  const items = Array.isArray(payload && payload.items) ? payload.items : [];
+  const deliveryAddress = safeText(payload && payload.deliveryAddress);
+  const customerNote = safeText(payload && payload.customerNote);
+
+  if (!venueId || items.length === 0) {
+    showToast("Sepet boş veya mekan seçilmedi.");
+    return null;
+  }
+
+  const rpcPayload = {
+    p_venue_id: venueId,
+    p_order_type: orderType,
+    p_delivery_address: deliveryAddress || null,
+    p_customer_note: customerNote || null,
+    p_items: items.map((item) => ({
+      menu_item_id: item.menuItemId,
+      quantity: Number(item.quantity) || 1,
+    })),
+  };
+
+  const { data, error } = await supabaseClient.rpc(
+    "create_restaurant_order",
+    rpcPayload
+  );
+
+  if (error || !data) {
+    showSafeError(error, "Sipariş oluşturulamadı. Sistem yapılandırmasını kontrol edin.");
+    return null;
+  }
+
+  showToast("Sipariş oluşturuldu");
+  restaurantOrderCartState.venueId = null;
+  restaurantOrderCartState.items = {};
+  return data;
+}
+
+async function loadUserOrders(userId) {
+  const { data, error } = await supabaseClient
+    .from("orders")
+    .select(
+      "*, venues(name, city), order_items(id, item_name, quantity, total_price)"
+    )
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.log(error);
+    showSafeError(error, "Siparişler yüklenemedi.");
+    return [];
+  }
+
+  return data || [];
+}
+
+async function loadRestaurantOrders(venueIds) {
+  const ids = (venueIds || [])
+    .map((id) => Number(id))
+    .filter(Boolean);
+
+  if (!ids.length) return [];
+
+  const { data, error } = await supabaseClient
+    .from("orders")
+    .select(
+      "*, venues(name, city), order_items(id, item_name, quantity, total_price), deliveries(id, status, courier_id)"
+    )
+    .in("venue_id", ids)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.log(error);
+    showSafeError(error, "Siparişler yüklenemedi.");
+    return [];
+  }
+
+  return data || [];
+}
+
+async function updateOrderStatus(orderId, newStatus, note = "") {
+  const normalizedStatus = getRestaurantOrderStatusValue(newStatus);
+
+  const { data, error } = await supabaseClient.rpc(
+    "update_restaurant_order_status",
+    {
+      p_order_id: orderId,
+      p_new_status: normalizedStatus,
+      p_note: note || null,
+    }
+  );
+
+  if (error || !data) {
+    showSafeError(error, "Sipariş durumu güncellenemedi.");
+    return null;
+  }
+
+  showToast("Sipariş durumu güncellendi");
+  return data;
+}
+
+function getDeliveryStatusLabel(status) {
+  const value = safeText(status).toLowerCase().trim();
+  return DELIVERY_STATUS_LABELS[value] || value;
+}
+
+function formatOrderItemsSummary(order) {
+  const lines = order && order.order_items;
+  if (!lines || !lines.length) return "—";
+  return lines
+    .map((line) => `${line.quantity}x ${line.item_name}`)
+    .join(", ");
+}
+
+async function getActiveCourierProfile(userId) {
+  const { data, error } = await supabaseClient
+    .from("couriers")
+    .select("id, full_name, phone, vehicle_type, status, created_at")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (error) {
+    console.log(error);
+    return null;
+  }
+
+  return data;
+}
+
+async function enrichDeliveriesWithCustomerProfiles(deliveries) {
+  const list = deliveries || [];
+  const userIds = [
+    ...new Set(
+      list
+        .map((d) => d.orders && d.orders.user_id)
+        .filter(Boolean)
+    ),
+  ];
+
+  if (!userIds.length) return list;
+
+  const profileById = new Map();
+  await Promise.all(
+    userIds.map(async (userId) => {
+      const profile = await loadProfileRecordByUserId(userId);
+      profileById.set(String(userId), profile);
+    })
+  );
+
+  return list.map((delivery) => {
+    const order = delivery.orders || {};
+    const userId = order.user_id ? String(order.user_id) : "";
+    return {
+      ...delivery,
+      customerProfile: profileById.get(userId) || null,
+    };
+  });
+}
+
+async function notifyOrderParticipant(orderId, type, title, message) {
+  if (!orderId) return;
+
+  const { data: order } = await supabaseClient
+    .from("orders")
+    .select("user_id, business_owner_id")
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (!order) return;
+
+  const linkUrl = `./order-detail.html?id=${encodeURIComponent(orderId)}`;
+  await createNotification(order.user_id, type, title, message, linkUrl);
+
+  if (
+    order.business_owner_id &&
+    order.business_owner_id !== order.user_id
+  ) {
+    await createNotification(
+      order.business_owner_id,
+      type,
+      title,
+      message,
+      "./restaurant-orders.html"
+    );
+  }
+}
+
+async function notifyCourierDispatchEvent(orderId, eventKey) {
+  const messages = {
+    courier_assigned: {
+      title: "Kurye atandı",
+      message: "Siparişiniz bir kurye tarafından kabul edildi.",
+    },
+    on_the_way: {
+      title: "Sipariş yolda",
+      message: "Kuryeniz siparişinizle yola çıktı.",
+    },
+    delivered: {
+      title: "Sipariş teslim edildi",
+      message: "Siparişiniz teslim edildi.",
+    },
+  };
+
+  const payload = messages[eventKey];
+  if (!payload) return;
+
+  await notifyOrderParticipant(
+    orderId,
+    `order_${eventKey}`,
+    payload.title,
+    payload.message
+  );
+}
+
+async function loadCourierAvailableDeliveries() {
+  const session = await getSafeSession();
+  if (!session) return { available: [], assigned: [], courier: null };
+
+  const courier = await getActiveCourierProfile(session.user.id);
+  if (!courier) return { available: [], assigned: [], courier: null };
+
+  const deliverySelect = `
+    *,
+    orders(
+      id,
+      user_id,
+      status,
+      total_amount,
+      delivery_address,
+      customer_note,
+      created_at,
+      venue_id,
+      venues(name, city, address, latitude, longitude),
+      order_items(item_name, quantity, total_price)
+    )
+  `;
+
+  const { data: available, error: availableError } = await supabaseClient
+    .from("deliveries")
+    .select(deliverySelect)
+    .eq("status", "open")
+    .is("courier_id", null)
+    .order("created_at", { ascending: true });
+
+  const { data: assigned, error: assignedError } = await supabaseClient
+    .from("deliveries")
+    .select(deliverySelect)
+    .eq("courier_id", courier.id)
+    .in("status", ["courier_assigned", "picked_up", "on_the_way"])
+    .order("created_at", { ascending: false });
+
+  if (availableError || assignedError) {
+    console.log(availableError || assignedError);
+    showSafeError(availableError || assignedError, "Teslimatlar yüklenemedi.");
+  }
+
+  const availableEnriched = await enrichDeliveriesWithCustomerProfiles(
+    available || []
+  );
+  const assignedEnriched = await enrichDeliveriesWithCustomerProfiles(
+    assigned || []
+  );
+
+  return {
+    courier,
+    available: availableEnriched,
+    assigned: assignedEnriched,
+  };
+}
+
+async function acceptDelivery(deliveryId) {
+  const { data, error } = await supabaseClient.rpc("accept_delivery", {
+    p_delivery_id: deliveryId,
+  });
+
+  if (error || !data) {
+    const msg = safeText(error && error.message).toLowerCase();
+    if (msg.includes("already claimed") || msg.includes("unavailable")) {
+      showToast("Bu teslimat başka bir kurye tarafından alındı.");
+    } else {
+      showSafeError(error, "Teslimat kabul edilemedi.");
+    }
+    return null;
+  }
+
+  showToast("Teslimat kabul edildi");
+  await notifyCourierDispatchEvent(data.order_id, "courier_assigned");
+  return data;
+}
+
+async function updateDeliveryStatus(deliveryId, newStatus, note = "") {
+  const normalizedStatus = safeText(newStatus).toLowerCase().trim();
+
+  const { data, error } = await supabaseClient.rpc("update_delivery_status", {
+    p_delivery_id: deliveryId,
+    p_new_status: normalizedStatus,
+    p_note: note || null,
+  });
+
+  if (error || !data) {
+    showSafeError(error, "Teslimat durumu güncellenemedi.");
+    return null;
+  }
+
+  showToast("Teslimat durumu güncellendi");
+
+  if (normalizedStatus === "on_the_way") {
+    await notifyCourierDispatchEvent(data.order_id, "on_the_way");
+  } else if (normalizedStatus === "delivered") {
+    await notifyCourierDispatchEvent(data.order_id, "delivered");
+  }
+
+  return data;
+}
+
+function buildGoogleMapsDirectionsUrl(destination) {
+  const raw = safeText(destination).trim();
+  if (!raw) return "";
+
+  const coordinateMatch = raw.match(/^(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)$/);
+  const destParam = coordinateMatch
+    ? `${coordinateMatch[1]},${coordinateMatch[2]}`
+    : encodeURIComponent(raw);
+
+  return `https://www.google.com/maps/dir/?api=1&destination=${destParam}`;
+}
+
+function getCourierPickupDestination(order) {
+  const venue = (order && order.venues) || {};
+  const query = getMapQuery(venue);
+
+  if (query) return query;
+
+  const parts = [venue.address, venue.city].map((v) => safeText(v).trim()).filter(Boolean);
+  return parts.join(", ");
+}
+
+function getCourierDeliveryDestination(order) {
+  return safeText(order && order.delivery_address).trim();
+}
+
+function canCourierOpenNavigation(delivery, courierId) {
+  if (!delivery || !courierId) return false;
+  return safeText(delivery.courier_id) === safeText(courierId);
+}
+
+function openCourierNavigation(delivery, navType, courierId) {
+  if (!canCourierOpenNavigation(delivery, courierId)) {
+    showToast("Navigasyon yalnızca size atanmış teslimatlar için kullanılabilir.");
+    return;
+  }
+
+  const order = delivery.orders || {};
+  const destination =
+    navType === "pickup"
+      ? getCourierPickupDestination(order)
+      : getCourierDeliveryDestination(order);
+
+  if (!destination) {
+    showToast(
+      navType === "pickup"
+        ? "Restoran adresi bulunamadı."
+        : "Teslimat adresi bulunamadı."
+    );
+    return;
+  }
+
+  const url = buildGoogleMapsDirectionsUrl(destination);
+  if (!url) return;
+
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
+function appendCourierNavigationButtons(actions, delivery, courierId) {
+  if (!canCourierOpenNavigation(delivery, courierId)) return;
+
+  const order = delivery.orders || {};
+  const pickupDest = getCourierPickupDestination(order);
+  const deliveryDest = getCourierDeliveryDestination(order);
+
+  const navWrap = document.createElement("div");
+  navWrap.className = "courier-delivery-card__nav";
+
+  if (pickupDest) {
+    const pickupBtn = document.createElement("button");
+    pickupBtn.type = "button";
+    pickupBtn.className = "secondary-btn courier-nav-btn";
+    pickupBtn.textContent = "Pickup Navigasyonu";
+    pickupBtn.addEventListener("click", () => {
+      openCourierNavigation(delivery, "pickup", courierId);
+    });
+    navWrap.appendChild(pickupBtn);
+  }
+
+  if (deliveryDest) {
+    const deliveryBtn = document.createElement("button");
+    deliveryBtn.type = "button";
+    deliveryBtn.className = "secondary-btn courier-nav-btn";
+    deliveryBtn.textContent = "Teslimat Navigasyonu";
+    deliveryBtn.addEventListener("click", () => {
+      openCourierNavigation(delivery, "delivery", courierId);
+    });
+    navWrap.appendChild(deliveryBtn);
+  }
+
+  if (navWrap.childElementCount) {
+    actions.appendChild(navWrap);
+  }
+}
+
+function renderOrderListCard(order, options = {}) {
+  const card = document.createElement("article");
+  card.className = "order-card";
+
+  const head = document.createElement("div");
+  head.className = "order-card-head";
+
+  const title = document.createElement("h3");
+  title.textContent =
+    safeText(order.venues && order.venues.name) ||
+    `Sipariş #${String(order.id).slice(0, 8)}`;
+  head.appendChild(title);
+  head.appendChild(createRestaurantOrderStatusBadge(order.status));
+  card.appendChild(head);
+
+  const meta = document.createElement("p");
+  meta.className = "order-card-meta";
+  meta.textContent = `${formatRestaurantOrderAmount(order.total_amount)} · ${safeText(order.order_type) === "delivery" ? "Teslimat" : "Gel-al"}`;
+  card.appendChild(meta);
+
+  if (order.order_items && order.order_items.length) {
+    const items = document.createElement("ul");
+    items.className = "order-card-items";
+    order.order_items.forEach((line) => {
+      const li = document.createElement("li");
+      li.textContent = `${line.quantity}x ${line.item_name}`;
+      items.appendChild(li);
+    });
+    card.appendChild(items);
+  }
+
+  const actions = document.createElement("div");
+  actions.className = "order-card-actions";
+
+  const detailLink = document.createElement("a");
+  detailLink.href = `./order-detail.html?id=${encodeURIComponent(order.id)}`;
+  detailLink.className = "secondary-btn";
+  detailLink.textContent = "Detay";
+  actions.appendChild(detailLink);
+
+  if (options.showBusinessActions) {
+    appendBusinessOrderActions(actions, order);
+  }
+
+  card.appendChild(actions);
+  return card;
+}
+
+function appendBusinessOrderActions(container, order) {
+  const status = getRestaurantOrderStatusValue(order.status);
+  const actions = [];
+
+  if (status === "pending") {
+    actions.push(["accepted", "Kabul Et"], ["rejected", "Reddet"]);
+  } else if (status === "accepted") {
+    actions.push(["preparing", "Hazırlanıyor"]);
+  } else if (status === "preparing") {
+    const label =
+      safeText(order.order_type) === "delivery"
+        ? "Teslime Hazır (Kurye Havuzu)"
+        : "Teslime Hazır";
+    actions.push(["ready_for_pickup", label]);
+  }
+
+  actions.forEach(([nextStatus, label]) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "btn btn--small";
+    button.textContent = label;
+    button.addEventListener("click", async () => {
+      await updateOrderStatus(order.id, nextStatus);
+      await refreshRestaurantOrdersPage();
+    });
+    container.appendChild(button);
+  });
+}
+
+async function refreshRestaurantOrdersPage() {
+  const filter = document.getElementById("restaurantOrdersVenueFilter");
+  const list = document.getElementById("restaurantOrdersList");
+  if (!list) return;
+
+  const venueId = filter && filter.value ? Number(filter.value) : null;
+  const venueIds = venueId
+    ? [venueId]
+    : Array.from(filter ? filter.options : [])
+        .map((opt) => Number(opt.value))
+        .filter(Boolean);
+
+  const orders = await loadRestaurantOrders(venueIds);
+  list.innerHTML = "";
+
+  if (!orders.length) {
+    renderEmptyState(list, "Sipariş yok", "Henüz sipariş bulunmuyor.");
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  orders.forEach((order) => {
+    fragment.appendChild(
+      renderOrderListCard(order, { showBusinessActions: true })
+    );
+  });
+  list.appendChild(fragment);
+}
+
+async function initOrdersPage() {
+  const page = document.getElementById("ordersPage");
+  if (!page) return;
+
+  const session = await getSafeSession();
+  if (!session) {
+    window.location.href = "./auth.html?redirect=./orders.html";
+    return;
+  }
+
+  const list = document.getElementById("userOrdersList");
+  const orders = await loadUserOrders(session.user.id);
+  if (!list) return;
+
+  list.innerHTML = "";
+  if (!orders.length) {
+    renderEmptyState(list, "Sipariş yok", "İlk siparişinizi bir mekandan verin.");
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  orders.forEach((order) => fragment.appendChild(renderOrderListCard(order)));
+  list.appendChild(fragment);
+}
+
+async function initOrderDetailPage() {
+  const page = document.getElementById("orderDetailPage");
+  if (!page) return;
+
+  const session = await getSafeSession();
+  if (!session) {
+    window.location.href = "./auth.html?redirect=" + encodeURIComponent(window.location.href);
+    return;
+  }
+
+  const orderId = getOrderIdFromQuery();
+  if (!orderId) {
+    showToast("Sipariş bulunamadı");
+    return;
+  }
+
+  const { data: order, error } = await supabaseClient
+    .from("orders")
+    .select(
+      "*, venues(name, city), order_items(*), deliveries(*), order_status_history(status, note, created_at)"
+    )
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (error || !order) {
+    showSafeError(error, "Sipariş bulunamadı.");
+    return;
+  }
+
+  const title = document.getElementById("orderDetailTitle");
+  if (title) {
+    title.textContent =
+      safeText(order.venues && order.venues.name) || "Sipariş Detayı";
+  }
+
+  const content = document.getElementById("orderDetailContent");
+  if (content) {
+    content.innerHTML = "";
+    const card = renderOrderListCard(order);
+    content.appendChild(card);
+
+    const address = document.createElement("p");
+    address.className = "order-card-meta";
+    if (order.delivery_address) {
+      address.textContent = `Adres: ${order.delivery_address}`;
+      content.appendChild(address);
+    }
+    if (order.customer_note) {
+      const note = document.createElement("p");
+      note.className = "order-card-meta";
+      note.textContent = `Not: ${order.customer_note}`;
+      content.appendChild(note);
+    }
+  }
+
+  const historyList = document.getElementById("orderStatusHistory");
+  if (historyList) {
+    historyList.innerHTML = "<h2>Durum Geçmişi</h2>";
+    const entries = order.order_status_history || [];
+    if (!entries.length) {
+      const empty = document.createElement("p");
+      empty.className = "page-message";
+      empty.textContent = "Henüz kayıt yok.";
+      historyList.appendChild(empty);
+    } else {
+      const ul = document.createElement("ul");
+      ul.className = "order-history-items";
+      entries
+        .slice()
+        .sort(
+          (a, b) =>
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        )
+        .forEach((entry) => {
+          const li = document.createElement("li");
+          li.textContent = `${getRestaurantOrderStatusLabel(entry.status)} — ${new Date(entry.created_at).toLocaleString("tr-TR")}${entry.note ? ` (${entry.note})` : ""}`;
+          ul.appendChild(li);
+        });
+      historyList.appendChild(ul);
+    }
+  }
+}
+
+async function loadBusinessVenueOptions(selectEl) {
+  const session = await getSafeSession();
+  if (!session || !selectEl) return [];
+
+  const { data: businesses } = await supabaseClient
+    .from("businesses")
+    .select("id")
+    .eq("owner_id", session.user.id)
+    .in("status", ["approved", "active", "verified"]);
+
+  const businessIds = (businesses || []).map((b) => b.id);
+  if (!businessIds.length) return [];
+
+  const { data: venues } = await supabaseClient
+    .from("venues")
+    .select("id, name, city")
+    .in("business_id", businessIds)
+    .order("name");
+
+  selectEl.innerHTML = "";
+  (venues || []).forEach((venue) => {
+    const option = document.createElement("option");
+    option.value = venue.id;
+    option.textContent = `${venue.name}${venue.city ? ` · ${venue.city}` : ""}`;
+    selectEl.appendChild(option);
+  });
+
+  return venues || [];
+}
+
+async function initRestaurantOrdersPage() {
+  const page = document.getElementById("restaurantOrdersPage");
+  if (!page) return;
+
+  const session = await getSafeSession();
+  if (!session) {
+    window.location.href = "./auth.html?redirect=./restaurant-orders.html";
+    return;
+  }
+
+  const filter = document.getElementById("restaurantOrdersVenueFilter");
+  const venues = await loadBusinessVenueOptions(filter);
+
+  if (!venues.length) {
+    const list = document.getElementById("restaurantOrdersList");
+    if (list) {
+      renderEmptyState(
+        list,
+        "Mekan yok",
+        "Önce işletme panelinden onaylı bir mekan ekleyin."
+      );
+    }
+    return;
+  }
+
+  filter.addEventListener("change", refreshRestaurantOrdersPage);
+  await refreshRestaurantOrdersPage();
+}
+
+function renderRestaurantMenuManageList(items, menuId) {
+  const list = document.getElementById("restaurantMenuManageList");
+  if (!list) return;
+
+  list.innerHTML = "";
+  if (!items.length) {
+    renderEmptyState(list, "Ürün yok", "Menüye ilk ürününüzü ekleyin.");
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  items.forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "order-menu-item";
+
+    const title = document.createElement("h3");
+    title.textContent = item.name;
+    card.appendChild(title);
+
+    const price = document.createElement("p");
+    price.textContent = formatRestaurantOrderAmount(item.price);
+    card.appendChild(price);
+
+    if (item.description) {
+      const desc = document.createElement("p");
+      desc.className = "order-card-meta";
+      desc.textContent = item.description;
+      card.appendChild(desc);
+    }
+
+    const actions = document.createElement("div");
+    actions.className = "order-card-actions";
+
+    const editBtn = document.createElement("button");
+    editBtn.type = "button";
+    editBtn.className = "secondary-btn";
+    editBtn.textContent = "Düzenle";
+    editBtn.addEventListener("click", () => fillRestaurantMenuItemForm(item));
+    actions.appendChild(editBtn);
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "secondary-btn";
+    deleteBtn.textContent = "Sil";
+    deleteBtn.addEventListener("click", async () => {
+      await supabaseClient.from("menu_items").delete().eq("id", item.id);
+      const refreshed = await loadRestaurantMenu(
+        document.getElementById("restaurantMenuVenueSelect").value,
+        { includeUnavailable: true }
+      );
+      renderRestaurantMenuManageList(refreshed.items, menuId);
+    });
+    actions.appendChild(deleteBtn);
+
+    card.appendChild(actions);
+    fragment.appendChild(card);
+  });
+
+  list.appendChild(fragment);
+}
+
+function fillRestaurantMenuItemForm(item) {
+  document.getElementById("restaurantMenuItemId").value = item.id || "";
+  document.getElementById("restaurantMenuItemName").value = item.name || "";
+  document.getElementById("restaurantMenuItemCategory").value = item.category || "";
+  document.getElementById("restaurantMenuItemPrice").value = item.price || "";
+  document.getElementById("restaurantMenuItemDescription").value =
+    item.description || "";
+  document.getElementById("restaurantMenuItemImage").value = item.image_url || "";
+  document.getElementById("restaurantMenuItemAvailable").checked =
+    item.is_available !== false;
+}
+
+async function refreshRestaurantMenuManageView() {
+  const select = document.getElementById("restaurantMenuVenueSelect");
+  if (!select || !select.value) return;
+
+  const { menu, items } = await loadRestaurantMenu(select.value, {
+    includeUnavailable: true,
+  });
+  if (menu) renderRestaurantMenuManageList(items, menu.id);
+}
+
+function updateRestaurantOrderCartUi() {
+  const cartItemsEl = document.getElementById("restaurantOrderCartItems");
+  const totalEl = document.getElementById("restaurantOrderCartTotal");
+  if (!cartItemsEl || !totalEl) return;
+
+  const entries = Object.values(restaurantOrderCartState.items);
+  cartItemsEl.innerHTML = "";
+  let total = 0;
+
+  if (!entries.length) {
+    cartItemsEl.textContent = "Sepet boş";
+    totalEl.textContent = "₺0.00";
+    return;
+  }
+
+  const ul = document.createElement("ul");
+  ul.className = "order-cart-lines";
+  entries.forEach((entry) => {
+    const lineTotal = entry.price * entry.quantity;
+    total += lineTotal;
+    const li = document.createElement("li");
+    li.textContent = `${entry.quantity}x ${entry.name} — ${formatRestaurantOrderAmount(lineTotal)}`;
+    ul.appendChild(li);
+  });
+  cartItemsEl.appendChild(ul);
+  totalEl.textContent = formatRestaurantOrderAmount(total);
+}
+
+function renderRestaurantMenuOrderList(items) {
+  const list = document.getElementById("restaurantMenuItemsList");
+  if (!list) return;
+
+  list.innerHTML = "";
+  if (!items.length) {
+    renderEmptyState(list, "Menü boş", "Bu mekan için henüz ürün yok.");
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  items.forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "order-menu-item";
+
+    const title = document.createElement("h3");
+    title.textContent = item.name;
+    card.appendChild(title);
+
+    const price = document.createElement("p");
+    price.textContent = formatRestaurantOrderAmount(item.price);
+    card.appendChild(price);
+
+    const addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.className = "btn btn--small";
+    addBtn.textContent = "Sepete Ekle";
+    addBtn.addEventListener("click", () => {
+      const existing = restaurantOrderCartState.items[item.id];
+      restaurantOrderCartState.items[item.id] = {
+        menuItemId: item.id,
+        name: item.name,
+        price: Number(item.price),
+        quantity: (existing ? existing.quantity : 0) + 1,
+      };
+      updateRestaurantOrderCartUi();
+    });
+    card.appendChild(addBtn);
+    fragment.appendChild(card);
+  });
+
+  list.appendChild(fragment);
+  updateRestaurantOrderCartUi();
+}
+
+async function initRestaurantMenuPage() {
+  const page = document.getElementById("restaurantMenuPage");
+  if (!page) return;
+
+  const manageSection = document.getElementById("restaurantMenuManageSection");
+  const orderSection = document.getElementById("restaurantMenuOrderSection");
+  const manageMode = isRestaurantMenuManageMode();
+  const venueIdFromQuery = getVenueIdFromQuery();
+
+  if (manageMode) {
+    const session = await getSafeSession();
+    if (!session) {
+      window.location.href = "./auth.html?redirect=./restaurant-menu.html?manage=1";
+      return;
+    }
+
+    manageSection.hidden = false;
+    orderSection.hidden = true;
+
+    const businessLink = document.getElementById("restaurantMenuBusinessLink");
+    if (businessLink) businessLink.hidden = false;
+
+    const select = document.getElementById("restaurantMenuVenueSelect");
+    await loadBusinessVenueOptions(select);
+    select.addEventListener("change", refreshRestaurantMenuManageView);
+
+    const form = document.getElementById("restaurantMenuItemForm");
+    const clearBtn = document.getElementById("restaurantMenuItemClearBtn");
+
+    if (form && !form.dataset.bound) {
+      form.dataset.bound = "true";
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const venueId = Number(select.value);
+        const { menu } = await loadRestaurantMenu(venueId, {
+          includeUnavailable: true,
+        });
+        if (!menu) return;
+
+        const payload = {
+          menu_id: menu.id,
+          name: document.getElementById("restaurantMenuItemName").value.trim(),
+          category: document.getElementById("restaurantMenuItemCategory").value.trim(),
+          price: Number(document.getElementById("restaurantMenuItemPrice").value) || 0,
+          description: document.getElementById("restaurantMenuItemDescription").value.trim(),
+          image_url: document.getElementById("restaurantMenuItemImage").value.trim(),
+          is_available: document.getElementById("restaurantMenuItemAvailable").checked,
+        };
+
+        const itemId = document.getElementById("restaurantMenuItemId").value;
+        if (itemId) {
+          await supabaseClient.from("menu_items").update(payload).eq("id", itemId);
+        } else {
+          await supabaseClient.from("menu_items").insert(payload);
+        }
+
+        form.reset();
+        document.getElementById("restaurantMenuItemAvailable").checked = true;
+        await refreshRestaurantMenuManageView();
+        showToast("Menü kaydedildi");
+      });
+    }
+
+    if (clearBtn && !clearBtn.dataset.bound) {
+      clearBtn.dataset.bound = "true";
+      clearBtn.addEventListener("click", () => {
+        form.reset();
+        document.getElementById("restaurantMenuItemId").value = "";
+        document.getElementById("restaurantMenuItemAvailable").checked = true;
+      });
+    }
+
+    await refreshRestaurantMenuManageView();
+    return;
+  }
+
+  if (!venueIdFromQuery) {
+    showToast("Mekan seçilmedi");
+    return;
+  }
+
+  manageSection.hidden = true;
+  orderSection.hidden = false;
+  restaurantOrderCartState.venueId = Number(venueIdFromQuery);
+
+  const { data: venue } = await supabaseClient
+    .from("venues")
+    .select("name, city")
+    .eq("id", venueIdFromQuery)
+    .maybeSingle();
+
+  const title = document.getElementById("restaurantMenuTitle");
+  if (title && venue) title.textContent = `${venue.name} Menüsü`;
+
+  const { items } = await loadRestaurantMenu(venueIdFromQuery);
+  renderRestaurantMenuOrderList(items);
+
+  document.querySelectorAll('input[name="orderType"]').forEach((input) => {
+    input.addEventListener("change", () => {
+      const addressInput = document.getElementById("restaurantOrderDeliveryAddress");
+      if (!addressInput) return;
+      const isDelivery = document.querySelector('input[name="orderType"]:checked').value === "delivery";
+      addressInput.hidden = !isDelivery;
+      addressInput.required = isDelivery;
+    });
+  });
+
+  const submitBtn = document.getElementById("restaurantOrderSubmitBtn");
+  if (submitBtn && !submitBtn.dataset.bound) {
+    submitBtn.dataset.bound = "true";
+    submitBtn.addEventListener("click", async () => {
+      const session = await getSafeSession();
+      if (!session) {
+        redirectToAuthForCurrentPage();
+        return;
+      }
+
+      const orderType =
+        document.querySelector('input[name="orderType"]:checked')?.value || "pickup";
+      const order = await createOrder({
+        venueId: restaurantOrderCartState.venueId,
+        orderType,
+        deliveryAddress: document.getElementById("restaurantOrderDeliveryAddress")?.value,
+        customerNote: document.getElementById("restaurantOrderNote")?.value,
+        items: Object.values(restaurantOrderCartState.items).map((entry) => ({
+          menuItemId: entry.menuItemId,
+          quantity: entry.quantity,
+        })),
+      });
+
+      if (order && order.id) {
+        window.location.href = `./order-detail.html?id=${encodeURIComponent(order.id)}`;
+      }
+    });
+  }
+}
+
+function renderCourierDeliveryCard(delivery, options = {}) {
+  const card = document.createElement("article");
+  card.className = "courier-delivery-card";
+
+  const order = delivery.orders || {};
+  const venueName =
+    safeText(order.venues && order.venues.name) || `Mekan #${order.venue_id}`;
+  const customerName =
+    getProfileDisplayName(delivery.customerProfile) || "Müşteri";
+
+  const head = document.createElement("div");
+  head.className = "courier-delivery-card__head";
+
+  const titleWrap = document.createElement("div");
+  const title = document.createElement("h3");
+  title.textContent = customerName;
+  titleWrap.appendChild(title);
+
+  const venue = document.createElement("span");
+  venue.className = "courier-delivery-card__venue";
+  venue.textContent = venueName;
+  titleWrap.appendChild(venue);
+  head.appendChild(titleWrap);
+
+  const badge = document.createElement("span");
+  badge.className = `status-badge status-${safeText(delivery.status)}`;
+  badge.textContent = getDeliveryStatusLabel(delivery.status);
+  head.appendChild(badge);
+  card.appendChild(head);
+
+  const venueData = order.venues || {};
+  const pickupLabel =
+    safeText(venueData.address) ||
+    getCourierPickupDestination(order) ||
+    "—";
+
+  const pickupRow = document.createElement("p");
+  pickupRow.className = "courier-delivery-card__row";
+  pickupRow.textContent = `Pickup: ${pickupLabel}`;
+  card.appendChild(pickupRow);
+
+  const deliveryRow = document.createElement("p");
+  deliveryRow.className = "courier-delivery-card__row";
+  deliveryRow.textContent = `Teslimat: ${getCourierDeliveryDestination(order) || "—"}`;
+  card.appendChild(deliveryRow);
+
+  const summary = document.createElement("p");
+  summary.className = "courier-delivery-card__row";
+  summary.textContent = `Sipariş: ${formatOrderItemsSummary(order)} · ${formatRestaurantOrderAmount(order.total_amount)}`;
+  card.appendChild(summary);
+
+  if (order.order_items && order.order_items.length) {
+    const ul = document.createElement("ul");
+    ul.className = "courier-delivery-card__items";
+    order.order_items.forEach((line) => {
+      const li = document.createElement("li");
+      li.textContent = `${line.quantity}x ${line.item_name}`;
+      ul.appendChild(li);
+    });
+    card.appendChild(ul);
+  }
+
+  const createdAt = delivery.created_at || order.created_at;
+  if (createdAt) {
+    const time = document.createElement("p");
+    time.className = "courier-delivery-card__time";
+    time.textContent = new Date(createdAt).toLocaleString("tr-TR");
+    card.appendChild(time);
+  }
+
+  const actions = document.createElement("div");
+  actions.className = "courier-delivery-card__actions";
+
+  if (options.canAccept) {
+    const acceptBtn = document.createElement("button");
+    acceptBtn.type = "button";
+    acceptBtn.className = "btn";
+    acceptBtn.textContent = "Teslimatı Kabul Et";
+    acceptBtn.addEventListener("click", async () => {
+      acceptBtn.disabled = true;
+      const result = await acceptDelivery(delivery.id);
+      if (result) await refreshCourierPage();
+      else acceptBtn.disabled = false;
+    });
+    actions.appendChild(acceptBtn);
+  }
+
+  if (options.canUpdate) {
+    const statusKey = safeText(delivery.status).toLowerCase();
+    const nextActions = COURIER_DELIVERY_NEXT_ACTIONS[statusKey] || [];
+
+    nextActions.forEach(([status, label]) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = status === "delivered" ? "btn" : "secondary-btn";
+      btn.textContent = label;
+      btn.addEventListener("click", async () => {
+        btn.disabled = true;
+        const result = await updateDeliveryStatus(delivery.id, status);
+        if (result) await refreshCourierPage();
+        else btn.disabled = false;
+      });
+      actions.appendChild(btn);
+    });
+
+    appendCourierNavigationButtons(
+      actions,
+      delivery,
+      options.courierId
+    );
+  }
+
+  card.appendChild(actions);
+  return card;
+}
+
+function renderCourierProfileCard(courier) {
+  const card = document.getElementById("courierProfileCard");
+  if (!card || !courier) return;
+
+  card.innerHTML = "";
+
+  const rows = [
+    ["Ad Soyad", courier.full_name],
+    ["Telefon", courier.phone || "—"],
+    ["Araç", courier.vehicle_type || "—"],
+    ["Durum", courier.status],
+  ];
+
+  rows.forEach(([label, value]) => {
+    const dt = document.createElement("dt");
+    dt.textContent = label;
+    const dd = document.createElement("dd");
+    dd.textContent = safeText(value);
+    card.appendChild(dt);
+    card.appendChild(dd);
+  });
+}
+
+function updateCourierRefreshMeta() {
+  const meta = document.getElementById("courierRefreshMeta");
+  if (!meta || !courierPageState.lastRefreshedAt) return;
+
+  meta.textContent = `Son yenileme: ${courierPageState.lastRefreshedAt.toLocaleTimeString("tr-TR")} · Otomatik: 25 sn`;
+}
+
+function showCourierAccessDenied() {
+  const denied = document.getElementById("courierAccessDenied");
+  const panel = document.getElementById("courierPanelContent");
+  if (denied) denied.hidden = false;
+  if (panel) panel.hidden = true;
+}
+
+function showCourierPanel() {
+  const denied = document.getElementById("courierAccessDenied");
+  const panel = document.getElementById("courierPanelContent");
+  if (denied) denied.hidden = true;
+  if (panel) panel.hidden = false;
+}
+
+async function refreshCourierPage() {
+  const availableList = document.getElementById("courierAvailableList");
+  const assignedList = document.getElementById("courierAssignedList");
+  if (!availableList || !assignedList) return;
+
+  const { courier, available, assigned } =
+    await loadCourierAvailableDeliveries();
+
+  courierPageState.lastRefreshedAt = new Date();
+  updateCourierRefreshMeta();
+
+  const welcome = document.getElementById("courierWelcome");
+  if (welcome) {
+    welcome.textContent = courier
+      ? `Hoş geldin, ${courier.full_name}`
+      : "Aktif kurye hesabı bulunamadı.";
+  }
+
+  if (!courier) {
+    showCourierAccessDenied();
+    return;
+  }
+
+  showCourierPanel();
+  renderCourierProfileCard(courier);
+
+  availableList.innerHTML = "";
+  assignedList.innerHTML = "";
+
+  if (!available.length) {
+    renderEmptyState(
+      availableList,
+      "Açık teslimat yok",
+      "İşletme siparişi hazır yaptığında burada görünecek."
+    );
+  } else {
+    available.forEach((delivery) => {
+      availableList.appendChild(
+        renderCourierDeliveryCard(delivery, { canAccept: true })
+      );
+    });
+  }
+
+  if (!assigned.length) {
+    renderEmptyState(assignedList, "Atanan teslimat yok", "");
+  } else {
+    assigned.forEach((delivery) => {
+      assignedList.appendChild(
+        renderCourierDeliveryCard(delivery, {
+          canUpdate: true,
+          courierId: courier.id,
+        })
+      );
+    });
+  }
+}
+
+function setupCourierAutoRefresh() {
+  if (courierPageState.refreshTimerId) {
+    clearInterval(courierPageState.refreshTimerId);
+  }
+
+  courierPageState.refreshTimerId = window.setInterval(() => {
+    refreshCourierPage();
+  }, 25000);
+}
+
+async function initCourierPage() {
+  const page = document.getElementById("courierPage");
+  if (!page) return;
+
+  const session = await getSafeSession();
+  if (!session) {
+    window.location.href = "./auth.html?redirect=./courier.html";
+    return;
+  }
+
+  const courier = await getActiveCourierProfile(session.user.id);
+  if (!courier) {
+    showCourierAccessDenied();
+    const welcome = document.getElementById("courierWelcome");
+    if (welcome) {
+      welcome.textContent = "Aktif kurye hesabı bulunamadı.";
+    }
+    return;
+  }
+
+  showCourierPanel();
+
+  const logoutBtn = document.getElementById("courierLogoutBtn");
+  if (logoutBtn && !logoutBtn.dataset.bound) {
+    logoutBtn.dataset.bound = "true";
+    logoutBtn.addEventListener("click", async () => {
+      if (courierPageState.refreshTimerId) {
+        clearInterval(courierPageState.refreshTimerId);
+      }
+      await supabaseClient.auth.signOut();
+      window.location.href = "./auth.html";
+    });
+  }
+
+  const refreshBtn = document.getElementById("courierRefreshBtn");
+  if (refreshBtn && !refreshBtn.dataset.bound) {
+    refreshBtn.dataset.bound = "true";
+    refreshBtn.addEventListener("click", () => refreshCourierPage());
+  }
+
+  await refreshCourierPage();
+  setupCourierAutoRefresh();
+}
+
+async function initCourierLoginPage() {
+  const page = document.getElementById("courierLoginPage");
+  if (!page) return;
+
+  const session = await getSafeSession();
+  window.location.href = session
+    ? "./courier.html"
+    : "./auth.html?redirect=./courier.html";
+}
+
+async function loadAdminCouriers() {
+  const { data, error } = await supabaseClient
+    .from("couriers")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    showSafeError(error, "Kuryeler yüklenemedi.");
+    return [];
+  }
+
+  return data || [];
+}
+
+function renderAdminCouriersList(couriers) {
+  const list = document.getElementById("adminCouriersList");
+  if (!list) return;
+
+  list.innerHTML = "";
+  if (!couriers.length) {
+    renderEmptyState(list, "Kurye yok", "İlk kurye hesabını ekleyin.");
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  couriers.forEach((courier) => {
+    const card = document.createElement("article");
+    card.className = "business-card";
+
+    const title = document.createElement("h3");
+    title.textContent = courier.full_name;
+    card.appendChild(title);
+
+    card.appendChild(createStatusBadge(courier.status));
+
+    const meta = document.createElement("p");
+    meta.textContent = `${courier.phone || "—"} · ${courier.vehicle_type || "—"}`;
+    card.appendChild(meta);
+
+    fragment.appendChild(card);
+  });
+
+  list.appendChild(fragment);
+}
+
+async function initAdminCouriersPage() {
+  const page = document.getElementById("adminCouriersPage");
+  if (!page) return;
+
+  const session = await checkAdminAccess();
+  if (!session) return;
+
+  const form = document.getElementById("adminCourierForm");
+  if (form && !form.dataset.bound) {
+    form.dataset.bound = "true";
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const email = document.getElementById("adminCourierEmail").value.trim();
+      const fullName = document.getElementById("adminCourierFullName").value.trim();
+      const phone = document.getElementById("adminCourierPhone").value.trim();
+      const vehicle = document.getElementById("adminCourierVehicle").value.trim();
+      const status = document.getElementById("adminCourierStatus").value;
+
+      const { data: userId, error: lookupError } = await supabaseClient.rpc(
+        "admin_find_user_id_by_email",
+        { p_email: email }
+      );
+
+      if (lookupError || !userId) {
+        showToast("Bu e-posta ile kayıtlı kullanıcı bulunamadı.");
+        return;
+      }
+
+      const { error } = await supabaseClient.rpc("admin_upsert_courier", {
+        p_user_id: userId,
+        p_full_name: fullName,
+        p_phone: phone,
+        p_vehicle_type: vehicle,
+        p_status: status,
+      });
+
+      if (error) {
+        showSafeError(error, "Kurye kaydedilemedi.");
+        return;
+      }
+
+      form.reset();
+      showToast("Kurye kaydedildi");
+      renderAdminCouriersList(await loadAdminCouriers());
+    });
+  }
+
+  renderAdminCouriersList(await loadAdminCouriers());
+}
+
+function setupVenueOrderLink(venueId) {
+  const link = document.getElementById("venueOrderLink");
+  if (!link || !venueId) return;
+  link.href = `./restaurant-menu.html?venue=${encodeURIComponent(venueId)}`;
+  link.hidden = false;
+}
+
 function setActiveNav() {
   const currentPage =
     window.location.pathname.split("/").pop() ||
@@ -11914,6 +14535,13 @@ function setActiveNav() {
     "user.html": "profile.html",
     "venue.html": "discover.html",
     "event.html": "events.html",
+    "orders.html": "profile.html",
+    "order-detail.html": "profile.html",
+    "restaurant-orders.html": "business.html",
+    "restaurant-menu.html": "discover.html",
+    "courier.html": "profile.html",
+    "courier-login.html": "profile.html",
+    "admin-couriers.html": "profile.html",
   };
   const activePage =
     navPageAliases[currentPage] || currentPage;
@@ -11986,6 +14614,13 @@ runSafeInitializer("setupMessagesPage", setupMessagesPage);
 runSafeInitializer("setupPublicUserProfile", setupPublicUserProfile);
 runSafeInitializer("initMyReservationsPage", initMyReservationsPage);
 runSafeInitializer("initMyReviewsPage", initMyReviewsPage);
+runSafeInitializer("initOrdersPage", initOrdersPage);
+runSafeInitializer("initOrderDetailPage", initOrderDetailPage);
+runSafeInitializer("initRestaurantOrdersPage", initRestaurantOrdersPage);
+runSafeInitializer("initRestaurantMenuPage", initRestaurantMenuPage);
+runSafeInitializer("initCourierPage", initCourierPage);
+runSafeInitializer("initCourierLoginPage", initCourierLoginPage);
+runSafeInitializer("initAdminCouriersPage", initAdminCouriersPage);
 runSafeInitializer("setActiveNav", setActiveNav);
 runSafeInitializer("setupMobileNav", setupMobileNav);
 runSafeInitializer("registerServiceWorker", registerServiceWorker);
