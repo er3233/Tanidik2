@@ -302,6 +302,7 @@ declare
   v_slot_minutes integer;
   v_max_reservations integer;
   v_max_guests integer;
+  v_min_notice_minutes integer;
   v_allow_multiple boolean;
   v_start_at timestamp;
   v_end_at timestamp;
@@ -348,6 +349,8 @@ begin
       else 1
     end;
   v_max_guests := v_rules.max_guests_per_slot;
+  v_min_notice_minutes :=
+    greatest(coalesce(v_rules.min_notice_minutes, 0), 0);
   v_allow_multiple := coalesce(v_rules.allow_multiple_reservations, true);
   v_interval := make_interval(mins => v_slot_minutes);
   v_start_at := p_date::timestamp + v_hours.opens_at;
@@ -400,6 +403,7 @@ begin
   from slots s
   left join reservation_counts rc
     on rc.booked_time = s.slot_at::time
+  where s.slot_at >= localtimestamp + make_interval(mins => v_min_notice_minutes)
   order by s.slot_at;
 end;
 $$;

@@ -184,6 +184,18 @@
           </button>
         </div>
 
+        <div class="auth-oauth-divider" aria-hidden="true">
+          <span>or</span>
+        </div>
+
+        <button
+          id="googleLoginBtn"
+          class="auth-google-btn"
+          type="button"
+        >
+          Continue with Google
+        </button>
+
         <p class="auth-helper">
           Private access for reservations, venues, and business messages.
         </p>
@@ -233,7 +245,7 @@
           if (confirmInput.style.display !== 'none' &&
               pwInput.value !== confirmInput.value) {
             e.stopImmediatePropagation();
-            authMsg.textContent = 'Passwords do not match.';
+            authMsg.textContent = 'Şifreler eşleşmiyor.';
           }
         }, true);
       }

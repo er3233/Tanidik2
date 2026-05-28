@@ -26,6 +26,7 @@ declare
   v_slot_minutes integer;
   v_max_reservations integer;
   v_max_guests integer;
+  v_min_notice_minutes integer;
   v_allow_multiple boolean;
   v_status text;
   v_start_at timestamp;
@@ -100,6 +101,8 @@ begin
       else 1
     end;
   v_max_guests := v_rules.max_guests_per_slot;
+  v_min_notice_minutes :=
+    greatest(coalesce(v_rules.min_notice_minutes, 0), 0);
   v_status :=
     case
       when coalesce(v_rules.auto_approve, false) then 'approved'
@@ -121,6 +124,11 @@ begin
   if v_requested_at < v_start_at
     or v_requested_at >= v_end_at then
     raise exception 'Reservation time is outside operating hours'
+      using errcode = '22023';
+  end if;
+
+  if v_requested_at < localtimestamp + make_interval(mins => v_min_notice_minutes) then
+    raise exception 'Reservation time is inside the minimum notice window'
       using errcode = '22023';
   end if;
 

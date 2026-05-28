@@ -42,6 +42,7 @@ const password = document.getElementById("password");
 
 const loginBtn = document.getElementById("loginBtn");
 const registerBtn = document.getElementById("registerBtn");
+const googleLoginBtn = document.getElementById("googleLoginBtn");
 const logoutBtn = document.getElementById("logoutBtn");
 
 const createVenueBtn =
@@ -71,6 +72,10 @@ let venueReservationSlotState = {
   selectedSlotTime: "",
   fallbackMode: true,
 };
+
+const AUTH_MIN_PASSWORD_LENGTH = 8;
+const RESERVATION_MIN_PARTY_SIZE = 1;
+const RESERVATION_MAX_PARTY_SIZE = 20;
 
 function getBusinessStatus(business) {
   return safeText(business.status).toLowerCase().trim();
@@ -111,6 +116,281 @@ function getBusinessDisplayStatus(business) {
 
 function safeText(value) {
   return value || "";
+}
+
+function normalizeEmail(value) {
+  return safeText(value).trim().toLowerCase();
+}
+
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(
+    normalizeEmail(value)
+  );
+}
+
+function setFieldValidity(input, isValid) {
+  if (!input) return;
+
+  input.classList.toggle("is-invalid", !isValid);
+  input.setAttribute("aria-invalid", isValid ? "false" : "true");
+}
+
+function setAuthMessage(message, status = "info") {
+  const authMessage = document.getElementById("authMessage");
+
+  if (!authMessage) return;
+
+  authMessage.textContent = safeText(message);
+  authMessage.dataset.status = status;
+}
+
+function getAuthRedirectTarget() {
+  const params = new URLSearchParams(window.location.search);
+  const fallback = "./index.html";
+  const rawRedirect = safeText(params.get("redirect")).trim();
+
+  if (!rawRedirect) return fallback;
+
+  try {
+    const redirectUrl = new URL(rawRedirect, window.location.href);
+
+    if (redirectUrl.origin !== window.location.origin) {
+      return fallback;
+    }
+
+    const page =
+      redirectUrl.pathname.split("/").pop() || "index.html";
+
+    if (page === "auth.html") return fallback;
+
+    return `./${page}${redirectUrl.search}${redirectUrl.hash}`;
+  } catch (error) {
+    console.log(error);
+    return fallback;
+  }
+}
+
+function getCurrentPageRedirectValue() {
+  const page =
+    window.location.pathname.split("/").pop() || "index.html";
+
+  return `${page}${window.location.search}${window.location.hash}`;
+}
+
+function getAuthUrlForCurrentPage() {
+  const redirectValue = getCurrentPageRedirectValue();
+
+  return `./auth.html?redirect=${encodeURIComponent(
+    redirectValue
+  )}`;
+}
+
+function redirectToAuthForCurrentPage() {
+  window.location.href = getAuthUrlForCurrentPage();
+}
+
+function getAuthEmailRedirectTo() {
+  const authUrl = new URL("./auth.html", window.location.href);
+  authUrl.searchParams.set("redirect", getAuthRedirectTarget());
+
+  return authUrl.toString();
+}
+
+function getPasswordValidationMessage(value) {
+  const passwordValue = safeText(value);
+
+  if (passwordValue.length < AUTH_MIN_PASSWORD_LENGTH) {
+    return `Şifre en az ${AUTH_MIN_PASSWORD_LENGTH} karakter olmalı.`;
+  }
+
+  if (!/[A-Za-z]/.test(passwordValue) || !/\d/.test(passwordValue)) {
+    return "Şifre en az bir harf ve bir rakam içermeli.";
+  }
+
+  return "";
+}
+
+function isElementHidden(element) {
+  if (!element) return true;
+
+  return (
+    element.hidden ||
+    element.style.display === "none" ||
+    window.getComputedStyle(element).display === "none"
+  );
+}
+
+function showSignupConfirmPassword() {
+  const confirmInput = document.getElementById("confirmPassword");
+  const confirmLabel =
+    document.getElementById("confirmPasswordLabel");
+
+  if (confirmInput) {
+    confirmInput.style.display = "";
+  }
+
+  if (confirmLabel) {
+    confirmLabel.style.display = "";
+  }
+
+  document
+    .querySelectorAll(".auth-tab")
+    .forEach((tab, index) => {
+      tab.classList.toggle("auth-tab--active", index === 1);
+    });
+
+  if (password) {
+    password.setAttribute("autocomplete", "new-password");
+  }
+}
+
+function validateAuthForm(mode) {
+  const isSignup = mode === "signup";
+  const confirmInput = document.getElementById("confirmPassword");
+  const emailValue = normalizeEmail(email && email.value);
+  const passwordValue = password ? password.value : "";
+
+  setFieldValidity(email, true);
+  setFieldValidity(password, true);
+  setFieldValidity(confirmInput, true);
+
+  if (!emailValue) {
+    setFieldValidity(email, false);
+    return {
+      ok: false,
+      message: "E-posta adresini gir.",
+    };
+  }
+
+  if (!isValidEmail(emailValue)) {
+    setFieldValidity(email, false);
+    return {
+      ok: false,
+      message: "Geçerli bir e-posta adresi gir.",
+    };
+  }
+
+  if (!passwordValue) {
+    setFieldValidity(password, false);
+    return {
+      ok: false,
+      message: "Şifreni gir.",
+    };
+  }
+
+  if (isSignup) {
+    const passwordMessage =
+      getPasswordValidationMessage(passwordValue);
+
+    if (passwordMessage) {
+      setFieldValidity(password, false);
+      return {
+        ok: false,
+        message: passwordMessage,
+      };
+    }
+
+    if (confirmInput && isElementHidden(confirmInput)) {
+      showSignupConfirmPassword();
+      setFieldValidity(confirmInput, false);
+      return {
+        ok: false,
+        message: "Kayıt için şifreni tekrar yaz.",
+      };
+    }
+
+    if (
+      confirmInput &&
+      confirmInput.value &&
+      confirmInput.value !== passwordValue
+    ) {
+      setFieldValidity(confirmInput, false);
+      return {
+        ok: false,
+        message: "Şifreler eşleşmiyor.",
+      };
+    }
+
+    if (confirmInput && !confirmInput.value) {
+      setFieldValidity(confirmInput, false);
+      return {
+        ok: false,
+        message: "Şifre tekrarını gir.",
+      };
+    }
+  }
+
+  return {
+    ok: true,
+    email: emailValue,
+    password: passwordValue,
+  };
+}
+
+function translateAuthError(error, fallback) {
+  const message = safeText(error && error.message).toLowerCase();
+  const status = safeText(error && error.status).toLowerCase();
+  const combined = `${message} ${status}`;
+
+  if (!message) {
+    return fallback || "İşlem tamamlanamadı. Lütfen tekrar dene.";
+  }
+
+  if (combined.includes("invalid login credentials")) {
+    return "E-posta veya şifre hatalı.";
+  }
+
+  if (
+    combined.includes("email not confirmed") ||
+    combined.includes("email_confirm")
+  ) {
+    return "E-posta adresini doğrulaman gerekiyor. Gelen kutunu kontrol et.";
+  }
+
+  if (
+    combined.includes("already registered") ||
+    combined.includes("already exists") ||
+    combined.includes("user already")
+  ) {
+    return "Bu e-posta ile zaten bir hesap var. Giriş yapmayı dene.";
+  }
+
+  if (
+    combined.includes("signup") &&
+    combined.includes("disabled")
+  ) {
+    return "Kayıt şu anda kapalı görünüyor. Supabase Auth ayarlarını kontrol et.";
+  }
+
+  if (
+    combined.includes("password") &&
+    (combined.includes("weak") ||
+      combined.includes("at least") ||
+      combined.includes("length"))
+  ) {
+    return "Şifre yeterince güçlü değil. En az 8 karakter, bir harf ve bir rakam kullan.";
+  }
+
+  if (combined.includes("invalid email")) {
+    return "E-posta adresi geçerli görünmüyor.";
+  }
+
+  if (
+    combined.includes("provider") ||
+    combined.includes("oauth") ||
+    combined.includes("google")
+  ) {
+    return "Google ile giriş şu anda kullanılamıyor. Supabase Google provider ayarlarını kontrol et.";
+  }
+
+  if (
+    combined.includes("network") ||
+    combined.includes("failed to fetch")
+  ) {
+    return "Bağlantı kurulamadı. İnternet bağlantını kontrol edip tekrar dene.";
+  }
+
+  return fallback || error.message;
 }
 
 function getVenueCategoryValue(venue) {
@@ -574,7 +854,7 @@ function showToast(message) {
   const authMessage = document.getElementById("authMessage");
 
   if (authMessage) {
-    authMessage.textContent = safeText(message);
+    setAuthMessage(message);
   }
 
   if (!toast) {
@@ -607,7 +887,7 @@ async function getSafeSession() {
     return session;
   } catch (error) {
     console.log(error);
-    showToast("Session unavailable. Please login again.");
+    showToast("Oturum bilgisi alınamadı. Lütfen tekrar giriş yap.");
     return null;
   }
 }
@@ -1456,10 +1736,36 @@ function getReservationStatusValue(status) {
   const value =
     safeText(status).toLowerCase().trim() || "pending";
 
-  return ["pending", "approved", "rejected", "cancelled"]
-    .includes(value)
-    ? value
-    : "pending";
+  if (
+    [
+      "approved",
+      "approve",
+      "accepted",
+      "confirmed",
+      "onaylandı",
+      "onaylandi",
+    ].includes(value)
+  ) {
+    return "approved";
+  }
+
+  if (
+    ["rejected", "reject", "denied", "reddedildi"].includes(
+      value
+    )
+  ) {
+    return "rejected";
+  }
+
+  if (
+    ["cancelled", "canceled", "cancel", "iptal", "iptal edildi"].includes(
+      value
+    )
+  ) {
+    return "cancelled";
+  }
+
+  return value === "pending" ? "pending" : "pending";
 }
 
 function getReservationStatusLabel(status) {
@@ -1492,7 +1798,7 @@ function getReservationTitle(reservation, options = {}) {
     return safeText(reservation.venue_name);
   }
 
-  return "Reservation request";
+  return "Rezervasyon talebi";
 }
 
 function createReservationMeta(label, value) {
@@ -1504,7 +1810,7 @@ function createReservationMeta(label, value) {
   item.appendChild(labelElement);
 
   const valueElement = document.createElement("strong");
-  valueElement.textContent = safeText(value) || "Not set";
+  valueElement.textContent = safeText(value) || "Belirtilmedi";
   item.appendChild(valueElement);
 
   return item;
@@ -1627,7 +1933,7 @@ function createReservationCard(reservation, options = {}) {
     const cancelButton = document.createElement("button");
     cancelButton.type = "button";
     cancelButton.className = "reservation-cancel-btn";
-    cancelButton.textContent = "Cancel";
+    cancelButton.textContent = "İptal et";
     bindReservationAction(cancelButton, () => {
       cancelUserReservation(
         reservation.id,
@@ -1655,8 +1961,8 @@ function renderUserReservations(reservations) {
   if (!reservations || reservations.length === 0) {
     renderEmptyState(
       reservationsContainer,
-      "No reservations yet",
-      "Your reservation requests for this venue will appear here."
+      "Henüz rezervasyon yok",
+      "Bu mekan için gönderdiğin rezervasyon talepleri burada görünecek."
     );
     return;
   }
@@ -1675,13 +1981,33 @@ function renderUserReservations(reservations) {
   reservationsContainer.appendChild(fragment);
 }
 
+function isSupabaseRpcUnavailable(error, functionName = "") {
+  const code = safeText(error && error.code).toUpperCase();
+  const message = safeText(error && error.message).toLowerCase();
+  const details = safeText(error && error.details).toLowerCase();
+  const combined = `${message} ${details}`;
+
+  return (
+    code === "PGRST202" ||
+    code === "42883" ||
+    combined.includes("could not find the function") ||
+    combined.includes("does not exist") ||
+    combined.includes("schema cache") ||
+    (functionName &&
+      combined.includes(functionName.toLowerCase()))
+  );
+}
+
 async function cancelUserReservation(
   reservationId,
   onComplete
 ) {
-  if (!confirm("Cancel this reservation?")) return;
+  if (!confirm("Bu rezervasyon talebini iptal etmek istiyor musun?")) {
+    return;
+  }
 
   let error = null;
+  let rpcUnavailable = false;
 
   try {
     ({ error } = await supabaseClient.rpc(
@@ -1695,12 +2021,53 @@ async function cancelUserReservation(
   }
 
   if (error) {
-    console.log(error);
-    showToast(error.message || "Reservation unavailable");
-    return;
+    rpcUnavailable = isSupabaseRpcUnavailable(
+      error,
+      "cancel_pending_reservation"
+    );
+
+    if (!rpcUnavailable) {
+      console.log(error);
+      showToast(
+        "Yalnızca bekleyen rezervasyonlarını iptal edebilirsin."
+      );
+      return;
+    }
+
+    const session = await getSafeSession();
+
+    if (!session) {
+      showToast("Rezervasyon iptali için giriş yapmalısın.");
+      redirectToAuthForCurrentPage();
+      return;
+    }
+
+    const fallbackResult = await supabaseClient
+      .from("reservations")
+      .update({ status: "cancelled" })
+      .eq("id", reservationId)
+      .eq("user_id", session.user.id)
+      .eq("status", "pending")
+      .select("id")
+      .maybeSingle();
+
+    if (fallbackResult.error) {
+      showSafeError(
+        fallbackResult.error,
+        "Rezervasyon iptal edilemedi."
+      );
+      return;
+    }
+
+    if (!fallbackResult.data) {
+      showToast(
+        "Bu rezervasyon iptal edilemez veya zaten güncellenmiş."
+      );
+      return;
+    }
   }
 
-  showToast("Reservation cancelled");
+  showToast("Rezervasyon iptal edildi");
 
   if (onComplete) {
     await onComplete();
@@ -1709,8 +2076,8 @@ async function cancelUserReservation(
 
 function getReservationNotificationTitle(status) {
   return status === "approved"
-    ? "Reservation approved"
-    : "Reservation rejected";
+    ? "Rezervasyon onaylandı"
+    : "Rezervasyon reddedildi";
 }
 
 function getReservationOwnerId(reservation) {
@@ -1724,8 +2091,8 @@ function getReservationOwnerId(reservation) {
 
 function getReservationNotificationMessage(status) {
   return status === "approved"
-    ? "Your reservation has been approved."
-    : "Your reservation was rejected.";
+    ? "Rezervasyon talebin işletme tarafından onaylandı."
+    : "Rezervasyon talebin işletme tarafından reddedildi.";
 }
 
 async function notifyUserReservationStatus(
@@ -1792,10 +2159,10 @@ async function notifyBusinessOwnerReservationRequest(venueId) {
   await createNotification(
     business.owner_id,
     "reservation_requested",
-    "New reservation request",
-    `A new reservation request arrived for ${safeText(
+    "Yeni rezervasyon talebi",
+    `${safeText(
       venue.name
-    )}.`,
+    )} için yeni bir rezervasyon talebi geldi.`,
     "./business.html"
   );
 }
@@ -1815,19 +2182,19 @@ async function loadUserReservations(venueId) {
   if (!session) {
     if (reservationMessage) {
       reservationMessage.innerText =
-        "Login to request a reservation.";
+        "Rezervasyon talebi oluşturmak için giriş yapmalısın.";
     }
     renderEmptyState(
       reservationsContainer,
-      "Login required",
-      "Your reservation statuses will appear here after login."
+      "Giriş gerekli",
+      "Rezervasyon durumların giriş yaptıktan sonra burada görünecek."
     );
     return;
   }
 
   if (reservationMessage) {
     reservationMessage.innerText =
-      "Reservation requests start as pending.";
+      "Rezervasyon talepleri önce beklemede olarak açılır.";
   }
 
   const { data, error } =
@@ -1839,7 +2206,7 @@ async function loadUserReservations(venueId) {
       .order("created_at", { ascending: false });
 
   if (error) {
-    showSafeError(error, "Reservations could not be loaded.");
+    showSafeError(error, "Rezervasyonlar yüklenemedi.");
     return;
   }
 
@@ -1873,15 +2240,15 @@ function getVenueSlotMetaLabel(slot) {
   const parts = [];
 
   if (maxReservations > 0) {
-    parts.push(`${reservationCount}/${maxReservations} bookings`);
+    parts.push(`${reservationCount}/${maxReservations} rezervasyon`);
   } else if (reservationCount > 0) {
-    parts.push(`${reservationCount} bookings`);
+    parts.push(`${reservationCount} rezervasyon`);
   }
 
   if (maxGuests > 0) {
-    parts.push(`${guestCount}/${maxGuests} guests`);
+    parts.push(`${guestCount}/${maxGuests} misafir`);
   } else if (guestCount > 0) {
-    parts.push(`${guestCount} guests`);
+    parts.push(`${guestCount} misafir`);
   }
 
   return parts.join(" - ");
@@ -1949,7 +2316,7 @@ async function getVenueBookingSettingsForDate(venueId, reservationDate) {
 
 function getVenueEmptySlotMessage(settings) {
   if (settings && settings.blackout) {
-    return "This venue is unavailable on the selected date.";
+    return "Bu mekan seçilen tarihte rezervasyon almıyor.";
   }
 
   if (settings && settings.hours) {
@@ -1958,15 +2325,15 @@ function getVenueEmptySlotMessage(settings) {
       !settings.hours.opens_at ||
       !settings.hours.closes_at
     ) {
-      return "This venue is closed on the selected date.";
+      return "Bu mekan seçilen tarihte kapalı.";
     }
   }
 
-  return "Slot settings are not available for this venue yet.";
+  return "Bu mekan için slot ayarları henüz tanımlanmamış.";
 }
 
 function formatVenueAvailabilityDate(value) {
-  if (!value) return "Select a date";
+  if (!value) return "Tarih seç";
 
   const date = new Date(`${value}T12:00:00`);
 
@@ -1982,10 +2349,10 @@ function formatVenueAvailabilityDate(value) {
 function getVenueOpenHoursLabel(settings) {
   const hours = settings && settings.hours;
 
-  if (!hours) return "Booking hours not set yet";
+  if (!hours) return "Rezervasyon saatleri tanımlı değil";
 
   if (hours.is_closed || !hours.opens_at || !hours.closes_at) {
-    return "Closed on this date";
+    return "Bu tarihte kapalı";
   }
 
   return `${getReservationTimeLabel(
@@ -2014,23 +2381,25 @@ function updateVenueAvailabilitySummary(
   ).length;
   const hasSlots = Boolean(slots && slots.length);
   const statusLabel = hasSlots
-    ? `${availableCount} available - ${fullCount} full`
-    : emptyMessage || "Choose a date to see availability";
+    ? `${availableCount} uygun - ${fullCount} dolu`
+    : emptyMessage || "Uygun saatleri görmek için tarih seç";
 
   summary.innerHTML = "";
   summary.dataset.status =
     !hasSlots &&
     (
       statusLabel.toLowerCase().includes("closed") ||
-      statusLabel.toLowerCase().includes("unavailable")
+      statusLabel.toLowerCase().includes("unavailable") ||
+      statusLabel.toLowerCase().includes("kapalı") ||
+      statusLabel.toLowerCase().includes("almıyor")
     )
       ? "warning"
       : "info";
 
   const items = [
-    ["Date", formatVenueAvailabilityDate(reservationDate)],
-    ["Hours", getVenueOpenHoursLabel(settings)],
-    ["Slots", statusLabel],
+    ["Tarih", formatVenueAvailabilityDate(reservationDate)],
+    ["Saatler", getVenueOpenHoursLabel(settings)],
+    ["Slotlar", statusLabel],
   ];
 
   items.forEach(([label, value]) => {
@@ -2070,12 +2439,12 @@ async function loadVenueAvailableSlots(venueId, reservationDate) {
     selectedSlotTime: "",
     fallbackMode: true,
   };
-  setVenueSlotMessage("Loading available times...");
+  setVenueSlotMessage("Uygun saatler yükleniyor...");
   updateVenueAvailabilitySummary(
     reservationDate,
     [],
     null,
-    "Loading availability..."
+    "Uygunluk yükleniyor..."
   );
 
   try {
@@ -2159,10 +2528,10 @@ async function loadVenueAvailableSlots(venueId, reservationDate) {
       reservationDate,
       [],
       null,
-      "Booking hours not set yet"
+      "Rezervasyon saatleri tanımlı değil"
     );
     setVenueSlotMessage(
-      "Slot settings are not available for this venue yet."
+      "Bu mekan için slot ayarları henüz tanımlanmamış."
     );
     return [];
   }
@@ -2170,7 +2539,7 @@ async function loadVenueAvailableSlots(venueId, reservationDate) {
 
 function renderVenueAvailableSlots(
   slots,
-  emptyMessage = "Slot settings are not available for this venue yet."
+  emptyMessage = "Bu mekan için slot ayarları henüz tanımlanmamış."
 ) {
   const slotContainer =
     document.getElementById("venueAvailableSlots");
@@ -2181,29 +2550,35 @@ function renderVenueAvailableSlots(
 
   if (!slots || slots.length === 0) {
     const messageStatus = emptyMessage.toLowerCase().includes("closed") ||
-      emptyMessage.toLowerCase().includes("unavailable")
+      emptyMessage.toLowerCase().includes("unavailable") ||
+      emptyMessage.toLowerCase().includes("kapalı") ||
+      emptyMessage.toLowerCase().includes("almıyor")
       ? "error"
       : "info";
     setVenueSlotMessage(emptyMessage, messageStatus);
     return;
   }
 
-  setVenueSlotMessage("Choose an available reservation time.");
+  setVenueSlotMessage("Uygun bir rezervasyon saati seç.");
 
   const heading = document.createElement("span");
   heading.className = "venue-slot-picker-label";
-  heading.textContent = "Available times";
+  heading.textContent = "Uygun saatler";
   slotContainer.appendChild(heading);
 
   const grid = document.createElement("div");
   grid.className = "venue-slot-grid";
+  const requestedPartySize = getReservationPartySizeValue();
 
   slots.forEach((slot) => {
     const slotTime = getVenueSlotTimeValue(slot);
     if (!slotTime) return;
 
     const button = document.createElement("button");
-    const isAvailable = slot.is_available !== false;
+    const hasCapacityForParty =
+      isVenueSlotAvailableForParty(slot, requestedPartySize);
+    const isAvailable =
+      slot.is_available !== false && hasCapacityForParty;
     const metaLabel = getVenueSlotMetaLabel(slot);
     button.type = "button";
     button.className = isAvailable
@@ -2219,7 +2594,11 @@ function renderVenueAvailableSlots(
 
     const state = document.createElement("em");
     state.className = "venue-slot-state";
-    state.textContent = isAvailable ? "Available" : "Full";
+    state.textContent = isAvailable
+      ? "Uygun"
+      : slot.is_available === false
+        ? "Dolu"
+        : "Kapasite yok";
     button.appendChild(state);
 
     if (metaLabel) {
@@ -2229,11 +2608,11 @@ function renderVenueAvailableSlots(
     }
 
     if (!isAvailable) {
-      button.setAttribute("aria-label", `${time.textContent} full`);
+      button.setAttribute("aria-label", `${time.textContent} dolu`);
     } else {
       button.setAttribute(
         "aria-label",
-        `${time.textContent} available`
+        `${time.textContent} uygun`
       );
     }
 
@@ -2245,6 +2624,35 @@ function renderVenueAvailableSlots(
   });
 
   slotContainer.appendChild(grid);
+}
+
+function getReservationPartySizeValue() {
+  const partySizeInput =
+    document.getElementById("reservationPartySize");
+  const value = Number(partySizeInput ? partySizeInput.value : 0);
+
+  return Number.isFinite(value) ? value : 0;
+}
+
+function refreshVisibleReservationSlotsForPartySize() {
+  if (
+    venueReservationSlotState.fallbackMode ||
+    !venueReservationSlotState.slots.length
+  ) {
+    return;
+  }
+
+  const selectedTime =
+    venueReservationSlotState.selectedSlotTime;
+
+  renderVenueAvailableSlots(
+    venueReservationSlotState.slots,
+    "Bu mekan için slot ayarları henüz tanımlanmamış."
+  );
+
+  if (selectedTime) {
+    selectVenueReservationSlot(selectedTime);
+  }
 }
 
 function selectVenueReservationSlot(slotTime) {
@@ -2260,10 +2668,18 @@ function selectVenueReservationSlot(slotTime) {
 
   if (
     venueReservationSlotState.slots.length > 0 &&
-    !isVenueSlotAvailableForParty(slot)
+    !isVenueSlotAvailableForParty(slot, getReservationPartySizeValue())
   ) {
+    timeInput.value = "";
+    venueReservationSlotState.selectedSlotTime = "";
+    document
+      .querySelectorAll(".venue-slot-button")
+      .forEach((button) => {
+        button.classList.remove("is-selected");
+        button.setAttribute("aria-pressed", "false");
+      });
     setVenueSlotMessage(
-      "That time is full. Please choose another slot.",
+      "Bu saat dolu. Lütfen başka bir slot seç.",
       "error"
     );
     return;
@@ -2283,7 +2699,7 @@ function selectVenueReservationSlot(slotTime) {
       );
     });
 
-  setVenueSlotMessage("Reservation time selected.");
+  setVenueSlotMessage("Rezervasyon saati seçildi.");
 }
 
 function validateSelectedReservationSlotBeforeSubmit() {
@@ -2301,7 +2717,7 @@ function validateSelectedReservationSlotBeforeSubmit() {
   );
 
   if (!selectedTime) {
-    setVenueSlotMessage("Choose an available reservation time.", "error");
+    setVenueSlotMessage("Uygun bir rezervasyon saati seç.", "error");
     return false;
   }
 
@@ -2311,7 +2727,7 @@ function validateSelectedReservationSlotBeforeSubmit() {
 
   if (!slot || !isVenueSlotAvailableForParty(slot, partySize)) {
     setVenueSlotMessage(
-      "That time is no longer available. Please choose another slot.",
+      "Bu saat artık uygun değil. Lütfen başka bir slot seç.",
       "error"
     );
     return false;
@@ -2343,18 +2759,9 @@ async function getVenueReservationInitialStatus(venueId) {
 }
 
 function isReservationCapacityRpcUnavailable(error) {
-  const code = safeText(error && error.code).toUpperCase();
-  const message = safeText(error && error.message).toLowerCase();
-  const details = safeText(error && error.details).toLowerCase();
-  const combined = `${message} ${details}`;
-
-  return (
-    code === "PGRST202" ||
-    code === "42883" ||
-    combined.includes("could not find the function") ||
-    combined.includes("function public.create_reservation_with_capacity_check") ||
-    combined.includes("does not exist") ||
-    combined.includes("schema cache")
+  return isSupabaseRpcUnavailable(
+    error,
+    "create_reservation_with_capacity_check"
   );
 }
 
@@ -2365,42 +2772,49 @@ function getReservationCapacityErrorMessage(error) {
   const combined = `${message} ${details} ${hint}`;
 
   if (combined.includes("login required")) {
-    return "Login required";
+    return "Rezervasyon yapmak için giriş yapmalısın.";
   }
 
   if (
     combined.includes("unavailable on the selected date") ||
     combined.includes("blackout")
   ) {
-    return "This venue is unavailable on the selected date.";
+    return "Bu mekan seçilen tarihte rezervasyon almıyor.";
   }
 
   if (
     combined.includes("closed on the selected date") ||
     combined.includes("closed day")
   ) {
-    return "This venue is closed on the selected date.";
+    return "Bu mekan seçilen tarihte kapalı.";
   }
 
   if (
     combined.includes("outside operating hours") ||
     combined.includes("outside hours")
   ) {
-    return "Reservation time is outside operating hours.";
+    return "Rezervasyon saati çalışma saatleri dışında.";
   }
 
   if (
     combined.includes("not an available slot") ||
     combined.includes("not available slot")
   ) {
-    return "Please choose an available reservation time.";
+    return "Lütfen uygun bir rezervasyon saati seç.";
+  }
+
+  if (
+    combined.includes("minimum notice") ||
+    combined.includes("too soon")
+  ) {
+    return "Bu saat için rezervasyon süresi çok yakın. Daha ileri bir saat seç.";
   }
 
   if (
     combined.includes("guest capacity") ||
     combined.includes("enough guest capacity")
   ) {
-    return "That time does not have enough guest capacity.";
+    return "Bu saat seçtiğin kişi sayısı için yeterli kapasiteye sahip değil.";
   }
 
   if (
@@ -2408,10 +2822,10 @@ function getReservationCapacityErrorMessage(error) {
     combined.includes("slot full") ||
     combined.includes("reservation slot is full")
   ) {
-    return "That reservation slot is full.";
+    return "Bu rezervasyon slotu dolu.";
   }
 
-  return "Reservation could not be requested.";
+  return "Rezervasyon talebi oluşturulamadı.";
 }
 
 async function createReservationWithCapacityCheck(payload) {
@@ -2439,6 +2853,24 @@ async function setupReservationForm(venueId) {
     document.getElementById("reservationDate");
   const timeInput =
     document.getElementById("reservationTime");
+  const partySizeInput =
+    document.getElementById("reservationPartySize");
+
+  if (dateInput) {
+    dateInput.min = getTodayReservationDateKey();
+  }
+
+  if (partySizeInput) {
+    partySizeInput.min = String(RESERVATION_MIN_PARTY_SIZE);
+    partySizeInput.max = String(RESERVATION_MAX_PARTY_SIZE);
+
+    if (partySizeInput.dataset.slotsBound !== "true") {
+      partySizeInput.dataset.slotsBound = "true";
+      partySizeInput.addEventListener("input", () => {
+        refreshVisibleReservationSlotsForPartySize();
+      });
+    }
+  }
 
   if (dateInput && dateInput.dataset.slotsBound !== "true") {
     dateInput.dataset.slotsBound = "true";
@@ -2467,7 +2899,7 @@ async function setupReservationForm(venueId) {
           "",
           [],
           null,
-          "Choose a date to see availability"
+          "Uygun saatleri görmek için tarih seç"
         );
         setVenueSlotMessage("");
       }
@@ -2512,7 +2944,8 @@ async function setupReservationForm(venueId) {
       } = await supabaseClient.auth.getSession();
 
       if (!session) {
-        showToast("Login required");
+        showToast("Rezervasyon yapmak için giriş yapmalısın.");
+        redirectToAuthForCurrentPage();
         return;
       }
 
@@ -2526,14 +2959,38 @@ async function setupReservationForm(venueId) {
         document.getElementById("reservationNote");
 
       if (!partySizeInput || !dateInput || !timeInput) {
-        showToast("Reservation form unavailable");
+        showToast("Rezervasyon formu kullanılamıyor.");
         return;
       }
 
       const partySize = Number(partySizeInput.value);
+      const reservationDate =
+        normalizeReservationDate(dateInput.value);
+      const reservationTime =
+        normalizeReservationTime(timeInput.value);
 
-      if (partySize < 1 || partySize > 20) {
-        showToast("Party size must be between 1 and 20");
+      if (
+        partySize < RESERVATION_MIN_PARTY_SIZE ||
+        partySize > RESERVATION_MAX_PARTY_SIZE
+      ) {
+        showToast(
+          `Kişi sayısı ${RESERVATION_MIN_PARTY_SIZE}-${RESERVATION_MAX_PARTY_SIZE} arasında olmalı.`
+        );
+        return;
+      }
+
+      if (!reservationDate) {
+        showToast("Rezervasyon tarihi seç.");
+        return;
+      }
+
+      if (reservationDate < getTodayReservationDateKey()) {
+        showToast("Geçmiş bir tarih için rezervasyon oluşturamazsın.");
+        return;
+      }
+
+      if (!reservationTime) {
+        showToast("Rezervasyon saati seç.");
         return;
       }
 
@@ -2544,8 +3001,8 @@ async function setupReservationForm(venueId) {
       const payload = {
         venue_id: venueId,
         user_id: session.user.id,
-        reservation_date: dateInput.value,
-        reservation_time: timeInput.value,
+        reservation_date: reservationDate,
+        reservation_time: reservationTime,
         party_size: partySize,
         note: noteInput ? noteInput.value.trim() : "",
       };
@@ -2566,33 +3023,14 @@ async function setupReservationForm(venueId) {
         }
 
         console.warn(
-          "Reservation capacity RPC unavailable; falling back to direct insert.",
+          "Reservation capacity RPC unavailable.",
           rpcResult.error
         );
-
-        const initialStatus =
-          await getVenueReservationInitialStatus(venueId);
-        const fallbackPayload = {
-          ...payload,
-          status: initialStatus,
-        };
-
-        const { data, error } =
-          await supabaseClient
-            .from("reservations")
-            .insert([fallbackPayload])
-            .select("*")
-            .maybeSingle();
-
-        if (error) {
-          showSafeError(
-            error,
-            "Reservation could not be requested."
-          );
-          return;
-        }
-
-        createdReservation = data;
+        const setupMessage =
+          "Rezervasyon kapasite fonksiyonu Supabase'te kurulu değil. SQL migration dosyasını çalıştır.";
+        setVenueSlotMessage(setupMessage, "error");
+        showToast("Rezervasyon sistemi kurulumu eksik.");
+        return;
       } else {
         createdReservation = Array.isArray(rpcResult.data)
           ? rpcResult.data[0]
@@ -2604,7 +3042,7 @@ async function setupReservationForm(venueId) {
           ? createdReservation.venue_id
           : venueId;
 
-      showToast("Reservation requested");
+      showToast("Rezervasyon talebi gönderildi");
       await notifyBusinessOwnerReservationRequest(createdVenueId);
       reservationForm.reset();
       venueReservationSlotState = {
@@ -2619,28 +3057,37 @@ async function setupReservationForm(venueId) {
       await loadUserReservations(createdVenueId);
     } catch (error) {
       console.log(error);
-      showToast(error.message || "Reservation unavailable");
+      showToast(
+        error.message || "Rezervasyon şu anda kullanılamıyor."
+      );
     } finally {
       reservationForm.dataset.submitting = "false";
     }
   });
 }
 
-if (loginBtn) {
-  function queueHomeMapIntro() {
-    try {
-      sessionStorage.setItem("tanidik.playMapIntro", "1");
-      console.log("[home-map-intro] flag yazıldı");
-    } catch (error) {
-      console.log("[auth] Map intro flag unavailable:", error);
-    }
+function queueHomeMapIntro() {
+  try {
+    sessionStorage.setItem("tanidik.playMapIntro", "1");
+    console.log("[home-map-intro] flag yazıldı");
+  } catch (error) {
+    console.log("[auth] Map intro flag unavailable:", error);
   }
+}
 
+if (loginBtn) {
   loginBtn.addEventListener("click", async () => {
     if (loginBtn.disabled) return;
 
     if (!email || !password) {
-      showToast("Login form unavailable");
+      showToast("Giriş formu kullanılamıyor.");
+      return;
+    }
+
+    const validation = validateAuthForm("login");
+
+    if (!validation.ok) {
+      setAuthMessage(validation.message, "error");
       return;
     }
 
@@ -2649,21 +3096,27 @@ if (loginBtn) {
     try {
       const { error } =
         await supabaseClient.auth.signInWithPassword({
-          email: email.value,
-          password: password.value,
+          email: validation.email,
+          password: validation.password,
         });
 
       if (error) {
-        showToast(error.message);
+        setAuthMessage(
+          translateAuthError(error, "Giriş yapılamadı."),
+          "error"
+        );
         return;
       }
 
       await window.playEarthZoomTransition?.();
       queueHomeMapIntro();
-      window.location.href = "./index.html";
+      window.location.href = getAuthRedirectTarget();
     } catch (error) {
       console.log(error);
-      showToast(error.message || "Login unavailable");
+      setAuthMessage(
+        translateAuthError(error, "Giriş şu anda kullanılamıyor."),
+        "error"
+      );
     } finally {
       loginBtn.disabled = false;
     }
@@ -2675,32 +3128,141 @@ if (registerBtn) {
     if (registerBtn.disabled) return;
 
     if (!email || !password) {
-      showToast("Registration form unavailable");
+      showToast("Kayıt formu kullanılamıyor.");
+      return;
+    }
+
+    const validation = validateAuthForm("signup");
+
+    if (!validation.ok) {
+      setAuthMessage(validation.message, "error");
       return;
     }
 
     registerBtn.disabled = true;
 
     try {
-      const { error } =
+      const { data, error } =
         await supabaseClient.auth.signUp({
-          email: email.value,
-          password: password.value,
+          email: validation.email,
+          password: validation.password,
+          options: {
+            emailRedirectTo: getAuthEmailRedirectTo(),
+          },
         });
 
       if (error) {
-        showToast(error.message);
+        setAuthMessage(
+          translateAuthError(error, "Kayıt oluşturulamadı."),
+          "error"
+        );
         return;
       }
 
-      showToast("Register successful");
+      if (data && data.session) {
+        setAuthMessage("Kayıt tamamlandı. Yönlendiriliyorsun.", "success");
+        await window.playEarthZoomTransition?.();
+        queueHomeMapIntro();
+        window.location.href = getAuthRedirectTarget();
+        return;
+      }
+
+      setAuthMessage(
+        "Kayıt alındı. Devam etmek için e-posta doğrulama bağlantını kontrol et.",
+        "success"
+      );
     } catch (error) {
       console.log(error);
-      showToast(error.message || "Registration unavailable");
+      setAuthMessage(
+        translateAuthError(
+          error,
+          "Kayıt şu anda kullanılamıyor."
+        ),
+        "error"
+      );
     } finally {
       registerBtn.disabled = false;
     }
   });
+}
+
+if (googleLoginBtn) {
+  googleLoginBtn.addEventListener("click", async () => {
+    if (googleLoginBtn.disabled) return;
+
+    googleLoginBtn.disabled = true;
+
+    try {
+      const { error } =
+        await supabaseClient.auth.signInWithOAuth({
+          provider: "google",
+          options: {
+            redirectTo: getAuthEmailRedirectTo(),
+          },
+        });
+
+      if (error) {
+        setAuthMessage(
+          translateAuthError(error, "Google ile giriş başlatılamadı."),
+          "error"
+        );
+      }
+    } catch (error) {
+      console.log(error);
+      setAuthMessage(
+        translateAuthError(
+          error,
+          "Google ile giriş şu anda kullanılamıyor."
+        ),
+        "error"
+      );
+    } finally {
+      googleLoginBtn.disabled = false;
+    }
+  });
+}
+
+async function initAuthPage() {
+  if (!loginBtn && !registerBtn && !googleLoginBtn) return;
+
+  const queryParams = new URLSearchParams(window.location.search);
+  const hashParams = new URLSearchParams(
+    window.location.hash.replace(/^#/, "")
+  );
+  const authError =
+    hashParams.get("error_description") ||
+    queryParams.get("error_description") ||
+    hashParams.get("error") ||
+    queryParams.get("error");
+
+  if (authError) {
+    setAuthMessage(
+      translateAuthError(
+        { message: authError },
+        "Giriş işlemi tamamlanamadı."
+      ),
+      "error"
+    );
+    return;
+  }
+
+  const session = await getSafeSession();
+
+  if (!session) return;
+
+  const authType =
+    hashParams.get("type") || queryParams.get("type") || "";
+  const message =
+    authType === "signup" || authType === "email"
+      ? "E-posta doğrulandı. Yönlendiriliyorsun."
+      : "Oturum açık. Yönlendiriliyorsun.";
+
+  setAuthMessage(message, "success");
+  queueHomeMapIntro();
+
+  window.setTimeout(() => {
+    window.location.href = getAuthRedirectTarget();
+  }, 600);
 }
 
 if (logoutBtn) {
@@ -3076,6 +3638,9 @@ async function loadProfileStats(userId) {
 
   await loadProfileNotifications(userId);
   await loadProfileBusinessApplications(userId);
+  await loadProfileReservations(userId, {
+    limit: 4,
+  });
   await setupBusinessProfileLink(userId);
 }
 
@@ -3484,7 +4049,7 @@ async function loadProfileReservations(userId, options = {}) {
 
   renderEmptyState(
     reservationsList,
-    "Loading reservations..."
+    "Rezervasyonlar yükleniyor..."
   );
 
   let query = supabaseClient
@@ -3500,7 +4065,7 @@ async function loadProfileReservations(userId, options = {}) {
   const { data: reservations, error } = await query;
 
   if (error) {
-    showSafeError(error, "Reservations could not be loaded.");
+    showSafeError(error, "Rezervasyonlar yüklenemedi.");
     return;
   }
 
@@ -3509,7 +4074,8 @@ async function loadProfileReservations(userId, options = {}) {
   if (recentReservations.length === 0) {
     renderEmptyState(
       reservationsList,
-      "No reservations yet."
+      "Henüz rezervasyon yok.",
+      "Gönderdiğin rezervasyon talepleri burada görünecek."
     );
     return;
   }
@@ -7669,10 +8235,7 @@ function logBusinessStatusFields(records) {
     (records || []).map((business) => ({
       id: business.id,
       owner_id: business.owner_id,
-      user_id: business.user_id,
-      business_owner_id: business.business_owner_id,
       status: business.status,
-      verification_status: business.verification_status,
     }))
   );
 }
@@ -7713,30 +8276,12 @@ async function loadBusinessBusinesses(session) {
 
   console.log("[business-debug] user", userId);
 
-  const ownerRecords =
+  const businesses =
     await queryBusinessRecordsByOwnerField(
       "owner_id",
       userId,
       { showError: true }
     );
-  const fallbackRecords = [];
-
-  if (ownerRecords.length === 0) {
-    fallbackRecords.push(
-      await queryBusinessRecordsByOwnerField("user_id", userId)
-    );
-    fallbackRecords.push(
-      await queryBusinessRecordsByOwnerField(
-        "business_owner_id",
-        userId
-      )
-    );
-  }
-
-  const businesses = mergeBusinessRecords([
-    ownerRecords,
-    ...fallbackRecords,
-  ]);
 
   logBusinessStatusFields(businesses);
 
@@ -8217,26 +8762,84 @@ async function updateBusinessReservationStatus(id, status) {
     businessDashboardState.reservations.find(
       (item) => String(item.id) === String(id)
     );
+  const normalizedStatus = getReservationStatusValue(status);
 
   if (!reservation || !ownsVenueRecord(reservation.venue_id)) {
     showToast("Yalnızca kendi rezervasyonlarını güncelleyebilirsin");
     return;
   }
 
-  const { error } =
-    await supabaseClient
+  if (!isPendingReservation(reservation)) {
+    showToast("Yalnızca bekleyen rezervasyonlar güncellenebilir.");
+    return;
+  }
+
+  if (!["approved", "rejected"].includes(normalizedStatus)) {
+    showToast("Geçersiz rezervasyon durumu.");
+    return;
+  }
+
+  let error = null;
+  let updatedReservation = null;
+
+  try {
+    const rpcResult = await supabaseClient.rpc(
+      "update_business_reservation_status",
+      {
+        reservation_id: Number(id),
+        new_status: normalizedStatus,
+      }
+    );
+
+    error = rpcResult.error;
+    updatedReservation = Array.isArray(rpcResult.data)
+      ? rpcResult.data[0]
+      : rpcResult.data;
+  } catch (rpcError) {
+    error = rpcError;
+  }
+
+  if (
+    error &&
+    isSupabaseRpcUnavailable(
+      error,
+      "update_business_reservation_status"
+    )
+  ) {
+    const fallbackResult = await supabaseClient
       .from("reservations")
-      .update({ status })
+      .update({ status: normalizedStatus })
       .eq("id", id)
-      .in("venue_id", getBusinessDashboardVenueIds());
+      .eq("status", "pending")
+      .in("venue_id", getBusinessDashboardVenueIds())
+      .select("*")
+      .maybeSingle();
+
+    error = fallbackResult.error;
+    updatedReservation = fallbackResult.data;
+  }
 
   if (error) {
     showSafeError(error, "Rezervasyon durumu güncellenemedi.");
     return;
   }
 
-  showToast(`Rezervasyon ${getReservationStatusLabel(status)}`);
-  notifyUserReservationStatus(reservation, status);
+  if (!updatedReservation) {
+    showToast("Rezervasyon zaten güncellenmiş olabilir.");
+    await refreshBusinessDashboard();
+    return;
+  }
+
+  showToast(
+    `Rezervasyon ${getReservationStatusLabel(normalizedStatus)}`
+  );
+  notifyUserReservationStatus(
+    {
+      ...reservation,
+      ...updatedReservation,
+    },
+    normalizedStatus
+  );
   await refreshBusinessDashboard();
 }
 
@@ -11371,6 +11974,7 @@ function registerServiceWorker() {
 }
 
 runSafeInitializer("checkUser", checkUser);
+runSafeInitializer("initAuthPage", initAuthPage);
 runSafeInitializer("loadVenues", loadVenues);
 runSafeInitializer("loadFavorites", loadFavorites);
 runSafeInitializer("loadEvents", loadEvents);
