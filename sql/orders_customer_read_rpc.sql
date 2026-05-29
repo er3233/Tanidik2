@@ -76,3 +76,40 @@ $$;
 
 revoke all on function public.get_my_restaurant_order(uuid) from public;
 grant execute on function public.get_my_restaurant_order(uuid) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- RPC: business owner order list (restaurant-orders.html)
+-- Matches by business_owner_id OR venue ownership (any business status)
+-- ---------------------------------------------------------------------------
+drop function if exists public.get_business_restaurant_orders(bigint[]);
+
+create or replace function public.get_business_restaurant_orders(
+  p_venue_ids bigint[] default '{}'
+)
+returns setof public.orders
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select o.*
+  from public.orders o
+  where (
+    o.business_owner_id = auth.uid()
+    or exists (
+      select 1
+      from public.venues v
+      join public.businesses b on b.id = v.business_id
+      where v.id = o.venue_id
+        and b.owner_id = auth.uid()
+    )
+  )
+  and (
+    cardinality(p_venue_ids) = 0
+    or o.venue_id = any (p_venue_ids)
+  )
+  order by o.created_at desc;
+$$;
+
+revoke all on function public.get_business_restaurant_orders(bigint[]) from public;
+grant execute on function public.get_business_restaurant_orders(bigint[]) to authenticated;

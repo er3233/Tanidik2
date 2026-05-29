@@ -118,6 +118,31 @@
 }
 
 @media (max-width: 480px) {
+  .courier-page {
+    overflow-x: hidden;
+    padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .courier-delivery-card,
+  .courier-delivery-card__head,
+  .courier-delivery-card__actions,
+  .courier-delivery-card__nav {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .courier-delivery-card__head {
+    flex-wrap: wrap;
+  }
+
+  .courier-delivery-card__row,
+  .courier-delivery-card__items {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
   .courier-delivery-card__actions .btn,
   .courier-delivery-card__actions .secondary-btn {
     width: 100%;

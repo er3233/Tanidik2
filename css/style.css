@@ -12480,3 +12480,106 @@ p.reservation-note {
   align-items: center;
   justify-content: center;
 }
+
+/* Mobile stability patch: orders + venue/discover cards */
+@media (max-width: 768px) {
+  .order-page {
+    overflow-x: hidden;
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .order-page .dashboard-section,
+  .order-page .order-list,
+  .order-page #userOrdersList {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow: visible;
+  }
+
+  .order-card {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .order-card-head {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .order-card-head h3 {
+    min-width: 0;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+
+  .order-card-items {
+    padding-left: 16px;
+    margin-right: 0;
+  }
+
+  .order-card-actions {
+    width: 100%;
+    gap: 8px;
+  }
+
+  .order-card-actions .btn,
+  .order-card-actions .secondary-btn {
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .discover-page .venues-grid,
+  .venues-grid {
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .discover-page .venue-card,
+  .venue-card {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .discover-page .venue-card img,
+  .venue-card img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+  }
+
+  .venue-content,
+  .venue-content * {
+    min-width: 0;
+  }
+
+  .venue-content h2,
+  .venue-content p {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .venue-content .btn,
+  .venue-content .secondary-btn {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 430px) {
+  .order-page .dashboard-header {
+    padding-inline: 2px;
+  }
+
+  .order-card {
+    padding: 14px;
+  }
+}

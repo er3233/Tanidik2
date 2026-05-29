@@ -197,6 +197,38 @@
 }
 
 @media (max-width: 768px) {
+  .venue-detail-page.vp-main {
+    overflow-x: hidden;
+  }
+
+  .venue-detail-page .vp-content {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .venue-order-cta {
+    margin-inline: 0;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .venue-order-cta__inner {
+    min-width: 0;
+  }
+
+  .venue-order-cta__meta,
+  .venue-order-cta__badges {
+    width: 100%;
+  }
+
+  .venue-order-cta__btn {
+    width: 100%;
+    max-width: 100%;
+  }
+
   .venue-detail-page.vp-main:has(.venue-order-sticky:not([hidden])) {
     padding-bottom: 88px;
   }
@@ -204,6 +236,28 @@
   .venue-order-cta.is-open {
     animation: venueOrderCtaIn 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
+
+  .venue-order-sticky {
+    z-index: 950;
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    padding-inline: 10px;
+  }
+
+  .venue-order-sticky__sheet {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .venue-order-sticky__meta {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: initial;
+  }
+}
+
+.venue-order-sticky[hidden] {
+  display: none !important;
 }
 
 @keyframes venueOrderCtaIn {

@@ -229,3 +229,53 @@
   gap: 4px;
   margin-top: 4px;
 }
+
+@media (max-width: 768px) {
+  .venue-gallery-carousel,
+  .venue-gallery-main,
+  .venue-gallery-slide {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .venue-gallery-main {
+    aspect-ratio: 16 / 11;
+  }
+
+  .venue-gallery-thumbs {
+    padding-bottom: 8px;
+  }
+
+  .venue-gallery-thumb {
+    flex: 0 0 58px;
+    height: 44px;
+  }
+
+  .messages-layout,
+  .messages-list,
+  .conversation-panel,
+  .conversation-messages,
+  .message-thread,
+  .message-bubble-with-avatar {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .message-thread {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+
+  .message-thread-body,
+  .message-thread-title,
+  .message-thread-preview,
+  .message-thread-meta,
+  .message-thread-identity-line {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .message-bubble-with-avatar {
+    max-width: 100%;
+  }
+}
