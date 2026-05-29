@@ -13729,20 +13729,136 @@ function formatOrderItemsSummary(order) {
     .join(", ");
 }
 
-async function getActiveCourierProfile(userId) {
+async function getActiveCourierProfileByUserId(userId) {
+  const uid = safeText(userId);
+  if (!uid) return null;
+
   const { data, error } = await supabaseClient
     .from("couriers")
-    .select("id, full_name, phone, vehicle_type, status, created_at")
-    .eq("user_id", userId)
+    .select(
+      "id, user_id, email, full_name, phone, vehicle_type, status, created_at"
+    )
+    .eq("user_id", uid)
     .eq("status", "active")
     .maybeSingle();
 
   if (error) {
-    console.log(error);
+    console.log("[courier] user_id lookup", error);
     return null;
   }
 
   return data;
+}
+
+async function getActiveCourierProfileByEmail(email) {
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail) return null;
+
+  const { data, error } = await supabaseClient
+    .from("couriers")
+    .select(
+      "id, user_id, email, full_name, phone, vehicle_type, status, created_at"
+    )
+    .eq("status", "active")
+    .ilike("email", normalizedEmail)
+    .maybeSingle();
+
+  if (error) {
+    console.log("[courier] email lookup", error);
+    return null;
+  }
+
+  return data;
+}
+
+async function linkCourierUserId(courierId, userId) {
+  const { data, error } = await supabaseClient
+    .from("couriers")
+    .update({ user_id: userId })
+    .eq("id", courierId)
+    .is("user_id", null)
+    .select(
+      "id, user_id, email, full_name, phone, vehicle_type, status, created_at"
+    )
+    .maybeSingle();
+
+  if (error) {
+    console.log("[courier] link user_id", error);
+    return null;
+  }
+
+  return data;
+}
+
+/**
+ * Resolves active courier for logged-in session:
+ * A) couriers.user_id = session user AND status active
+ * B) lower(email) match AND status active → link user_id if null (via RPC)
+ */
+async function resolveActiveCourierForSession(session) {
+  if (!session || !session.user) return null;
+
+  const userId = session.user.id;
+  const email = normalizeEmail(session.user.email);
+
+  const byUserId = await getActiveCourierProfileByUserId(userId);
+  if (byUserId) {
+    return byUserId;
+  }
+
+  const { data: rpcCourier, error: rpcError } = await supabaseClient.rpc(
+    "resolve_my_active_courier"
+  );
+
+  if (!rpcError && rpcCourier) {
+    if (
+      rpcCourier.user_id &&
+      String(rpcCourier.user_id) !== String(userId)
+    ) {
+      console.warn(
+        "[courier] RPC returned courier for another user",
+        rpcCourier.user_id,
+        userId
+      );
+      return null;
+    }
+    return rpcCourier;
+  }
+
+  if (rpcError) {
+    console.log("[courier] resolve_my_active_courier", rpcError);
+  }
+
+  const byEmail = await getActiveCourierProfileByEmail(email);
+  if (!byEmail) {
+    return null;
+  }
+
+  if (!byEmail.user_id) {
+    const linked = await linkCourierUserId(byEmail.id, userId);
+    return linked || byEmail;
+  }
+
+  if (String(byEmail.user_id) !== String(userId)) {
+    console.warn(
+      "[courier] Email matched another account",
+      byEmail.user_id,
+      userId,
+      email
+    );
+    return null;
+  }
+
+  return byEmail;
+}
+
+async function getActiveCourierProfile(userId) {
+  const session = await getSafeSession();
+  if (session && session.user) {
+    return resolveActiveCourierForSession(session);
+  }
+
+  return getActiveCourierProfileByUserId(userId);
 }
 
 async function enrichDeliveriesWithCustomerProfiles(deliveries) {
@@ -13834,7 +13950,7 @@ async function loadCourierAvailableDeliveries() {
   const session = await getSafeSession();
   if (!session) return { available: [], assigned: [], courier: null };
 
-  const courier = await getActiveCourierProfile(session.user.id);
+  const courier = await resolveActiveCourierForSession(session);
   if (!courier) return { available: [], assigned: [], courier: null };
 
   const deliverySelect = `
@@ -14993,13 +15109,17 @@ async function initCourierPage() {
     return;
   }
 
-  const courier = await getActiveCourierProfile(session.user.id);
+  const courier = await resolveActiveCourierForSession(session);
   if (!courier) {
     showCourierAccessDenied();
     const welcome = document.getElementById("courierWelcome");
     if (welcome) {
       welcome.textContent = "Aktif kurye hesabı bulunamadı.";
     }
+    console.warn("[courier] No active courier profile", {
+      userId: session.user.id,
+      email: session.user.email,
+    });
     return;
   }
 
@@ -15032,7 +15152,13 @@ async function initCourierLoginPage() {
   if (!page) return;
 
   const session = await getSafeSession();
-  window.location.href = session
+  if (!session) {
+    window.location.href = "./auth.html?redirect=./courier.html";
+    return;
+  }
+
+  const courier = await resolveActiveCourierForSession(session);
+  window.location.href = courier
     ? "./courier.html"
     : "./auth.html?redirect=./courier.html";
 }
@@ -15101,23 +15227,33 @@ async function initAdminCouriersPage() {
       const vehicle = document.getElementById("adminCourierVehicle").value.trim();
       const status = document.getElementById("adminCourierStatus").value;
 
+      const normalizedEmail = normalizeEmail(email);
       const { data: userId, error: lookupError } = await supabaseClient.rpc(
         "admin_find_user_id_by_email",
-        { p_email: email }
+        { p_email: normalizedEmail }
       );
 
-      if (lookupError || !userId) {
-        showToast("Bu e-posta ile kayıtlı kullanıcı bulunamadı.");
-        return;
-      }
-
-      const { error } = await supabaseClient.rpc("admin_upsert_courier", {
-        p_user_id: userId,
+      const rpcPayload = {
         p_full_name: fullName,
         p_phone: phone,
         p_vehicle_type: vehicle,
         p_status: status,
-      });
+        p_email: normalizedEmail,
+      };
+
+      if (lookupError) {
+        console.log(lookupError);
+        showSafeError(lookupError, "Kullanıcı araması başarısız.");
+        return;
+      }
+
+      if (userId) {
+        rpcPayload.p_user_id = userId;
+      } else {
+        rpcPayload.p_user_id = null;
+      }
+
+      const { error } = await supabaseClient.rpc("admin_upsert_courier", rpcPayload);
 
       if (error) {
         showSafeError(error, "Kurye kaydedilemedi.");
@@ -15125,7 +15261,11 @@ async function initAdminCouriersPage() {
       }
 
       form.reset();
-      showToast("Kurye kaydedildi");
+      showToast(
+        userId
+          ? "Kurye kaydedildi"
+          : "Kurye daveti oluşturuldu. Kurye aynı e-posta ile giriş yapınca panel açılır."
+      );
       renderAdminCouriersList(await loadAdminCouriers());
     });
   }
