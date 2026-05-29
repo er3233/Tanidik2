@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ayarlar | TANIDIK</title>
+  <meta name="description" content="TANIDIK hesap ayarları." />
+  <meta name="theme-color" content="#050608" />
+  <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="./assets/icon-192.png" />
+  <link rel="stylesheet" href="./css/style.css" />
+  <link rel="stylesheet" href="./css/social-profile-media.css" />
+  <link rel="stylesheet" href="./css/design-system.css" />
+</head>
+
+<body class="profile-page">
+
+  <!-- ── Top Bar ─────────────────────────────────────────── -->
+  <header class="ds-top-bar">
+    <a href="./profile.html" class="ds-top-bar__back" aria-label="Geri">‹</a>
+    <span class="ds-top-bar__title">Ayarlar</span>
+    <div style="width:40px;"></div>
+  </header>
+
+  <!-- ── Scrollable Content ──────────────────────────────── -->
+  <div class="ds-scroll-content">
+
+    <!-- Profile Mini Card -->
+    <div class="ds-settings-profile">
+      <div class="ds-avatar-wrap ds-avatar-wrap--ring">
+        <div class="ds-avatar ds-avatar--md profile-avatar" id="settingsAvatar" aria-hidden="true">T</div>
+      </div>
+      <div class="ds-settings-profile__copy">
+        <p class="ds-settings-profile__name" id="settingsDisplayName">Profilim</p>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+          <span class="ds-badge ds-badge--premium" style="font-size:0.62rem;padding:2px 8px;">✦ Premium Üye</span>
+        </div>
+      </div>
+      <a href="./profile.html" class="ds-settings-profile__edit">
+        Profil Düzenle ›
+      </a>
+    </div>
+
+    <!-- HESAP -->
+    <div class="ds-settings-section">
+      <span class="ds-settings-title">Hesap</span>
+
+      <a href="./profile.html" class="ds-settings-item">
+        <span class="ds-settings-item__icon">👤</span>
+        <span class="ds-settings-item__body">
+          <span class="ds-settings-item__label">Kişisel Bilgiler</span>
+          <span class="ds-settings-item__sub">Ad, kullanıcı adı, bio</span>
+        </span>
+        <span class="ds-settings-item__arrow">›</span>
+      </a>
+
+      <button type="button" class="ds-settings-item" style="width:100%;text-align:left;" id="settingsNotifToggle">
+        <span class="ds-settings-item__icon">🔔</span>
+        <span class="ds-settings-item__body">
+          <span class="ds-settings-item__label">Bildirim Ayarları</span>
+          <span class="ds-settings-item__sub">Push, e-posta bildirimleri</span>
+        </span>
+        <span class="ds-settings-item__arrow">›</span>
+      </button>
+
+      <button type="button" class="ds-settings-item" style="width:100%;text-align:left;" id="settingsPrivacyBtn">
+        <span class="ds-settings-item__icon">🔒</span>
+        <span class="ds-settings-item__body">
+          <span class="ds-settings-item__label">Gizlilik</span>
+          <span class="ds-settings-item__sub">Profil görünürlüğü, veri</span>
+        </span>
+        <span class="ds-settings-item__arrow">›</span>
+      </button>
+    </div>
+
+    <!-- ÖDEME -->
+    <div class="ds-settings-section">
+      <span class="ds-settings-title">Ödeme</span>
+
+      <button type="button" class="ds-settings-item" style="width:100%;text-align:left;">
+        <span class="ds-settings-item__icon">💳</span>
+        <span class="ds-settings-item__body">
+          <span class="ds-settings-item__label">Ödeme Yöntemleri</span>
+          <span class="ds-settings-item__sub">Kart, cüzdan yönetimi</span>
+        </span>
+        <span class="ds-settings-item__arrow">›</span>
+      </button>
+
+      <a href="./orders.html" class="ds-settings-item">
+        <span class="ds-settings-item__icon">🍽</span>
+        <span class="ds-settings-item__body">
+          <span class="ds-settings-item__label">Siparişlerim</span>
+          <span class="ds-settings-item__sub">Sipariş geçmişi</span>
+        </span>
+        <span class="ds-settings-item__arrow">›</span>
+      </a>
+    </div>
+
+    <!-- HESABIM -->
+    <div class="ds-settings-section">
+      <span class="ds-settings-title">Hesabım</span>
+
+      <button type="button" class="ds-settings-item" style="width:100%;text-align:left;">
+        <span class="ds-settings-item__icon">⭐</span>
+        <span class="ds-settings-item__body">
+          <span class="ds-settings-item__label">Abonelikler</span>
+          <span class="ds-settings-item__sub">Premium üyelik yönetimi</span>
+        </span>
+        <span class="ds-settings-item__arrow">›</span>
+      </button>
+
+      <button type="button" class="ds-settings-item" style="width:100%;text-align:left;">
+        <span class="ds-settings-item__icon">📱</span>
+        <span class="ds-settings-item__body">
+          <span class="ds-settings-item__label">Bağlı Cihazlar</span>
+          <span class="ds-settings-item__sub">Aktif oturumlar</span>
+        </span>
+        <span class="ds-settings-item__arrow">›</span>
+      </button>
+    </div>
+
+    <!-- DİĞER -->
+    <div class="ds-settings-section">
+      <span class="ds-settings-title">Diğer</span>
+
+      <button type="button" class="ds-settings-item" style="width:100%;text-align:left;">
+        <span class="ds-settings-item__icon">❓</span>
+        <span class="ds-settings-item__body">
+          <span class="ds-settings-item__label">Yardım Merkezi</span>
+          <span class="ds-settings-item__sub">SSS, destek</span>
+        </span>
+        <span class="ds-settings-item__arrow">›</span>
+      </button>
+
+      <button type="button" class="ds-settings-item" style="width:100%;text-align:left;">
+        <span class="ds-settings-item__icon">ℹ</span>
+        <span class="ds-settings-item__body">
+          <span class="ds-settings-item__label">Hakkında</span>
+          <span class="ds-settings-item__sub">Sürüm bilgisi, lisanslar</span>
+        </span>
+        <span class="ds-settings-item__arrow">›</span>
+      </button>
+    </div>
+
+    <!-- Hesap İşlemleri -->
+    <div class="ds-settings-section" style="margin-top:8px;">
+      <span class="ds-settings-title">Hesap İşlemleri</span>
+      <div style="display:grid;gap:8px;padding-bottom:8px;">
+        <button type="button" id="logoutBtn" class="ds-btn ds-btn--danger ds-btn--full">Çıkış Yap</button>
+        <button type="button" id="settingsDeleteAccountBtn" class="ds-btn ds-btn--full" style="background:transparent;border:1px solid rgba(255,80,80,0.15);color:rgba(255,80,80,0.6);font-size:0.78rem;">
+          Hesabı Sil
+        </button>
+      </div>
+    </div>
+
+    <div class="ds-spacer-lg"></div>
+  </div><!-- /ds-scroll-content -->
+
+  <!-- ── Bottom Navigation ───────────────────────────────── -->
+  <nav class="ds-bottom-nav mobile-bottom-nav" aria-label="Ana navigasyon">
+    <a href="./index.html" data-nav-page="index.html">
+      <span aria-hidden="true">⌂</span>
+      <span>Ana Sayfa</span>
+    </a>
+    <a href="./discover.html" data-nav-page="discover.html">
+      <span aria-hidden="true">⌕</span>
+      <span>Keşfet</span>
+    </a>
+    <a href="./store.html" data-nav-page="store.html">
+      <span aria-hidden="true">◈</span>
+      <span>Mağaza</span>
+    </a>
+    <a href="./messages.html" data-nav-page="messages.html">
+      <span aria-hidden="true">♡</span>
+      <span>Mesajlar</span>
+    </a>
+    <a href="./profile.html" data-nav-page="profile.html">
+      <span aria-hidden="true">◉</span>
+      <span>Profil</span>
+    </a>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="./js/app.js"></script>
+
+  <!-- Fill settings page avatar/name from app.js data -->
+  <script>
+    (function () {
+      function tryFillSettings() {
+        const nameEl = document.getElementById("settingsDisplayName");
+        const avatarEl = document.getElementById("settingsAvatar");
+        const profileName = document.getElementById("profileDisplayName");
+        const profileAvatar = document.getElementById("profileAvatar");
+        if (profileName && nameEl) nameEl.textContent = profileName.textContent || "Profilim";
+        if (profileAvatar && avatarEl) {
+          avatarEl.innerHTML = profileAvatar.innerHTML;
+          avatarEl.style.cssText = profileAvatar.style.cssText;
+        }
+      }
+      document.addEventListener("DOMContentLoaded", () => {
+        setTimeout(tryFillSettings, 800);
+      });
+    })();
+  </script>
+
+  <div id="toast" class="toast"></div>
+</body>
+
+</html>

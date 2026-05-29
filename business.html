@@ -1,1213 +1,458 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 
 <head>
   <meta charset="UTF-8" />
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  />
-
-  <title>İşletme Paneli | TANIDIK</title>
-
-  <meta
-    name="description"
-    content="Discover premium nightlife venues, events, reservations, and business tools with TANIDIK."
-  />
-
-  <meta name="theme-color" content="#050505" />
-
-  <link
-    rel="icon"
-    href="./assets/favicon.svg"
-    type="image/svg+xml"
-  />
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>İşletme Hesabım | TANIDIK</title>
+  <meta name="description" content="TANIDIK işletme paneli — işletmelerinizi, mekanları ve rezervasyonları yönetin." />
+  <meta name="theme-color" content="#050608" />
+  <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
   <link rel="manifest" href="./manifest.webmanifest" />
-
   <link rel="apple-touch-icon" href="./assets/icon-192.png" />
-
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="TANIDIK" />
-  <meta property="og:title" content="TANIDIK | Premium Nightlife Discovery" />
-  <meta
-    property="og:description"
-    content="Discover premium nightlife venues, events, reservations, and business tools with TANIDIK."
-  />
+  <meta property="og:title" content="TANIDIK | İşletme Paneli" />
   <meta property="og:url" content="https://tanidik2.vercel.app" />
   <meta property="og:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
-
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="TANIDIK | Premium Nightlife Discovery" />
-  <meta
-    name="twitter:description"
-    content="Discover premium nightlife venues, events, reservations, and business tools with TANIDIK."
-  />
-  <meta name="twitter:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
-
-  <link
-    rel="stylesheet"
-    href="./css/style.css"
-  />
+  <link rel="stylesheet" href="./css/style.css" />
+  <link rel="stylesheet" href="./css/design-system.css" />
 </head>
 
 <body>
 
-  <nav class="navbar">
+  <!-- ── Top Bar ─────────────────────────────────────────── -->
+  <header class="ds-top-bar">
+    <a href="./profile.html" class="ds-top-bar__back" aria-label="Geri">‹</a>
+    <span class="ds-top-bar__title">İşletme Hesabım</span>
+    <div style="width:40px;"></div>
+  </header>
 
-    <h1>TANIDIK</h1>
+  <!-- ── Main ───────────────────────────────────────────── -->
+  <main id="businessPage" class="business-page ds-scroll-content">
 
-    <button
-      class="nav-toggle"
-      type="button"
-      aria-label="Toggle navigation"
-      aria-expanded="false"
-    >
-      Menü
+    <!-- Add Business Button -->
+    <button type="button" id="businessAddButton" class="ds-add-btn">
+      + Yeni İşletme Ekle
     </button>
 
-    <div class="nav-links">
+    <!-- Empty State -->
+    <section id="businessEmptyState" class="business-section" hidden style="padding:32px 16px;text-align:center;">
+      <p style="font-size:1rem;font-weight:700;color:#fff;margin:0 0 8px;">Henüz işletme eklemedin</p>
+      <p style="font-size:0.82rem;color:rgba(255,255,255,0.45);margin:0 0 20px;">İlk işletmeni ekleyerek rezervasyon ve sipariş yönetimine başlayabilirsin.</p>
+      <button type="button" id="businessEmptyStateAddButton" class="ds-btn ds-btn--gold">İşletme Ekle</button>
+    </section>
 
-      <a href="./index.html">Ana Sayfa</a>
-
-      <a href="./discover.html">Keşfet</a>
-      <a href="./food.html" data-nav-page="food.html">Yemek</a>
-
-      <a href="./events.html">Etkinlikler</a>
-
-      <a href="./favorites.html">Favoriler</a>
-
-      <a
-        href="./auth.html"
-        id="authLink"
-      >
-        Giriş
-      </a>
-
+    <!-- Panel Actions (management quick grid) -->
+    <div style="display:none;" class="business-mobile-actions" aria-label="İşletme paneli bölümleri">
+      <button type="button" data-business-panel="reservations">Rezervasyonlar</button>
+      <button type="button" data-business-panel="calendar">Takvim</button>
+      <button type="button" data-business-panel="booking">Rezervasyon Ayarları</button>
+      <button type="button" data-business-panel="venues">Mekanlar</button>
+      <button type="button" data-business-panel="events">Etkinlikler</button>
+      <button type="button" data-business-panel="menu">Menü</button>
+      <button type="button" data-business-panel="store">Mağaza</button>
+      <button type="button" data-business-panel="analytics">Analitik</button>
     </div>
 
-  </nav>
-
-  <main
-    id="businessPage"
-    class="business-page"
-  >
-
-    <header class="dashboard-header dashboard-header--business">
-      <div class="business-hero-mark" aria-hidden="true">
-        B
-      </div>
-
-      <div class="business-hero-copy">
-        <span class="dashboard-kicker">
-          İşletme Konsolu
-        </span>
-
-        <h1>
-          İşletme Paneli
-        </h1>
-
-        <p class="page-message">
-          İşletmelerini, bağlı mekanlarını ve rezervasyon taleplerini yönet.
-        </p>
-      </div>
-
-      <button
-        type="button"
-        id="businessAddButton"
-        class="btn"
-      >
-        + İşletme Ekle
+    <!-- Yönetim Araçları (görünür grid) -->
+    <div class="ds-section-hdr" style="padding-bottom:6px;">
+      <span class="ds-section-hdr__title">Yönetim</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 16px 8px;">
+      <button type="button" data-business-panel="reservations" class="ds-biz-mgmt-item">
+        <span class="ds-quick-item__icon">📅</span>
+        <span class="ds-quick-item__label">Rezervasyonlar</span>
       </button>
-
-      <a
-        href="./messages.html"
-        class="secondary-btn business-messages-link"
-      >
-        Mesajlar
-      </a>
-    </header>
-
-    <section
-      id="businessEmptyState"
-      class="business-section dashboard-section business-empty-state"
-      hidden
-    >
-      <h2>
-        Henüz işletme eklemedin
-      </h2>
-
-      <p class="page-message">
-        İlk işletmeni ekleyerek rezervasyon, etkinlik ve profil yönetimine başlayabilirsin.
-      </p>
-
-      <button
-        type="button"
-        id="businessEmptyStateAddButton"
-        class="btn"
-      >
-        İşletme Ekle
+      <button type="button" data-business-panel="calendar" class="ds-biz-mgmt-item">
+        <span class="ds-quick-item__icon">📆</span>
+        <span class="ds-quick-item__label">Takvim</span>
       </button>
-    </section>
-
-    <div
-      class="business-mobile-actions"
-      aria-label="İşletme paneli bölümleri"
-    >
-      <button
-        type="button"
-        data-business-panel="reservations"
-      >
-        Rezervasyonlar
+      <button type="button" data-business-panel="venues" class="ds-biz-mgmt-item">
+        <span class="ds-quick-item__icon">📍</span>
+        <span class="ds-quick-item__label">Mekanlar</span>
       </button>
-
-      <button
-        type="button"
-        data-business-panel="calendar"
-      >
-        Takvim
+      <button type="button" data-business-panel="menu" class="ds-biz-mgmt-item">
+        <span class="ds-quick-item__icon">📋</span>
+        <span class="ds-quick-item__label">Menü</span>
       </button>
-
-      <button
-        type="button"
-        data-business-panel="booking"
-      >
-        Rezervasyon Ayarları
+      <button type="button" data-business-panel="events" class="ds-biz-mgmt-item">
+        <span class="ds-quick-item__icon">🎉</span>
+        <span class="ds-quick-item__label">Etkinlikler</span>
       </button>
-
-      <button
-        type="button"
-        data-business-panel="venues"
-      >
-        Mekanlar
+      <button type="button" data-business-panel="analytics" class="ds-biz-mgmt-item">
+        <span class="ds-quick-item__icon">📊</span>
+        <span class="ds-quick-item__label">Analitik</span>
       </button>
-
-      <button
-        type="button"
-        data-business-panel="events"
-      >
-        Etkinlikler
-      </button>
-
-      <button
-        type="button"
-        data-business-panel="menu"
-      >
-        Menü
-      </button>
-
-      <a href="./restaurant-menu.html?manage=1">
-        Menü Yönetimi
-      </a>
-
-      <a href="./restaurant-orders.html">
-        Siparişler
-      </a>
-
-      <button
-        type="button"
-        data-business-panel="store"
-      >
-        Mağaza
-      </button>
-
-      <button
-        type="button"
-        data-business-panel="analytics"
-      >
-        Analitik
-      </button>
-
-      <a href="./messages.html">
-        Mesajlar
-      </a>
     </div>
 
-    <section
-      class="business-section dashboard-section dashboard-section--analytics business-mobile-panel"
-      data-panel="analytics"
-    >
-
-      <h2>
-        Analitik
-      </h2>
-
-      <div
-        id="businessAnalyticsGrid"
-        class="business-analytics-grid"
-      >
+    <!-- Analytics Panel (hidden, JS controlled) -->
+    <section class="business-section dashboard-section dashboard-section--analytics business-mobile-panel" data-panel="analytics">
+      <div class="ds-section-hdr" style="padding:16px 20px 10px;">
+        <span class="ds-section-hdr__title">Analitik</span>
       </div>
-
+      <div style="padding:0 16px;">
+        <div id="businessAnalyticsGrid" class="business-analytics-grid"></div>
+      </div>
     </section>
 
-    <section class="business-section dashboard-section">
-
-      <h2>
-        İşletmelerim
-      </h2>
-
-      <div
-        id="businessRecordsList"
-        class="business-list"
-      >
+    <!-- İşletmelerim (always visible, JS populates) -->
+    <section class="business-section">
+      <div class="ds-section-hdr">
+        <span class="ds-section-hdr__title">İşletmelerim</span>
       </div>
-
+      <div id="businessRecordsList" class="business-list" style="padding:0 16px;"></div>
     </section>
 
-    <section
-      class="business-section dashboard-section dashboard-section--forms business-mobile-panel"
-      data-panel="venues"
-    >
-
-      <h2>
-        Mekanlarım
-      </h2>
-
-      <form
-        id="businessVenueForm"
-        class="admin-form"
-      >
-        <input
-          type="hidden"
-          id="businessVenueId"
-        />
-
-        <select
-          id="businessVenueBusinessId"
-          required
-        >
-          <option value="">İşletme Seç</option>
-        </select>
-
-        <input
-          type="text"
-          id="businessVenueName"
-          placeholder="Mekan Adı"
-          required
-        />
-
-        <input
-          type="text"
-          id="businessVenueCity"
-          placeholder="Şehir"
-          required
-        />
-
-        <select
-          id="businessVenueCategory"
-          required
-        >
-          <option value="other">Diğer</option>
-          <option value="night_club">Gece Kulübü</option>
-          <option value="bar">Bar</option>
-          <option value="restaurant">Restoran</option>
-          <option value="cafe">Kafe</option>
-          <option value="beach">Plaj</option>
-          <option value="hotel">Otel</option>
-          <option value="live_music">Canlı Müzik</option>
-          <option value="event_venue">Etkinlik Mekanı</option>
-          <option value="sports_fitness">Spor / Fitness</option>
-          <option value="wellness">Wellness</option>
-        </select>
-
-        <input
-          type="text"
-          id="businessVenueImage"
-          placeholder="Görsel URL"
-        />
-
-        <input
-          type="file"
-          id="businessVenueImageFile"
-          accept="image/*"
-          class="admin-file-input"
-        />
-
-        <textarea
-          id="businessVenueGalleryUrls"
-          placeholder="Galeri fotoğraf URL'leri, her satıra bir tane"
-        ></textarea>
-
-        <input
-          type="file"
-          id="businessVenueGalleryFiles"
-          accept="image/*"
-          multiple
-          class="admin-file-input"
-        />
-
-        <input
-          type="text"
-          id="businessVenueAddress"
-          placeholder="Adres"
-        />
-
-        <input
-          type="number"
-          id="businessVenueLatitude"
-          placeholder="Enlem"
-          step="any"
-        />
-
-        <input
-          type="number"
-          id="businessVenueLongitude"
-          placeholder="Boylam"
-          step="any"
-        />
-
-        <textarea
-          id="businessVenueDescription"
-          placeholder="Açıklama"
-        ></textarea>
-
-        <div class="admin-form-actions">
-          <button
-            type="submit"
-            class="btn"
-          >
-            Kaydet
-          </button>
-
-          <button
-            type="button"
-            id="businessVenueClearBtn"
-            class="secondary-btn"
-          >
-            Temizle
-          </button>
+    <!-- Venues Panel -->
+    <section class="business-section dashboard-section dashboard-section--forms business-mobile-panel" data-panel="venues">
+      <div class="ds-section-hdr">
+        <span class="ds-section-hdr__title">Mekanlarım</span>
+      </div>
+      <div style="padding:0 16px;">
+        <form id="businessVenueForm" class="admin-form">
+          <input type="hidden" id="businessVenueId" />
+          <select id="businessVenueBusinessId" required>
+            <option value="">İşletme Seç</option>
+          </select>
+          <input type="text" id="businessVenueName" placeholder="Mekan Adı" required />
+          <input type="text" id="businessVenueCity" placeholder="Şehir" required />
+          <select id="businessVenueCategory" required>
+            <option value="other">Diğer</option>
+            <option value="night_club">Gece Kulübü</option>
+            <option value="bar">Bar</option>
+            <option value="restaurant">Restoran</option>
+            <option value="cafe">Kafe</option>
+            <option value="beach">Plaj</option>
+            <option value="hotel">Otel</option>
+            <option value="live_music">Canlı Müzik</option>
+            <option value="event_venue">Etkinlik Mekanı</option>
+            <option value="sports_fitness">Spor / Fitness</option>
+            <option value="wellness">Wellness</option>
+          </select>
+          <input type="text" id="businessVenueImage" placeholder="Görsel URL" />
+          <input type="file" id="businessVenueImageFile" accept="image/*" class="admin-file-input" />
+          <textarea id="businessVenueGalleryUrls" placeholder="Galeri fotoğraf URL'leri, her satıra bir tane"></textarea>
+          <input type="file" id="businessVenueGalleryFiles" accept="image/*" multiple class="admin-file-input" />
+          <input type="text" id="businessVenueAddress" placeholder="Adres" />
+          <input type="number" id="businessVenueLatitude" placeholder="Enlem" step="any" />
+          <input type="number" id="businessVenueLongitude" placeholder="Boylam" step="any" />
+          <textarea id="businessVenueDescription" placeholder="Açıklama"></textarea>
+          <div class="admin-form-actions">
+            <button type="submit" class="ds-btn ds-btn--gold">Kaydet</button>
+            <button type="button" id="businessVenueClearBtn" class="ds-btn ds-btn--outline">Temizle</button>
+          </div>
+        </form>
+        <div id="businessVenuesList" class="business-list"></div>
+        <div class="venue-gallery-manager product-gallery-manager" id="venueGalleryManager">
+          <h3 class="product-gallery-heading">Mekan Galerisi (10+ foto)</h3>
+          <select id="vgVenueSelect" class="product-gallery-select">
+            <option value="">— Mekan seç —</option>
+          </select>
+          <div id="vgCurrentPhotos" class="product-gallery-grid"></div>
+          <label class="product-gallery-upload-label">
+            <span>+ Fotoğraf Ekle</span>
+            <input id="vgFileInput" type="file" accept="image/*" multiple class="product-gallery-file-input" />
+          </label>
+          <p id="vgStatus" class="product-gallery-status"></p>
         </div>
-      </form>
-
-      <div
-        id="businessVenuesList"
-        class="business-list"
-      >
       </div>
-
-      <div class="venue-gallery-manager product-gallery-manager" id="venueGalleryManager">
-        <h3 class="product-gallery-heading">Mekan Galerisi (10+ foto)</h3>
-
-        <select id="vgVenueSelect" class="product-gallery-select">
-          <option value="">— Mekan seç —</option>
-        </select>
-
-        <div id="vgCurrentPhotos" class="product-gallery-grid"></div>
-
-        <label class="product-gallery-upload-label">
-          <span>+ Fotoğraf Ekle</span>
-          <input id="vgFileInput" type="file" accept="image/*" multiple class="product-gallery-file-input" />
-        </label>
-
-        <p id="vgStatus" class="product-gallery-status"></p>
-      </div>
-
     </section>
 
-    <section
-      id="businessApplicationSection"
-      class="business-section dashboard-section dashboard-section--forms"
-      hidden
-    >
-
-      <h2>
-        İşletme Başvurusu
-      </h2>
-
-      <form
-        id="businessApplicationForm"
-        class="admin-form"
-      >
-        <input
-          type="text"
-          id="businessApplicationName"
-          placeholder="İşletme Adı"
-          required
-        />
-
-        <select id="businessApplicationCategory">
-          <option value="">Kategori Seç</option>
-          <option value="night_club">Gece Kulübü</option>
-          <option value="bar">Bar</option>
-          <option value="restaurant">Restoran</option>
-          <option value="cafe">Kafe</option>
-          <option value="beach">Plaj</option>
-          <option value="hotel">Otel</option>
-          <option value="live_music">Canlı Müzik</option>
-          <option value="event_venue">Etkinlik Mekanı</option>
-          <option value="sports_fitness">Spor / Fitness</option>
-          <option value="wellness">Wellness</option>
-          <option value="other">Diğer</option>
-        </select>
-
-        <input
-          type="text"
-          id="businessApplicationCity"
-          placeholder="Şehir / Bölge"
-        />
-
-        <input
-          type="tel"
-          id="businessApplicationPhone"
-          placeholder="Telefon"
-        />
-
-        <input
-          type="email"
-          id="businessApplicationEmail"
-          placeholder="E-posta"
-        />
-
-        <input
-          type="text"
-          id="businessApplicationInstagram"
-          placeholder="Instagram"
-        />
-
-        <input
-          type="text"
-          id="businessApplicationAddress"
-          placeholder="Adres"
-        />
-
-        <input
-          type="text"
-          id="businessApplicationImage"
-          placeholder="Kapak fotoğrafı URL"
-        />
-
-        <textarea
-          id="businessApplicationGalleryUrls"
-          placeholder="Galeri fotoğraf URL'leri, her satıra bir tane"
-        ></textarea>
-
-        <input
-          type="text"
-          id="businessApplicationHours"
-          placeholder="Çalışma saatleri"
-        />
-
-        <label class="booking-toggle-field">
-          <input
-            type="checkbox"
-            id="businessApplicationAcceptsReservations"
-          />
-          Rezervasyon kabul ediyor
-        </label>
-
-        <input
-          type="number"
-          id="businessApplicationAveragePrice"
-          placeholder="Ortalama kişi başı fiyat"
-          min="0"
-          step="1"
-        />
-
-        <textarea
-          id="businessApplicationDescription"
-          placeholder="Açıklama"
-          required
-        ></textarea>
-
-        <div class="admin-form-actions">
-          <button
-            type="submit"
-            class="btn"
-          >
-            Başvuruyu Gönder
-          </button>
-        </div>
-      </form>
-
+    <!-- Business Application Section -->
+    <section id="businessApplicationSection" class="business-section dashboard-section dashboard-section--forms" hidden>
+      <div class="ds-section-hdr">
+        <span class="ds-section-hdr__title">İşletme Başvurusu</span>
+      </div>
+      <div style="padding:0 16px;">
+        <form id="businessApplicationForm" class="admin-form">
+          <input type="text" id="businessApplicationName" placeholder="İşletme Adı" required />
+          <select id="businessApplicationCategory">
+            <option value="">Kategori Seç</option>
+            <option value="night_club">Gece Kulübü</option>
+            <option value="bar">Bar</option>
+            <option value="restaurant">Restoran</option>
+            <option value="cafe">Kafe</option>
+            <option value="beach">Plaj</option>
+            <option value="hotel">Otel</option>
+            <option value="live_music">Canlı Müzik</option>
+            <option value="event_venue">Etkinlik Mekanı</option>
+            <option value="sports_fitness">Spor / Fitness</option>
+            <option value="wellness">Wellness</option>
+            <option value="other">Diğer</option>
+          </select>
+          <input type="text" id="businessApplicationCity" placeholder="Şehir / Bölge" />
+          <input type="tel" id="businessApplicationPhone" placeholder="Telefon" />
+          <input type="email" id="businessApplicationEmail" placeholder="E-posta" />
+          <input type="text" id="businessApplicationInstagram" placeholder="Instagram" />
+          <input type="text" id="businessApplicationAddress" placeholder="Adres" />
+          <input type="text" id="businessApplicationImage" placeholder="Kapak fotoğrafı URL" />
+          <textarea id="businessApplicationGalleryUrls" placeholder="Galeri fotoğraf URL'leri, her satıra bir tane"></textarea>
+          <input type="text" id="businessApplicationHours" placeholder="Çalışma saatleri" />
+          <label class="booking-toggle-field">
+            <input type="checkbox" id="businessApplicationAcceptsReservations" />
+            Rezervasyon kabul ediyor
+          </label>
+          <input type="number" id="businessApplicationAveragePrice" placeholder="Ortalama kişi başı fiyat" min="0" step="1" />
+          <textarea id="businessApplicationDescription" placeholder="Açıklama" required></textarea>
+          <div class="admin-form-actions">
+            <button type="submit" class="ds-btn ds-btn--gold">Başvuruyu Gönder</button>
+          </div>
+        </form>
+      </div>
     </section>
 
-    <section
-      class="business-section dashboard-section dashboard-section--forms business-mobile-panel"
-      data-panel="events"
-    >
+    <!-- Events Panel -->
+    <section class="business-section dashboard-section dashboard-section--forms business-mobile-panel" data-panel="events">
+      <div class="ds-section-hdr">
+        <span class="ds-section-hdr__title">Etkinliklerim</span>
+      </div>
+      <div style="padding:0 16px;">
+        <form id="businessEventForm" class="admin-form">
+          <input type="hidden" id="businessEventId" />
+          <select id="businessEventVenueId" required>
+            <option value="">Mekan Seç</option>
+          </select>
+          <input type="text" id="businessEventTitle" placeholder="Etkinlik Başlığı" required />
+          <input type="text" id="businessEventDate" placeholder="Etkinlik Tarihi" />
+          <input type="text" id="businessEventImage" placeholder="Görsel URL" />
+          <input type="file" id="businessEventImageFile" accept="image/*" class="admin-file-input" />
+          <textarea id="businessEventDescription" placeholder="Açıklama"></textarea>
+          <div class="admin-form-actions">
+            <button type="submit" class="ds-btn ds-btn--gold">Kaydet</button>
+            <button type="button" id="businessEventClearBtn" class="ds-btn ds-btn--outline">Temizle</button>
+          </div>
+        </form>
+        <div id="businessEventsList" class="business-list"></div>
+      </div>
+    </section>
 
-      <h2>
-        Etkinliklerim
-      </h2>
-
-      <form
-        id="businessEventForm"
-        class="admin-form"
-      >
-        <input
-          type="hidden"
-          id="businessEventId"
-        />
-
-        <select
-          id="businessEventVenueId"
-          required
-        >
+    <!-- Menu Panel -->
+    <section class="business-section dashboard-section dashboard-section--forms business-mobile-panel" data-panel="menu">
+      <div class="ds-section-hdr">
+        <span class="ds-section-hdr__title">Mekan Menüsü</span>
+      </div>
+      <div style="padding:0 16px;">
+        <p class="reservation-dashboard-copy">Mekanlarından biri için kategori ve ürünleri yönet.</p>
+        <select id="businessMenuVenueSelect">
           <option value="">Mekan Seç</option>
         </select>
-
-        <input
-          type="text"
-          id="businessEventTitle"
-          placeholder="Etkinlik Başlığı"
-          required
-        />
-
-        <input
-          type="text"
-          id="businessEventDate"
-          placeholder="Etkinlik Tarihi"
-        />
-
-        <input
-          type="text"
-          id="businessEventImage"
-          placeholder="Görsel URL"
-        />
-
-        <input
-          type="file"
-          id="businessEventImageFile"
-          accept="image/*"
-          class="admin-file-input"
-        />
-
-        <textarea
-          id="businessEventDescription"
-          placeholder="Açıklama"
-        ></textarea>
-
-        <div class="admin-form-actions">
-          <button
-            type="submit"
-            class="btn"
-          >
-            Kaydet
-          </button>
-
-          <button
-            type="button"
-            id="businessEventClearBtn"
-            class="secondary-btn"
-          >
-            Temizle
-          </button>
-        </div>
-      </form>
-
-      <div
-        id="businessEventsList"
-        class="business-list"
-      >
-      </div>
-
-    </section>
-
-    <section
-      class="business-section dashboard-section dashboard-section--forms business-mobile-panel"
-      data-panel="menu"
-    >
-
-      <h2>
-        Mekan Menüsü
-      </h2>
-
-      <p class="reservation-dashboard-copy">
-        Mekanlarından biri için kategori ve ürünleri yönet.
-      </p>
-
-      <select id="businessMenuVenueSelect">
-        <option value="">Mekan Seç</option>
-      </select>
-
-      <form
-        id="businessMenuCategoryForm"
-        class="admin-form business-menu-form"
-      >
-        <input
-          type="text"
-          id="businessMenuCategoryName"
-          placeholder="Kategori adı"
-          required
-        />
-
-        <input
-          type="number"
-          id="businessMenuCategorySort"
-          placeholder="Sıralama"
-          value="0"
-        />
-
-        <label class="menu-toggle-field">
-          <input
-            type="checkbox"
-            id="businessMenuCategoryActive"
-            checked
-          />
-          Aktif
-        </label>
-
-        <button
-          type="submit"
-          class="btn"
-        >
-          Kategoriyi Kaydet
-        </button>
-      </form>
-
-      <form
-        id="businessMenuItemForm"
-        class="admin-form business-menu-form"
-      >
-        <select id="businessMenuItemCategory">
-          <option value="">Kategori yok</option>
-        </select>
-
-        <input
-          type="text"
-          id="businessMenuItemName"
-          placeholder="Ürün adı"
-          required
-        />
-
-        <textarea
-          id="businessMenuItemDescription"
-          placeholder="Açıklama"
-        ></textarea>
-
-        <input
-          type="number"
-          id="businessMenuItemPrice"
-          placeholder="Fiyat"
-          step="0.01"
-          min="0"
-        />
-
-        <input
-          type="text"
-          id="businessMenuItemCurrency"
-          placeholder="Para birimi"
-          value="TRY"
-        />
-
-        <input
-          type="text"
-          id="businessMenuItemImage"
-          placeholder="Görsel URL"
-        />
-
-        <input
-          type="file"
-          id="businessMenuItemImageFile"
-          accept="image/*"
-          class="admin-file-input"
-        />
-
-        <input
-          type="number"
-          id="businessMenuItemSort"
-          placeholder="Sıralama"
-          value="0"
-        />
-
-        <label class="menu-toggle-field">
-          <input
-            type="checkbox"
-            id="businessMenuItemAvailable"
-            checked
-          />
-          Mevcut
-        </label>
-
-        <button
-          type="submit"
-          class="btn"
-        >
-          Ürünü Kaydet
-        </button>
-      </form>
-
-      <div
-        id="businessVenueMenuList"
-        class="business-menu-list"
-      >
-      </div>
-
-    </section>
-
-    <section
-      class="business-section dashboard-section dashboard-section--forms business-mobile-panel"
-      data-panel="store"
-    >
-
-      <h2>
-        Mekan Mağazası
-      </h2>
-
-      <p class="reservation-dashboard-copy">
-        Mekanlarından biri için ürün kategorilerini ve ürünlerini yönet.
-      </p>
-
-      <select id="businessStoreVenueSelect">
-        <option value="">Mekan Seç</option>
-      </select>
-
-      <form
-        id="businessProductCategoryForm"
-        class="admin-form business-store-form"
-      >
-        <input
-          type="text"
-          id="businessProductCategoryName"
-          placeholder="Kategori adı"
-          required
-        />
-
-        <input
-          type="number"
-          id="businessProductCategorySort"
-          placeholder="Sıralama"
-          value="0"
-        />
-
-        <label class="menu-toggle-field">
-          <input
-            type="checkbox"
-            id="businessProductCategoryActive"
-            checked
-          />
-          Aktif
-        </label>
-
-        <button
-          type="submit"
-          class="btn"
-        >
-          Kategoriyi Kaydet
-        </button>
-      </form>
-
-      <form
-        id="businessProductForm"
-        class="admin-form business-store-form"
-      >
-        <select id="businessProductCategory">
-          <option value="">Kategori yok</option>
-        </select>
-
-        <input
-          type="text"
-          id="businessProductName"
-          placeholder="Ürün adı"
-          required
-        />
-
-        <textarea
-          id="businessProductDescription"
-          placeholder="Açıklama"
-        ></textarea>
-
-        <input
-          type="number"
-          id="businessProductPrice"
-          placeholder="Fiyat"
-          step="0.01"
-          min="0"
-        />
-
-        <input
-          type="text"
-          id="businessProductCurrency"
-          placeholder="Para birimi"
-          value="TRY"
-        />
-
-        <input
-          type="text"
-          id="businessProductImage"
-          placeholder="Görsel URL"
-        />
-
-        <input
-          type="file"
-          id="businessProductImageFile"
-          accept="image/*"
-          class="admin-file-input"
-        />
-
-        <input
-          type="number"
-          id="businessProductStock"
-          placeholder="Stok adedi"
-        />
-
-        <input
-          type="number"
-          id="businessProductSort"
-          placeholder="Sıralama"
-          value="0"
-        />
-
-        <label class="menu-toggle-field">
-          <input
-            type="checkbox"
-            id="businessProductActive"
-            checked
-          />
-          Aktif
-        </label>
-
-        <button
-          type="submit"
-          class="btn"
-        >
-          Ürünü Kaydet
-        </button>
-      </form>
-
-      <div
-        id="businessVenueProductsList"
-        class="business-menu-list business-store-list"
-      >
-      </div>
-
-      <!-- ── Ürün Fotoğrafları ── -->
-      <div class="product-gallery-manager" id="productGalleryManager">
-        <h3 class="product-gallery-heading">Ürün Fotoğrafları</h3>
-
-        <select id="pgProductSelect" class="product-gallery-select">
-          <option value="">— Ürün seç —</option>
-        </select>
-
-        <div id="pgCurrentPhotos" class="product-gallery-grid"></div>
-
-        <label class="product-gallery-upload-label" id="pgUploadLabel">
-          <span>+ Fotoğraf Ekle</span>
-          <input
-            id="pgFileInput"
-            type="file"
-            accept="image/*"
-            multiple
-            class="product-gallery-file-input"
-          />
-        </label>
-
-        <p id="pgStatus" class="product-gallery-status"></p>
-      </div>
-
-    </section>
-
-    <section
-      class="business-section dashboard-section dashboard-section--reservation-schedule business-mobile-panel"
-      data-panel="calendar"
-    >
-
-      <h2>
-        Rezervasyon Takvimi
-      </h2>
-
-      <p class="reservation-dashboard-copy">
-        Önümüzdeki yedi gün için onaylı rezervasyonları gün, saat ve mekana göre görüntüle.
-      </p>
-
-      <p class="reservation-calendar-helper">
-        Haftayı görüntülemek için yana kaydır.
-      </p>
-
-      <div
-        id="businessReservationSchedule"
-        class="business-reservation-schedule"
-      >
-        <div class="empty-state">
-          <h2>
-            Bu hafta henüz onaylı rezervasyon yok.
-          </h2>
-        </div>
-      </div>
-
-    </section>
-
-    <section
-      class="business-section dashboard-section dashboard-section--booking-settings business-mobile-panel"
-      data-panel="booking"
-    >
-
-      <h2>
-        Rezervasyon Ayarları
-      </h2>
-
-      <p class="reservation-dashboard-copy">
-        Seçili mekan için rezervasyon saatlerini, kapasiteyi, onay davranışını ve kapalı tarihleri yönet.
-      </p>
-
-      <div class="booking-settings-venue">
-        <label for="businessBookingVenueSelect">
-          Mekan
-        </label>
-        <select id="businessBookingVenueSelect">
-          <option value="">
-            Mekan Seç
-          </option>
-        </select>
-      </div>
-
-      <div
-        id="businessBookingSettingsStatus"
-        class="booking-settings-status"
-        aria-live="polite"
-      >
-      </div>
-
-      <form
-        id="businessBookingSettingsForm"
-        class="booking-settings-form"
-      >
-        <div class="booking-settings-block">
-          <h3>
-            Çalışma Saatleri
-          </h3>
-
-          <div
-            id="businessOperatingHoursRows"
-            class="booking-hours-list"
-          >
-          </div>
-        </div>
-
-        <div class="booking-settings-block">
-          <h3>
-            Rezervasyon Kuralları
-          </h3>
-
-          <div class="booking-rules-grid">
-            <label>
-              Slot dakikası
-              <input
-                type="number"
-                id="businessSlotMinutes"
-                min="5"
-                step="5"
-                value="60"
-              >
-            </label>
-
-            <label>
-              Slot başına maksimum rezervasyon
-              <input
-                type="number"
-                id="businessMaxReservationsPerSlot"
-                min="1"
-                value="10"
-              >
-            </label>
-
-            <label>
-              Slot başına maksimum misafir
-              <input
-                type="number"
-                id="businessMaxGuestsPerSlot"
-                min="1"
-                placeholder="Opsiyonel"
-              >
-            </label>
-
-            <label>
-              Minimum bildirim dakikası
-              <input
-                type="number"
-                id="businessMinNoticeMinutes"
-                min="0"
-                step="15"
-                value="60"
-              >
-            </label>
-
-            <label class="booking-toggle-field">
-              <input
-                type="checkbox"
-                id="businessAllowMultipleReservations"
-                checked
-              >
-              Birden fazla rezervasyona izin ver
-            </label>
-
-            <label class="booking-toggle-field">
-              <input
-                type="checkbox"
-                id="businessAutoApprove"
-              >
-              Rezervasyonları otomatik onayla
-            </label>
-          </div>
-        </div>
-
-        <div class="booking-settings-actions">
-          <button type="submit" class="btn">
-            Rezervasyon Ayarlarını Kaydet
-          </button>
-
-          <button
-            type="button"
-            id="businessBookingSettingsRefreshBtn"
-            class="secondary-btn"
-          >
-            Yenile
-          </button>
-        </div>
-      </form>
-
-      <div class="booking-settings-block booking-blackout-block">
-        <h3>
-          Kapalı Tarihler
-        </h3>
-
-        <form
-          id="businessBlackoutDateForm"
-          class="booking-blackout-form"
-        >
-          <label>
-            Tarih
-            <input
-              type="date"
-              id="businessBlackoutDate"
-            >
+        <form id="businessMenuCategoryForm" class="admin-form business-menu-form">
+          <input type="text" id="businessMenuCategoryName" placeholder="Kategori adı" required />
+          <input type="number" id="businessMenuCategorySort" placeholder="Sıralama" value="0" />
+          <label class="menu-toggle-field">
+            <input type="checkbox" id="businessMenuCategoryActive" checked />Aktif
           </label>
-
-          <label>
-            Sebep
-            <input
-              type="text"
-              id="businessBlackoutReason"
-              placeholder="Özel etkinlik, tatil..."
-            >
-          </label>
-
-          <button type="submit" class="secondary-btn">
-            Ekle
-          </button>
+          <button type="submit" class="ds-btn ds-btn--gold">Kategoriyi Kaydet</button>
         </form>
+        <form id="businessMenuItemForm" class="admin-form business-menu-form">
+          <select id="businessMenuItemCategory">
+            <option value="">Kategori yok</option>
+          </select>
+          <input type="text" id="businessMenuItemName" placeholder="Ürün adı" required />
+          <textarea id="businessMenuItemDescription" placeholder="Açıklama"></textarea>
+          <input type="number" id="businessMenuItemPrice" placeholder="Fiyat" step="0.01" min="0" />
+          <input type="text" id="businessMenuItemCurrency" placeholder="Para birimi" value="TRY" />
+          <input type="text" id="businessMenuItemImage" placeholder="Görsel URL" />
+          <input type="file" id="businessMenuItemImageFile" accept="image/*" class="admin-file-input" />
+          <input type="number" id="businessMenuItemSort" placeholder="Sıralama" value="0" />
+          <label class="menu-toggle-field">
+            <input type="checkbox" id="businessMenuItemAvailable" checked />Mevcut
+          </label>
+          <button type="submit" class="ds-btn ds-btn--gold">Ürünü Kaydet</button>
+        </form>
+        <div id="businessVenueMenuList" class="business-menu-list"></div>
+      </div>
+    </section>
 
-        <div
-          id="businessBlackoutDatesList"
-          class="booking-blackout-list"
-        >
+    <!-- Store Panel -->
+    <section class="business-section dashboard-section dashboard-section--forms business-mobile-panel" data-panel="store">
+      <div class="ds-section-hdr">
+        <span class="ds-section-hdr__title">Mekan Mağazası</span>
+      </div>
+      <div style="padding:0 16px;">
+        <p class="reservation-dashboard-copy">Mekanlarından biri için ürün kategorilerini ve ürünlerini yönet.</p>
+        <select id="businessStoreVenueSelect">
+          <option value="">Mekan Seç</option>
+        </select>
+        <form id="businessProductCategoryForm" class="admin-form business-store-form">
+          <input type="text" id="businessProductCategoryName" placeholder="Kategori adı" required />
+          <input type="number" id="businessProductCategorySort" placeholder="Sıralama" value="0" />
+          <label class="menu-toggle-field">
+            <input type="checkbox" id="businessProductCategoryActive" checked />Aktif
+          </label>
+          <button type="submit" class="ds-btn ds-btn--gold">Kategoriyi Kaydet</button>
+        </form>
+        <form id="businessProductForm" class="admin-form business-store-form">
+          <select id="businessProductCategory">
+            <option value="">Kategori yok</option>
+          </select>
+          <input type="text" id="businessProductName" placeholder="Ürün adı" required />
+          <textarea id="businessProductDescription" placeholder="Açıklama"></textarea>
+          <input type="number" id="businessProductPrice" placeholder="Fiyat" step="0.01" min="0" />
+          <input type="text" id="businessProductCurrency" placeholder="Para birimi" value="TRY" />
+          <input type="text" id="businessProductImage" placeholder="Görsel URL" />
+          <input type="file" id="businessProductImageFile" accept="image/*" class="admin-file-input" />
+          <input type="number" id="businessProductStock" placeholder="Stok adedi" />
+          <input type="number" id="businessProductSort" placeholder="Sıralama" value="0" />
+          <label class="menu-toggle-field">
+            <input type="checkbox" id="businessProductActive" checked />Aktif
+          </label>
+          <button type="submit" class="ds-btn ds-btn--gold">Ürünü Kaydet</button>
+        </form>
+        <div id="businessVenueProductsList" class="business-menu-list business-store-list"></div>
+        <div class="product-gallery-manager" id="productGalleryManager">
+          <h3 class="product-gallery-heading">Ürün Fotoğrafları</h3>
+          <select id="pgProductSelect" class="product-gallery-select">
+            <option value="">— Ürün seç —</option>
+          </select>
+          <div id="pgCurrentPhotos" class="product-gallery-grid"></div>
+          <label class="product-gallery-upload-label" id="pgUploadLabel">
+            <span>+ Fotoğraf Ekle</span>
+            <input id="pgFileInput" type="file" accept="image/*" multiple class="product-gallery-file-input" />
+          </label>
+          <p id="pgStatus" class="product-gallery-status"></p>
         </div>
       </div>
-
     </section>
 
-    <section
-      class="business-section dashboard-section dashboard-section--reservations business-mobile-panel is-open"
-      data-panel="reservations"
-    >
-
-      <h2>
-        Rezervasyonlar
-      </h2>
-
-      <p class="reservation-dashboard-copy">
-        Talepleri incele, durumları güncelle ve misafir konuşmalarını tek bir rezervasyon kuyruğundan aç.
-      </p>
-
-      <div
-        id="businessReservationsList"
-        class="business-list"
-      >
+    <!-- Calendar Panel -->
+    <section class="business-section dashboard-section dashboard-section--reservation-schedule business-mobile-panel" data-panel="calendar">
+      <div class="ds-section-hdr">
+        <span class="ds-section-hdr__title">Rezervasyon Takvimi</span>
       </div>
-
+      <div style="padding:0 16px;">
+        <p class="reservation-dashboard-copy">Önümüzdeki yedi gün için onaylı rezervasyonları gün, saat ve mekana göre görüntüle.</p>
+        <p class="reservation-calendar-helper">Haftayı görüntülemek için yana kaydır.</p>
+        <div id="businessReservationSchedule" class="business-reservation-schedule">
+          <div class="empty-state"><h2>Bu hafta henüz onaylı rezervasyon yok.</h2></div>
+        </div>
+      </div>
     </section>
 
-    <div class="business-scroll-top-wrap">
-      <button
-        type="button"
-        class="scroll-top-btn"
-        onclick="window.scrollTo({top:0,behavior:'smooth'})"
-      >
-        ↑ Yukarı Çık
-      </button>
+    <!-- Booking Settings Panel -->
+    <section class="business-section dashboard-section dashboard-section--booking-settings business-mobile-panel" data-panel="booking">
+      <div class="ds-section-hdr">
+        <span class="ds-section-hdr__title">Rezervasyon Ayarları</span>
+      </div>
+      <div style="padding:0 16px;">
+        <p class="reservation-dashboard-copy">Seçili mekan için rezervasyon saatlerini, kapasiteyi, onay davranışını ve kapalı tarihleri yönet.</p>
+        <div class="booking-settings-venue">
+          <label for="businessBookingVenueSelect">Mekan</label>
+          <select id="businessBookingVenueSelect">
+            <option value="">Mekan Seç</option>
+          </select>
+        </div>
+        <div id="businessBookingSettingsStatus" class="booking-settings-status" aria-live="polite"></div>
+        <form id="businessBookingSettingsForm" class="booking-settings-form">
+          <div class="booking-settings-block">
+            <h3>Çalışma Saatleri</h3>
+            <div id="businessOperatingHoursRows" class="booking-hours-list"></div>
+          </div>
+          <div class="booking-settings-block">
+            <h3>Rezervasyon Kuralları</h3>
+            <div class="booking-rules-grid">
+              <label>Slot dakikası<input type="number" id="businessSlotMinutes" min="5" step="5" value="60"></label>
+              <label>Slot başına maksimum rezervasyon<input type="number" id="businessMaxReservationsPerSlot" min="1" value="10"></label>
+              <label>Slot başına maksimum misafir<input type="number" id="businessMaxGuestsPerSlot" min="1" placeholder="Opsiyonel"></label>
+              <label>Minimum bildirim dakikası<input type="number" id="businessMinNoticeMinutes" min="0" step="15" value="60"></label>
+              <label class="booking-toggle-field">
+                <input type="checkbox" id="businessAllowMultipleReservations" checked>
+                Birden fazla rezervasyona izin ver
+              </label>
+              <label class="booking-toggle-field">
+                <input type="checkbox" id="businessAutoApprove">
+                Rezervasyonları otomatik onayla
+              </label>
+            </div>
+          </div>
+          <div class="booking-settings-actions">
+            <button type="submit" class="ds-btn ds-btn--gold">Rezervasyon Ayarlarını Kaydet</button>
+            <button type="button" id="businessBookingSettingsRefreshBtn" class="ds-btn ds-btn--outline">Yenile</button>
+          </div>
+        </form>
+        <div class="booking-settings-block booking-blackout-block">
+          <h3>Kapalı Tarihler</h3>
+          <form id="businessBlackoutDateForm" class="booking-blackout-form">
+            <label>Tarih<input type="date" id="businessBlackoutDate"></label>
+            <label>Sebep<input type="text" id="businessBlackoutReason" placeholder="Özel etkinlik, tatil..."></label>
+            <button type="submit" class="ds-btn ds-btn--outline-gold">Ekle</button>
+          </form>
+          <div id="businessBlackoutDatesList" class="booking-blackout-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Reservations Panel -->
+    <section class="business-section dashboard-section dashboard-section--reservations business-mobile-panel" data-panel="reservations">
+      <div class="ds-section-hdr">
+        <span class="ds-section-hdr__title">Rezervasyonlar</span>
+      </div>
+      <div style="padding:0 16px 8px;">
+        <p class="reservation-dashboard-copy" style="font-size:0.82rem;color:rgba(255,255,255,0.45);margin-bottom:12px;">Talepleri incele, durumları güncelle ve misafir konuşmalarını aç.</p>
+        <div id="businessReservationsList" class="business-list"></div>
+      </div>
+    </section>
+
+    <!-- Quick Links -->
+    <div class="ds-settings-section" style="margin-top:8px;">
+      <span class="ds-settings-title">Hızlı Erişim</span>
+      <a href="./restaurant-orders.html" class="ds-settings-item">
+        <span class="ds-settings-item__icon">🍽</span>
+        <span class="ds-settings-item__body">
+          <span class="ds-settings-item__label">Restoran Siparişleri</span>
+        </span>
+        <span class="ds-settings-item__arrow">›</span>
+      </a>
+      <a href="./restaurant-menu.html?manage=1" class="ds-settings-item">
+        <span class="ds-settings-item__icon">📋</span>
+        <span class="ds-settings-item__body">
+          <span class="ds-settings-item__label">Menü Yönetimi</span>
+        </span>
+        <span class="ds-settings-item__arrow">›</span>
+      </a>
+      <a href="./messages.html" class="ds-settings-item">
+        <span class="ds-settings-item__icon">💬</span>
+        <span class="ds-settings-item__body">
+          <span class="ds-settings-item__label">Mesajlar</span>
+        </span>
+        <span class="ds-settings-item__arrow">›</span>
+      </a>
     </div>
 
+    <div class="ds-spacer-lg"></div>
   </main>
 
-  <nav
-    class="mobile-bottom-nav"
-    aria-label="Birincil mobil navigasyon"
-  >
+  <!-- ── Bottom Navigation ───────────────────────────────── -->
+  <nav class="ds-bottom-nav mobile-bottom-nav" aria-label="Ana navigasyon">
     <a href="./index.html" data-nav-page="index.html">
       <span aria-hidden="true">⌂</span>
-      Ana Sayfa
+      <span>Ana Sayfa</span>
     </a>
-
     <a href="./discover.html" data-nav-page="discover.html">
       <span aria-hidden="true">⌕</span>
-      Keşfet
+      <span>Keşfet</span>
     </a>
-
     <a href="./store.html" data-nav-page="store.html">
       <span aria-hidden="true">◈</span>
-      Mağaza
+      <span>Mağaza</span>
     </a>
-
     <a href="./messages.html" data-nav-page="messages.html">
       <span aria-hidden="true">♡</span>
-      Mesajlar
+      <span>Mesajlar</span>
     </a>
-
     <a href="./profile.html" data-nav-page="profile.html">
       <span aria-hidden="true">◉</span>
-      Profil
+      <span>Profil</span>
     </a>
-
   </nav>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-
   <script src="./js/app.js"></script>
-
-<script>
-(function () {
-  /* Sections open by default */
-  var autoOpen = ['dashboard-section--analytics', 'dashboard-section--reservations'];
-
-  document.querySelectorAll('.dashboard-section').forEach(function (sec) {
-    var h2 = sec.querySelector(':scope > h2');
-    if (!h2) return;
-
-    /* Chevron */
-    var chev = document.createElement('span');
-    chev.className = 'section-chevron';
-    chev.setAttribute('aria-hidden', 'true');
-    chev.textContent = '›';
-    h2.appendChild(chev);
-
-    /* Build section-body wrapper */
-    var body  = document.createElement('div');
-    body.className = 'section-body';
-    var inner = document.createElement('div');
-    inner.className = 'section-body-inner';
-    body.appendChild(inner);
-
-    /* Move all DOM nodes after h2 into inner */
-    var toMove = [], n = h2.nextSibling;
-    while (n) { toMove.push(n); n = n.nextSibling; }
-    toMove.forEach(function (node) { inner.appendChild(node); });
-    sec.appendChild(body);
-
-    /* Default open? */
-    if (autoOpen.some(function (c) { return sec.classList.contains(c); })) {
-      sec.classList.add('is-expanded');
-    }
-
-    h2.addEventListener('click', function () { sec.classList.toggle('is-expanded'); });
-  });
-})();
-</script>
-
   <div id="toast" class="toast"></div>
 
 <script>
-/* ── Ürün Galeri Yöneticisi (app.js'e dokunmadan) ── */
+/* ── Ürün Galeri Yöneticisi ── */
 (function () {
   var productSelect = document.getElementById('pgProductSelect');
   var currentPhotos = document.getElementById('pgCurrentPhotos');
@@ -1224,24 +469,19 @@
     status.style.color = isErr ? 'rgba(220,80,60,0.80)' : 'rgba(240,192,96,0.70)';
   }
 
-  /* products listesini doldur: store section'ındaki seçili venue_id'ye göre */
   async function populateProductSelect() {
     if (!productSelect) return;
     var venueSelect = document.getElementById('businessStoreVenueSelect');
     var venueId = venueSelect ? venueSelect.value : '';
-
     productSelect.innerHTML = '<option value="">— Ürün seç —</option>';
     currentPhotos.innerHTML = '';
-
     if (!venueId) { setStatus('Önce yukarıdan mekan seçin.'); return; }
-
     var { data, error } = await supabaseClient
       .from('venue_products')
       .select('id, name')
       .eq('venue_id', venueId)
       .eq('is_active', true)
       .order('sort_order', { ascending: true });
-
     if (error || !data) return;
     data.forEach(function (p) {
       var opt = document.createElement('option');
@@ -1251,21 +491,17 @@
     });
   }
 
-  /* seçili ürünün mevcut galeri fotoğraflarını listele */
   async function loadGallery(productId) {
     currentPhotos.innerHTML = '';
     if (!productId) return;
-
     var { data, error } = await supabaseClient
       .from('venue_product_images')
       .select('id, image_url, sort_order')
       .eq('product_id', productId)
       .order('sort_order', { ascending: true })
       .order('created_at', { ascending: true });
-
     if (error) { setStatus('Fotoğraflar yüklenemedi.', true); return; }
     if (!data || data.length === 0) { setStatus('Henüz ek fotoğraf yok.'); return; }
-
     setStatus('');
     data.forEach(function (img) {
       var wrap = document.createElement('div');
@@ -1275,14 +511,10 @@
         '<button class="pg-delete-btn" data-id="' + img.id + '" type="button" aria-label="Sil">✕</button>';
       currentPhotos.appendChild(wrap);
     });
-
     currentPhotos.querySelectorAll('.pg-delete-btn').forEach(function (btn) {
       btn.addEventListener('click', async function () {
         btn.disabled = true;
-        var { error } = await supabaseClient
-          .from('venue_product_images')
-          .delete()
-          .eq('id', btn.dataset.id);
+        var { error } = await supabaseClient.from('venue_product_images').delete().eq('id', btn.dataset.id);
         if (error) { setStatus('Silinemedi.', true); btn.disabled = false; return; }
         btn.closest('.pg-thumb').remove();
         setStatus('Silindi.');
@@ -1290,215 +522,34 @@
     });
   }
 
-  /* dosya yükleme */
   async function uploadFiles(files, productId) {
     if (!files || files.length === 0 || !productId) return;
     setStatus('Yükleniyor…');
-
     var { data: { session } } = await supabaseClient.auth.getSession();
     if (!session) { setStatus('Oturum açık değil.', true); return; }
-
     var success = 0;
     for (var i = 0; i < files.length; i++) {
       var file = files[i];
       var ext  = file.name.split('.').pop();
       var path = 'venues/' + productId + '_' + Date.now() + '_' + i + '.' + ext;
-
-      var { data: upload, error: upErr } = await supabaseClient.storage
-        .from(BUCKET)
-        .upload(path, file, { upsert: false });
-
+      var { data: upload, error: upErr } = await supabaseClient.storage.from(BUCKET).upload(path, file, { upsert: false });
       if (upErr) { setStatus('Yükleme hatası: ' + upErr.message, true); continue; }
-
       var { data: pub } = supabaseClient.storage.from(BUCKET).getPublicUrl(path);
       var publicUrl = pub && pub.publicUrl ? pub.publicUrl : '';
       if (!publicUrl) continue;
-
-      var { error: insErr } = await supabaseClient
-        .from('venue_product_images')
-        .insert([{ product_id: productId, image_url: publicUrl, sort_order: i }]);
-
+      var { error: insErr } = await supabaseClient.from('venue_product_images').insert([{ product_id: productId, image_url: publicUrl, sort_order: i }]);
       if (insErr) { setStatus('Kayıt hatası: ' + insErr.message, true); continue; }
       success++;
     }
-
     fileInput.value = '';
     setStatus(success + ' fotoğraf eklendi.');
     await loadGallery(productId);
   }
 
-  /* event binding */
   var venueSelect = document.getElementById('businessStoreVenueSelect');
-  if (venueSelect) {
-    venueSelect.addEventListener('change', populateProductSelect);
-  }
-
-  productSelect.addEventListener('change', function () {
-    loadGallery(productSelect.value);
-  });
-
-  fileInput.addEventListener('change', function () {
-    uploadFiles(Array.from(fileInput.files), productSelect.value);
-  });
-
-  /* venue store section açıldığında otomatik doldur */
-  var storeSection = document.querySelector('[data-panel="store"] #businessStoreVenueSelect');
-  if (!storeSection && venueSelect) {
-    venueSelect.addEventListener('change', populateProductSelect);
-  }
-})();
-</script>
-
-<script>
-/* Mekan galeri yöneticisi (venue_photos) */
-(function () {
-  var venueSelect = document.getElementById('vgVenueSelect');
-  var currentPhotos = document.getElementById('vgCurrentPhotos');
-  var fileInput = document.getElementById('vgFileInput');
-  var status = document.getElementById('vgStatus');
-  var manager = document.getElementById('venueGalleryManager');
-  var BUCKET = 'tanidik-images';
-
-  if (!manager) return;
-
-  function setStatus(msg, isErr) {
-    status.textContent = msg;
-    status.style.color = isErr ? 'rgba(220,80,60,0.80)' : 'rgba(240,192,96,0.70)';
-  }
-
-  async function populateVenueSelect() {
-    if (!venueSelect) return;
-    var { data: { session } } = await supabaseClient.auth.getSession();
-    if (!session) return;
-
-    var { data: businesses } = await supabaseClient
-      .from('businesses')
-      .select('id')
-      .eq('owner_id', session.user.id)
-      .in('status', ['approved', 'active', 'verified']);
-
-    var businessIds = (businesses || []).map(function (b) { return b.id; });
-    venueSelect.innerHTML = '<option value="">— Mekan seç —</option>';
-    currentPhotos.innerHTML = '';
-
-    if (!businessIds.length) {
-      setStatus('Onaylı işletme gerekli.');
-      return;
-    }
-
-    var { data: venues } = await supabaseClient
-      .from('venues')
-      .select('id, name')
-      .in('business_id', businessIds)
-      .order('name');
-
-    (venues || []).forEach(function (v) {
-      var opt = document.createElement('option');
-      opt.value = v.id;
-      opt.textContent = v.name;
-      venueSelect.appendChild(opt);
-    });
-  }
-
-  async function loadGallery(venueId) {
-    currentPhotos.innerHTML = '';
-    if (!venueId) return;
-
-    var { data, error } = await supabaseClient
-      .from('venue_photos')
-      .select('id, image_url, sort_order')
-      .eq('venue_id', venueId)
-      .order('sort_order', { ascending: true })
-      .order('created_at', { ascending: true });
-
-    if (error) { setStatus('Fotoğraflar yüklenemedi.', true); return; }
-    if (!data || !data.length) { setStatus('Henüz galeri fotoğrafı yok.'); return; }
-
-    setStatus(data.length + ' fotoğraf');
-    data.forEach(function (img, index) {
-      var wrap = document.createElement('div');
-      wrap.className = 'pg-thumb vg-thumb';
-      wrap.innerHTML =
-        '<img src="' + img.image_url + '" alt="" loading="lazy" />' +
-        '<div class="vg-reorder">' +
-        '<button type="button" class="secondary-btn" data-move="up" data-id="' + img.id + '" data-idx="' + index + '">↑</button>' +
-        '<button type="button" class="secondary-btn" data-move="down" data-id="' + img.id + '" data-idx="' + index + '">↓</button>' +
-        '</div>' +
-        '<button class="pg-delete-btn" data-id="' + img.id + '" type="button" aria-label="Sil">✕</button>';
-      currentPhotos.appendChild(wrap);
-    });
-
-    currentPhotos.querySelectorAll('.pg-delete-btn').forEach(function (btn) {
-      btn.addEventListener('click', async function () {
-        await supabaseClient.from('venue_photos').delete().eq('id', btn.dataset.id);
-        loadGallery(venueSelect.value);
-      });
-    });
-
-    currentPhotos.querySelectorAll('[data-move]').forEach(function (btn) {
-      btn.addEventListener('click', async function () {
-        var idx = Number(btn.dataset.idx);
-        var dir = btn.dataset.move;
-        var next = dir === 'up' ? idx - 1 : idx + 1;
-        if (next < 0 || next >= data.length) return;
-        var swapped = data.slice();
-        var tmp = swapped[idx];
-        swapped[idx] = swapped[next];
-        swapped[next] = tmp;
-        for (var i = 0; i < swapped.length; i++) {
-          await supabaseClient.from('venue_photos').update({ sort_order: i }).eq('id', swapped[i].id);
-        }
-        loadGallery(venueSelect.value);
-      });
-    });
-  }
-
-  async function uploadFiles(files, venueId) {
-    if (!files || !files.length || !venueId) return;
-    setStatus('Yükleniyor…');
-    var { data: existing } = await supabaseClient
-      .from('venue_photos')
-      .select('id', { count: 'exact', head: true })
-      .eq('venue_id', venueId);
-    var baseOrder = existing ? 0 : 0;
-    var { count } = await supabaseClient
-      .from('venue_photos')
-      .select('*', { count: 'exact', head: true })
-      .eq('venue_id', venueId);
-    var start = count || 0;
-
-    for (var i = 0; i < files.length; i++) {
-      var file = files[i];
-      var ext = file.name.split('.').pop();
-      var path = 'venues/' + venueId + '/gallery_' + Date.now() + '_' + i + '.' + ext;
-      var { error: upErr } = await supabaseClient.storage.from(BUCKET).upload(path, file);
-      if (upErr) { setStatus(upErr.message, true); continue; }
-      var { data: pub } = supabaseClient.storage.from(BUCKET).getPublicUrl(path);
-      await supabaseClient.from('venue_photos').insert({
-        venue_id: Number(venueId),
-        image_url: pub.publicUrl,
-        sort_order: start + i
-      });
-    }
-    setStatus('Yüklendi.');
-    loadGallery(venueId);
-  }
-
-  if (venueSelect) {
-    venueSelect.addEventListener('change', function () {
-      loadGallery(venueSelect.value);
-    });
-  }
-
-  if (fileInput) {
-    fileInput.addEventListener('change', function () {
-      uploadFiles(fileInput.files, venueSelect.value);
-      fileInput.value = '';
-    });
-  }
-
-  populateVenueSelect();
-  setInterval(populateVenueSelect, 15000);
+  if (venueSelect) venueSelect.addEventListener('change', populateProductSelect);
+  productSelect.addEventListener('change', function () { loadGallery(productSelect.value); });
+  fileInput.addEventListener('change', function () { uploadFiles(Array.from(fileInput.files), productSelect.value); });
 })();
 </script>
 

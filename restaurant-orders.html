@@ -4,38 +4,101 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Restoran Siparişleri | TANIDIK</title>
-  <meta name="theme-color" content="#050505" />
+  <title>Restoran Paneli | TANIDIK</title>
+  <meta name="theme-color" content="#050608" />
   <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="./css/style.css" />
   <link rel="stylesheet" href="./css/courier-dispatch.css" />
+  <link rel="stylesheet" href="./css/design-system.css" />
 </head>
 
 <body>
-  <nav class="navbar">
-    <h1>TANIDIK</h1>
-    <button class="nav-toggle" type="button" aria-label="Menü" aria-expanded="false">Menü</button>
-    <div class="nav-links">
-      <a href="./business.html">İşletme Paneli</a>
-      <a href="./profile.html" id="authLink">Profil</a>
+
+  <!-- ── Top Bar ─────────────────────────────────────────── -->
+  <header class="ds-top-bar">
+    <a href="./business.html" class="ds-top-bar__back" aria-label="Geri">‹</a>
+    <span class="ds-top-bar__title" id="restaurantPanelTitle">Restoran Paneli</span>
+    <div style="width:40px;"></div>
+  </header>
+
+  <!-- ── Main ───────────────────────────────────────────── -->
+  <main id="restaurantOrdersPage" class="business-page order-page ds-scroll-content">
+
+    <!-- Restaurant Header -->
+    <div class="ds-restaurant-hdr">
+      <div class="ds-avatar-wrap ds-avatar-wrap--ring" style="margin-bottom:8px;">
+        <div class="ds-avatar ds-avatar--lg" id="restaurantPanelAvatar" aria-hidden="true">🍽</div>
+      </div>
+      <p class="ds-restaurant-hdr__name" id="restaurantPanelName">Restoran Paneli</p>
+      <a href="./business.html" class="ds-restaurant-hdr__link">İşletme Paneline Git ›</a>
     </div>
-  </nav>
 
-  <main id="restaurantOrdersPage" class="business-page order-page">
-    <header class="dashboard-header dashboard-header--business">
-      <span class="dashboard-kicker">İşletme</span>
-      <h1>Restoran Siparişleri</h1>
-      <p class="page-message">Gelen siparişleri kabul edin ve hazırlık durumunu güncelleyin.</p>
+    <!-- Live Badge -->
+    <div style="display:flex;justify-content:center;margin-bottom:12px;">
       <span id="restaurantOrdersLiveBadge" class="fulfillment-live-badge" hidden aria-live="polite">Bağlanıyor…</span>
-      <a href="./business.html" class="secondary-btn">← İşletme Paneli</a>
-    </header>
+    </div>
 
-    <section class="dashboard-section">
-      <label class="order-filter-label" for="restaurantOrdersVenueFilter">Mekan</label>
-      <select id="restaurantOrdersVenueFilter" class="order-select"></select>
-      <div id="restaurantOrdersList" class="order-list" aria-live="polite"></div>
+    <!-- Stats Strip -->
+    <div class="ds-stat-strip" id="restaurantStatsStrip">
+      <div class="ds-stat-cell">
+        <span class="ds-stat-cell__value" id="restaurantStatOrders">—</span>
+        <span class="ds-stat-cell__label">Sipariş</span>
+      </div>
+      <div class="ds-stat-cell">
+        <span class="ds-stat-cell__value" id="restaurantStatRevenue">—</span>
+        <span class="ds-stat-cell__label">Gelir</span>
+      </div>
+      <div class="ds-stat-cell">
+        <span class="ds-stat-cell__value" id="restaurantStatRating">—</span>
+        <span class="ds-stat-cell__label">Puan</span>
+      </div>
+    </div>
+
+    <!-- Orders Section -->
+    <section class="dashboard-section" style="padding-bottom:8px;">
+      <div class="ds-section-hdr">
+        <span class="ds-section-hdr__title">Siparişler</span>
+        <span class="ds-section-hdr__link" style="cursor:default;font-size:0.72rem;opacity:0.6;" id="restaurantOrdersCount"></span>
+      </div>
+
+      <div style="padding:0 16px 8px;display:flex;align-items:center;gap:10px;">
+        <label style="font-size:0.75rem;color:rgba(255,255,255,0.5);white-space:nowrap;" for="restaurantOrdersVenueFilter">Mekan:</label>
+        <select id="restaurantOrdersVenueFilter" class="order-select" style="flex:1;"></select>
+      </div>
+
+      <div style="padding:0 16px;">
+        <div class="ds-card">
+          <div id="restaurantOrdersList" class="order-list" aria-live="polite"></div>
+        </div>
+      </div>
     </section>
+
+    <div class="ds-spacer-lg"></div>
   </main>
+
+  <!-- ── Bottom Navigation ───────────────────────────────── -->
+  <nav class="ds-bottom-nav mobile-bottom-nav" aria-label="Ana navigasyon">
+    <a href="./index.html" data-nav-page="index.html">
+      <span aria-hidden="true">⌂</span>
+      <span>Ana Sayfa</span>
+    </a>
+    <a href="./discover.html" data-nav-page="discover.html">
+      <span aria-hidden="true">⌕</span>
+      <span>Keşfet</span>
+    </a>
+    <a href="./store.html" data-nav-page="store.html">
+      <span aria-hidden="true">◈</span>
+      <span>Mağaza</span>
+    </a>
+    <a href="./messages.html" data-nav-page="messages.html">
+      <span aria-hidden="true">♡</span>
+      <span>Mesajlar</span>
+    </a>
+    <a href="./profile.html" data-nav-page="profile.html">
+      <span aria-hidden="true">◉</span>
+      <span>Profil</span>
+    </a>
+  </nav>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script src="./js/app.js"></script>

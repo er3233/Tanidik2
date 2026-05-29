@@ -1,0 +1,912 @@
+/* ============================================================
+   TANIDIK Design System v2
+   Premium Mobile-First Component Library
+   ============================================================ */
+
+/* --- Top Bar --- */
+.ds-top-bar {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px 12px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(5, 6, 8, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.ds-top-bar__back,
+.ds-top-bar__btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--plat);
+  text-decoration: none;
+  cursor: pointer;
+  font-size: 1rem;
+  position: relative;
+  flex-shrink: 0;
+  transition: background 120ms, border-color 120ms;
+}
+
+.ds-top-bar__back:hover,
+.ds-top-bar__btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.ds-top-bar__btn--gold {
+  color: var(--gold);
+  border-color: rgba(240, 192, 96, 0.25);
+  background: rgba(240, 192, 96, 0.07);
+}
+
+.ds-top-bar__title {
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.01em;
+}
+
+.ds-top-bar__actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* --- Scroll Content Wrapper --- */
+.ds-scroll-content {
+  padding-bottom: 88px;
+}
+
+/* --- Cards --- */
+.ds-card {
+  background: rgba(14, 15, 20, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.ds-card--mx {
+  margin-left: 16px;
+  margin-right: 16px;
+}
+
+.ds-card--mb {
+  margin-bottom: 12px;
+}
+
+/* --- Avatar System --- */
+.ds-avatar-wrap {
+  flex-shrink: 0;
+  position: relative;
+}
+
+.ds-avatar-wrap--ring {
+  padding: 2.5px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f8d36b 0%, #c99422 50%, #f8d36b 100%);
+}
+
+.ds-avatar {
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: var(--gold);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.ds-avatar--sm  { width: 36px;  height: 36px;  font-size: 0.82rem; }
+.ds-avatar--md  { width: 48px;  height: 48px;  font-size: 1rem; }
+.ds-avatar--lg  { width: 72px;  height: 72px;  font-size: 1.5rem; }
+.ds-avatar--xl  { width: 88px;  height: 88px;  font-size: 1.9rem; }
+
+.ds-avatar-wrap--ring .ds-avatar {
+  border: 2px solid var(--void);
+}
+
+.ds-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+/* --- Badges --- */
+.ds-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.ds-badge--premium {
+  background: linear-gradient(135deg, #f8d36b, #c99422);
+  color: #0a0700;
+}
+
+.ds-badge--aktif {
+  background: rgba(79, 255, 176, 0.12);
+  color: #4fffb0;
+  border: 1px solid rgba(79, 255, 176, 0.28);
+}
+
+.ds-badge--bekleyen {
+  background: rgba(240, 192, 96, 0.12);
+  color: var(--gold);
+  border: 1px solid rgba(240, 192, 96, 0.28);
+}
+
+/* --- Profile Identity Block --- */
+.ds-identity-block {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 20px 16px;
+}
+
+.ds-identity-block__copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.ds-identity-block__name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.ds-identity-block__name {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.ds-identity-block__handle {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 4px 0 0;
+}
+
+.ds-identity-block__meta {
+  font-size: 0.76rem;
+  color: rgba(255, 255, 255, 0.38);
+  margin: 3px 0 0;
+}
+
+.ds-identity-block__badges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.ds-identity-block__edit {
+  margin-top: 12px;
+}
+
+/* --- Stats Row --- */
+.ds-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 14px 20px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.ds-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+}
+
+.ds-stat + .ds-stat::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 15%;
+  height: 70%;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.ds-stat__value {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+}
+
+.ds-stat__label {
+  font-size: 0.73rem;
+  color: rgba(255, 255, 255, 0.48);
+  letter-spacing: 0.02em;
+}
+
+/* --- Quick Action Grid (3 columns, card style) --- */
+.ds-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 14px 16px 8px;
+}
+
+.ds-quick-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 8px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  cursor: pointer;
+  font-family: var(--fu);
+  color: inherit;
+  transition: background 120ms, border-color 120ms, transform 120ms;
+}
+
+.ds-quick-item:active {
+  transform: scale(0.95);
+}
+
+.ds-quick-item.is-active {
+  background: rgba(248, 211, 107, 0.1);
+  border-color: rgba(248, 211, 107, 0.3);
+}
+
+.ds-quick-item__icon {
+  font-size: 1.3rem;
+  line-height: 1;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(248, 211, 107, 0.1);
+  border: 1px solid rgba(248, 211, 107, 0.2);
+  color: var(--gold);
+}
+
+.ds-quick-item.is-active .ds-quick-item__icon {
+  background: rgba(248, 211, 107, 0.2);
+  border-color: rgba(248, 211, 107, 0.45);
+}
+
+.ds-quick-item__label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.65);
+  text-align: center;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* --- Section Headers --- */
+.ds-section-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 10px;
+}
+
+.ds-section-hdr__title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.01em;
+}
+
+.ds-section-hdr__link {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--gold);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+}
+
+/* --- Settings List Items --- */
+.ds-settings-section {
+  padding: 0 16px;
+  margin-bottom: 4px;
+}
+
+.ds-settings-title {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+  padding: 18px 4px 8px;
+  display: block;
+}
+
+.ds-settings-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 14px;
+  border-radius: 14px;
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--plat);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 4px;
+  transition: background 120ms, border-color 120ms;
+}
+
+.ds-settings-item:hover,
+.ds-settings-item:active {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.ds-settings-item__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(248, 211, 107, 0.1);
+  color: var(--gold);
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.ds-settings-item__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.ds-settings-item__label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.3;
+  display: block;
+}
+
+.ds-settings-item__sub {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.42);
+  margin-top: 2px;
+  display: block;
+}
+
+.ds-settings-item__arrow {
+  color: rgba(255, 255, 255, 0.28);
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+/* --- Order Item (profile preview) --- */
+.ds-order-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ds-order-item:last-child {
+  border-bottom: none;
+}
+
+.ds-order-item__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ds-order-item__venue {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ds-order-item__detail {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.45);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ds-order-item__price {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--gold);
+  white-space: nowrap;
+}
+
+/* --- Business Cards --- */
+.ds-biz-card {
+  margin: 0 16px 12px;
+  padding: 16px;
+  background: rgba(14, 15, 20, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 20px;
+}
+
+.ds-biz-card__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.ds-biz-card__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ds-biz-card__name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 4px;
+}
+
+.ds-biz-card__address {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.45);
+  margin: 0 0 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ds-biz-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ds-biz-card__rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.82rem;
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.ds-biz-card__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* --- Buttons --- */
+.ds-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 11px 20px;
+  border-radius: 14px;
+  font-family: var(--fu);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: opacity 150ms, transform 120ms, box-shadow 150ms;
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.ds-btn:active {
+  transform: scale(0.96);
+}
+
+.ds-btn--gold {
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold2) 100%);
+  color: #0a0700;
+  box-shadow: 0 8px 24px rgba(240, 192, 96, 0.28);
+}
+
+.ds-btn--outline {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--plat);
+}
+
+.ds-btn--outline-gold {
+  background: rgba(240, 192, 96, 0.07);
+  border: 1px solid rgba(240, 192, 96, 0.28);
+  color: var(--gold);
+}
+
+.ds-btn--danger {
+  background: rgba(255, 80, 80, 0.1);
+  border: 1px solid rgba(255, 80, 80, 0.22);
+  color: #ff7070;
+}
+
+.ds-btn--full { width: 100%; }
+.ds-btn--sm   { padding: 8px 14px; font-size: 0.78rem; border-radius: 10px; }
+.ds-btn--lg   { padding: 14px 24px; font-size: 0.92rem; }
+
+/* --- Add Business / Full-width Gold Button --- */
+.ds-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: calc(100% - 32px);
+  margin: 4px 16px 16px;
+  padding: 14px 20px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold2) 100%);
+  color: #0a0700;
+  font-weight: 800;
+  font-size: 0.92rem;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 8px 28px rgba(240, 192, 96, 0.3);
+  transition: opacity 150ms, transform 120ms;
+  font-family: var(--fu);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+}
+
+.ds-add-btn:active {
+  transform: scale(0.98);
+}
+
+/* --- Stat Strip (restaurant panel) --- */
+.ds-stat-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 0 16px 16px;
+  background: rgba(14, 15, 20, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.ds-stat-cell {
+  padding: 16px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+}
+
+.ds-stat-cell + .ds-stat-cell::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 20%;
+  height: 60%;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.ds-stat-cell__value {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+}
+
+.ds-stat-cell__label {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.42);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* --- Restaurant Header --- */
+.ds-restaurant-hdr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 20px 12px;
+  gap: 6px;
+  text-align: center;
+}
+
+.ds-restaurant-hdr__name {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.ds-restaurant-hdr__link {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--gold);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* --- Settings Profile Mini Card --- */
+.ds-settings-profile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 12px 16px 4px;
+  padding: 16px;
+  background: rgba(14, 15, 20, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+}
+
+.ds-settings-profile__copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.ds-settings-profile__name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 4px;
+}
+
+.ds-settings-profile__edit {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--gold);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* --- Notification Badge --- */
+.ds-notif-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f8d36b, #c99422);
+  color: #070707;
+  font-size: 0.62rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Business management quick grid items */
+.ds-biz-mgmt-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 8px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  cursor: pointer;
+  font-family: var(--fu);
+  color: inherit;
+  transition: background 120ms, border-color 120ms, transform 120ms;
+}
+
+.ds-biz-mgmt-item:active {
+  transform: scale(0.95);
+}
+
+.ds-biz-mgmt-item.is-active {
+  background: rgba(248, 211, 107, 0.1);
+  border-color: rgba(248, 211, 107, 0.3);
+}
+
+/* --- Divider --- */
+.ds-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.07);
+  margin: 4px 0;
+}
+
+/* --- Spacers --- */
+.ds-spacer-sm { height: 8px; }
+.ds-spacer-md { height: 16px; }
+.ds-spacer-lg { height: 24px; }
+
+/* --- Empty State --- */
+.ds-empty {
+  padding: 32px 20px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 0.85rem;
+}
+
+/* ============================================================
+   Profile Page Overrides
+   — Mevcut body.profile-page .profile-* CSS'ini (spec 0,2,1)
+     yeni design system stilleriyle geçersiz kılmak için
+     daha yüksek özgüllük (0,3,1) kullanılıyor.
+   ============================================================ */
+
+/* Quick Actions: flex scroll → 3-col grid */
+body.profile-page .ds-quick-grid.profile-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 14px 16px 8px;
+  overflow-x: visible;
+}
+
+/* Quick Action Button */
+body.profile-page .ds-quick-item.profile-quick-action {
+  flex: 1 1 auto;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 18px;
+  padding: 14px 8px;
+  gap: 8px;
+}
+
+body.profile-page .ds-quick-item.profile-quick-action.is-active {
+  background: rgba(248, 211, 107, 0.1);
+  border-color: rgba(248, 211, 107, 0.3);
+}
+
+/* Quick Action Icon */
+body.profile-page .ds-quick-item__icon.profile-quick-action__icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: rgba(248, 211, 107, 0.1);
+  border: 1px solid rgba(248, 211, 107, 0.2);
+  font-size: 1.3rem;
+  box-shadow: none;
+}
+
+body.profile-page .ds-quick-item.profile-quick-action.is-active .ds-quick-item__icon {
+  background: rgba(248, 211, 107, 0.22);
+  border-color: rgba(248, 211, 107, 0.45);
+}
+
+/* Quick Action Label */
+body.profile-page .ds-quick-item__label.profile-quick-action__label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.65);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Stats Row — keep borders from ds-stats-row */
+body.profile-page .ds-stats-row.profile-stats-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 14px 20px 16px;
+  gap: 0;
+}
+
+body.profile-page .ds-stat.profile-stat strong {
+  display: block;
+}
+
+/* Identity block — override existing style */
+body.profile-page .ds-identity-block.profile-identity-block {
+  display: flex;
+  padding: 20px 20px 16px;
+  gap: 16px;
+  align-items: center;
+}
+
+/* Ensure profile-glass-card is not wrapping (removed from new HTML) */
+body.profile-page .ds-scroll-content.profile-shell {
+  padding: 0 0 96px;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+@media (min-width: 540px) {
+  body.profile-page .ds-scroll-content.profile-shell {
+    max-width: 430px;
+  }
+}
+
+/* Tab panels fill width */
+body.profile-page .profile-tab-panels {
+  width: 100%;
+}
+
+/* Ensure top bar is sticky full-width even with old profile CSS */
+body.profile-page .ds-top-bar.profile-top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(5, 6, 8, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* --- Bottom Nav (mobile) --- */
+.ds-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  background: rgba(6, 7, 10, 0.96);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  padding: 8px 0;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+}
+
+.ds-bottom-nav a {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  text-decoration: none;
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 6px 0;
+  transition: color 150ms;
+}
+
+.ds-bottom-nav a.active,
+.ds-bottom-nav a[data-nav-page].active {
+  color: var(--gold);
+}
+
+.ds-bottom-nav a span[aria-hidden] {
+  font-size: 1.22rem;
+  line-height: 1;
+  display: block;
+}
