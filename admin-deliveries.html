@@ -9,6 +9,7 @@
   <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="./css/style.css" />
   <link rel="stylesheet" href="./css/courier-dispatch.css" />
+  <link rel="stylesheet" href="./css/courier-operations.css" />
 </head>
 
 <body>
@@ -26,20 +27,24 @@
       <p class="page-message">Delivery siparişlerini görün ve kurye atayın.</p>
       <a href="./admin.html" class="secondary-btn">← Admin Panel</a>
       <button type="button" id="adminDeliveriesRefreshBtn" class="secondary-btn">Yenile</button>
+      <span id="adminDeliveriesLiveBadge" class="fulfillment-live-badge" hidden aria-live="polite">Bağlanıyor…</span>
     </header>
 
-    <section class="admin-section dashboard-section">
-      <h2>Havuz (atanmamış)</h2>
+    <nav class="admin-delivery-tabs dashboard-section" role="tablist" aria-label="Teslimat sekmeleri">
+      <button type="button" class="admin-delivery-tab is-active" data-admin-delivery-tab="pool" role="tab">Bekleyen Teslimatlar</button>
+      <button type="button" class="admin-delivery-tab" data-admin-delivery-tab="active" role="tab">Aktif Teslimatlar</button>
+      <button type="button" class="admin-delivery-tab" data-admin-delivery-tab="completed" role="tab">Tamamlanan Teslimatlar</button>
+    </nav>
+
+    <section class="admin-section dashboard-section admin-delivery-tab-panel" data-admin-delivery-panel="pool">
       <div id="adminDeliveryPoolList" class="admin-list" aria-live="polite"></div>
     </section>
 
-    <section class="admin-section dashboard-section">
-      <h2>Aktif teslimatlar</h2>
+    <section class="admin-section dashboard-section admin-delivery-tab-panel" data-admin-delivery-panel="active" hidden>
       <div id="adminDeliveryActiveList" class="admin-list" aria-live="polite"></div>
     </section>
 
-    <section class="admin-section dashboard-section">
-      <h2>Tamamlanan</h2>
+    <section class="admin-section dashboard-section admin-delivery-tab-panel" data-admin-delivery-panel="completed" hidden>
       <div id="adminDeliveryCompletedList" class="admin-list" aria-live="polite"></div>
     </section>
   </main>

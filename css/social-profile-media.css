@@ -1,10 +1,9 @@
 /* Social / profile / messaging / venue gallery — scoped additions */
 
-.profile-hero-card .profile-avatar {
+.profile-hero-card .profile-avatar,
+body.profile-page .profile-avatar {
   overflow: hidden;
   border-radius: 50%;
-  width: 72px;
-  height: 72px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -13,7 +12,13 @@
   flex-shrink: 0;
 }
 
-.profile-hero-card .profile-avatar img {
+.profile-hero-card .profile-avatar {
+  width: 72px;
+  height: 72px;
+}
+
+.profile-hero-card .profile-avatar img,
+body.profile-page .profile-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;

@@ -8,6 +8,8 @@
   <meta name="theme-color" content="#050505" />
   <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="./css/style.css" />
+  <link rel="stylesheet" href="./css/courier-dispatch.css" />
+  <link rel="stylesheet" href="./css/courier-operations.css" />
 </head>
 
 <body>
@@ -15,19 +17,39 @@
     <h1>TANIDIK</h1>
     <div class="nav-links">
       <a href="./admin.html">Admin Panel</a>
+      <a href="./admin-deliveries.html">Teslimatlar</a>
     </div>
   </nav>
 
   <main id="adminCouriersPage" class="admin-page order-page">
     <header class="dashboard-header dashboard-header--admin">
       <h1>Kurye Yönetimi</h1>
-      <p class="page-message">Kurye hesaplarını oluşturun ve durumlarını yönetin.</p>
+      <p class="page-message">Kurye hesaplarını oluşturun, vardiya ve performansı izleyin.</p>
       <a href="./admin.html" class="secondary-btn">← Admin Panel</a>
     </header>
 
     <section class="admin-section dashboard-section">
+      <h2>Canlı Kurye Durumu</h2>
+      <div id="adminCourierOpsBoard" class="admin-courier-ops-board" aria-live="polite"></div>
+    </section>
+
+    <section class="admin-section dashboard-section">
+      <h2>Performans Sıralaması (Bu Ay)</h2>
+      <div id="adminCourierRankingList" class="admin-list" aria-live="polite"></div>
+    </section>
+
+    <section class="admin-section dashboard-section">
+      <h2>Aktif Vardiyalar</h2>
+      <div id="adminCourierActiveShifts" class="admin-list" aria-live="polite"></div>
+    </section>
+
+    <section class="admin-section dashboard-section">
+      <h2>Kurye Kaydı</h2>
       <form id="adminCourierForm" class="admin-form">
-        <input type="email" id="adminCourierEmail" placeholder="Kurye e-posta (kayıtlı kullanıcı)" required />
+        <input type="email" id="adminCourierEmail" placeholder="Kurye e-posta (girişte kullandığı adres)" required />
+        <p class="page-message courier-ops-form-hint">
+          Kullanıcı henüz kayıtlı değilse davet oluşturulur. Kayıtlıysa hesaba otomatik bağlanır.
+        </p>
         <input type="text" id="adminCourierFullName" placeholder="Ad Soyad" required />
         <input type="text" id="adminCourierPhone" placeholder="Telefon" />
         <input type="text" id="adminCourierVehicle" placeholder="Araç tipi" />
@@ -38,7 +60,10 @@
         </select>
         <button type="submit" class="btn">Kaydet</button>
       </form>
+    </section>
 
+    <section class="admin-section dashboard-section">
+      <h2>Tüm Kuryeler</h2>
       <div id="adminCouriersList" class="admin-list" aria-live="polite"></div>
     </section>
   </main>

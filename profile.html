@@ -1,556 +1,237 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 
 <head>
   <meta charset="UTF-8" />
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  />
-
-  <title>Profile | TANIDIK</title>
-
-  <meta
-    name="description"
-    content="Discover premium nightlife venues, events, reservations, and business tools with TANIDIK."
-  />
-
-  <meta name="theme-color" content="#050505" />
-
-  <link
-    rel="icon"
-    href="./assets/favicon.svg"
-    type="image/svg+xml"
-  />
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profil | TANIDIK</title>
+  <meta name="description" content="TANIDIK profil — favoriler, rezervasyonlar, siparişler ve işletme." />
+  <meta name="theme-color" content="#050608" />
+  <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
   <link rel="manifest" href="./manifest.webmanifest" />
-
   <link rel="apple-touch-icon" href="./assets/icon-192.png" />
-
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="TANIDIK" />
-  <meta property="og:title" content="TANIDIK | Premium Nightlife Discovery" />
-  <meta
-    property="og:description"
-    content="Discover premium nightlife venues, events, reservations, and business tools with TANIDIK."
-  />
-  <meta property="og:url" content="https://tanidik2.vercel.app" />
-  <meta property="og:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
-
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="TANIDIK | Premium Nightlife Discovery" />
-  <meta
-    name="twitter:description"
-    content="Discover premium nightlife venues, events, reservations, and business tools with TANIDIK."
-  />
-  <meta name="twitter:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
-
-  <link
-    rel="stylesheet"
-    href="./css/style.css"
-  />
+  <link rel="stylesheet" href="./css/style.css" />
   <link rel="stylesheet" href="./css/social-profile-media.css" />
 </head>
 
-<body>
+<body class="profile-page">
 
-  <nav class="navbar">
+  <div class="profile-shell">
+    <div class="profile-glass-card">
 
-    <h1>TANIDIK</h1>
-
-    <button
-      class="nav-toggle"
-      type="button"
-      aria-label="Toggle navigation"
-      aria-expanded="false"
-    >
-      Menu
-    </button>
-
-    <div class="nav-links">
-
-      <a href="./index.html">Home</a>
-
-      <a href="./discover.html">Discover</a>
-
-      <a href="./events.html">Events</a>
-
-      <a href="./favorites.html">Favorites</a>
-
-      <a
-        href="./auth.html"
-        id="authLink"
-      >
-        Login
-      </a>
-
-    </div>
-
-  </nav>
-
-  <div class="profile-dashboard">
-
-    <header class="dashboard-header dashboard-header--profile profile-hero-card">
-      <div class="profile-avatar" id="profileAvatar" aria-hidden="true">
-        T
-      </div>
-
-      <div class="profile-hero-copy">
-        <span class="dashboard-kicker">
-          Member Profile
-        </span>
-
-        <h1 id="profileDisplayName">
-          Your Profile
-        </h1>
-
-        <p id="profileUsernameLine" class="profile-identity-hint"></p>
-
-        <p>
-          <span>Signed in as</span>
-          <strong id="userEmail">
-            Loading...
-          </strong>
-        </p>
-
-        <p id="profileBioLine" class="profile-identity-hint"></p>
-      </div>
-    </header>
-
-    <div
-      class="profile-mobile-actions"
-      aria-label="Profile dashboard sections"
-    >
-      <button
-        type="button"
-        onclick="window.location.href='./my-reservations.html'"
-      >
-        My Reservations
-      </button>
-
-      <button
-        type="button"
-        onclick="window.location.href='./orders.html'"
-      >
-        Siparişlerim
-      </button>
-
-      <button
-        type="button"
-        data-profile-panel="favorites"
-      >
-        Favorites
-      </button>
-
-      <button
-        type="button"
-        onclick="window.location.href='./my-reviews.html'"
-      >
-        My Reviews
-      </button>
-
-      <button
-        type="button"
-        data-profile-panel="notifications"
-      >
-        Notifications
-      </button>
-
-      <button
-        type="button"
-        onclick="window.location.href='./business.html'"
-      >
-        İşletmem
-      </button>
-
-      <button
-        type="button"
-        data-profile-panel="settings"
-      >
-        Settings / Profile Info
-      </button>
-    </div>
-
-    <section
-      class="profile-mobile-panel profile-identity-panel dashboard-section"
-      data-panel="settings"
-    >
-      <h2>Profile Identity</h2>
-
-      <form id="profileIdentityForm" class="profile-identity-form">
-        <label for="profileEditFullName">Full Name</label>
-        <input type="text" id="profileEditFullName" maxlength="80" required />
-
-        <label for="profileEditUsername">Username</label>
-        <input
-          type="text"
-          id="profileEditUsername"
-          maxlength="20"
-          autocapitalize="off"
-          spellcheck="false"
-          required
-        />
-        <p class="profile-identity-hint">3–20 karakter: a-z, 0-9, _</p>
-        <p id="profileEditUsernameStatus" class="profile-username-status" role="status"></p>
-
-        <label for="profileEditBio">Bio (optional)</label>
-        <textarea id="profileEditBio" rows="3" maxlength="280" placeholder="Kısa bio"></textarea>
-
-        <label for="profileEditAvatarUrl">Avatar URL (optional)</label>
-        <input type="url" id="profileEditAvatarUrl" placeholder="https://..." />
-
-        <input type="file" id="profileEditAvatarFile" accept="image/*" class="admin-file-input" />
-
-        <button type="submit" class="btn">Save Profile</button>
-      </form>
-    </section>
-
-    <section
-      class="profile-mobile-panel profile-info-panel"
-      data-panel="settings"
-    >
-      <div class="profile-grid">
-
-        <div class="profile-card">
-          <span>Account</span>
-          <strong>
-            Active
-          </strong>
-        </div>
-
-        <div class="profile-card">
-          <span>Favorites</span>
-          <strong id="profileFavoritesCount">
-            0
-          </strong>
-        </div>
-
-        <div class="profile-card">
-          <span>Reviews</span>
-          <strong id="profileReviewsCount">
-            0
-          </strong>
-        </div>
-
-        <div class="profile-card">
-          <span>Reservations</span>
-          <strong id="profileReservationsCount">
-            0
-          </strong>
-        </div>
-
-      </div>
-    </section>
-
-    <section
-      class="profile-mobile-panel profile-favorites-section dashboard-section"
-      data-panel="favorites"
-    >
-      <h2>
-        Favorites
-      </h2>
-
-      <p class="reservation-dashboard-copy">
-        Open your saved venues and manage your favorite places.
-      </p>
-
-      <a
-        href="./favorites.html"
-        class="secondary-btn"
-      >
-        View Favorites
-      </a>
-    </section>
-
-    <section
-      class="profile-mobile-panel profile-reviews-section dashboard-section"
-      data-panel="reviews"
-    >
-      <h2>
-        My Reviews
-      </h2>
-
-      <p class="reservation-dashboard-copy">
-        Open your full review history and jump back into venues you have
-        rated.
-      </p>
-
-      <a
-        href="./my-reviews.html"
-        class="secondary-btn"
-      >
-        View My Reviews
-      </a>
-    </section>
-
-    <section
-      class="profile-notifications-section dashboard-section profile-mobile-panel"
-      data-panel="notifications"
-    >
-
-      <h2>
-        Notifications
-      </h2>
-
-      <div
-        id="profileNotificationsList"
-        class="notifications-list"
-      >
-      </div>
-
-    </section>
-
-    <section
-      class="profile-business-section dashboard-section dashboard-section--approvals dashboard-section--forms profile-mobile-panel"
-      data-panel="business"
-    >
-
-      <h2>
-        Business Application
-      </h2>
-
-      <div
-        id="profileBusinessApplications"
-        class="business-list"
-      >
-      </div>
-
-      <form
-        id="businessApplicationForm"
-        class="admin-form"
-      >
-        <input
-          type="text"
-          id="businessApplicationName"
-          placeholder="Business Name"
-          required
-        />
-
-        <input
-          type="tel"
-          id="businessApplicationPhone"
-          placeholder="Phone"
-        />
-
-        <input
-          type="text"
-          id="businessApplicationAddress"
-          placeholder="Address"
-        />
-
-        <textarea
-          id="businessApplicationDescription"
-          placeholder="Tell us about your business"
-          required
-        ></textarea>
-
-        <div class="admin-form-actions">
-          <button
-            type="submit"
-            class="btn"
-          >
-            Apply
+      <header class="profile-top-bar">
+        <a href="./index.html" class="profile-top-bar__btn" aria-label="Ana sayfa">⌂</a>
+        <span class="profile-top-bar__title">Profil</span>
+        <div class="profile-top-bar__actions">
+          <button type="button" class="profile-top-bar__btn profile-notifications-trigger" id="profileNotificationsTrigger" aria-label="Bildirimler" aria-expanded="false">
+            🔔
+            <span id="profileNotificationsBadge" class="profile-notifications-badge" hidden>0</span>
           </button>
+          <button type="button" class="profile-top-bar__btn" data-profile-tab="general" aria-label="Ayarlar">⚙</button>
         </div>
-      </form>
+      </header>
 
-    </section>
-
-    <section
-      class="profile-reservations-section dashboard-section dashboard-section--reservations profile-mobile-panel is-open"
-      data-panel="reservations"
-    >
-
-      <h2>
-        My Reservations
-      </h2>
-
-      <p class="reservation-dashboard-copy">
-        Track upcoming requests, statuses, and pending cancellations on your
-        reservations page.
-      </p>
-
-      <a
-        href="./my-reservations.html"
-        class="secondary-btn"
-      >
-        View My Reservations
-      </a>
-
-      <div
-        id="profileReservationsList"
-        class="reservation-list profile-reservation-preview"
-      >
+      <div id="profileNotificationsDropdown" class="profile-notifications-dropdown" hidden>
+        <div id="profileNotificationsList" class="notifications-list profile-notifications-dropdown__list"></div>
       </div>
 
-    </section>
+      <section class="profile-identity-block">
+        <div class="profile-identity-block__avatar-wrap">
+          <div class="profile-avatar" id="profileAvatar" aria-hidden="true">T</div>
+        </div>
+        <div class="profile-identity-block__copy">
+          <h1 id="profileDisplayName" class="profile-identity-block__name">Your Profile</h1>
+          <p id="profileUsernameLine" class="profile-identity-hint profile-identity-block__handle"></p>
+          <p class="profile-identity-block__email">
+            <span class="sr-only">Signed in as</span>
+            <strong id="userEmail">Loading...</strong>
+          </p>
+          <p id="profileBioLine" class="profile-identity-hint profile-identity-block__bio"></p>
+          <button type="button" class="profile-edit-btn secondary-btn" data-profile-tab="general">Düzenle</button>
+        </div>
+      </section>
 
-    <section
-      class="profile-actions-section dashboard-section profile-mobile-panel"
-      data-panel="settings"
-    >
-      <h2>
-        Quick Actions
-      </h2>
-
-      <div class="profile-action-grid">
-        <a
-          href="./my-reservations.html"
-          class="secondary-btn"
-        >
-          My Reservations
-        </a>
-
-        <a
-          href="./orders.html"
-          class="secondary-btn"
-        >
-          Siparişlerim
-        </a>
-
-        <a
-          href="./my-reviews.html"
-          class="secondary-btn"
-        >
-          My Reviews
-        </a>
-
-        <a
-          id="businessDashboardLink"
-          href="./business.html"
-          class="secondary-btn profile-business-link"
-        >
-          Business Dashboard
-        </a>
-
-        <a
-          href="./messages.html"
-          class="secondary-btn profile-messages-link"
-        >
-          Messages
-        </a>
-
-        <button
-          type="button"
-          class="scroll-top-btn"
-          onclick="window.scrollTo({top:0,behavior:'smooth'})"
-        >
-          ↑ Yukarı Çık
-        </button>
-
-        <button id="logoutBtn">
-          Logout
-        </button>
+      <div class="profile-stats-row" aria-label="Profil istatistikleri">
+        <div class="profile-stat">
+          <strong id="profileReviewsCount">0</strong>
+          <span>Yorum</span>
+        </div>
+        <div class="profile-stat">
+          <strong id="profileFavoritesCount">0</strong>
+          <span>Favori</span>
+        </div>
+        <div class="profile-stat">
+          <strong id="profileReservationsCount">0</strong>
+          <span>Rezervasyon</span>
+        </div>
       </div>
-    </section>
 
+      <nav class="profile-quick-actions" aria-label="Hızlı aksiyonlar">
+        <button type="button" class="profile-quick-action" data-profile-tab="favorites">
+          <span class="profile-quick-action__icon" aria-hidden="true">♥</span>
+          <span class="profile-quick-action__label">Favoriler</span>
+        </button>
+        <button type="button" class="profile-quick-action" data-profile-tab="reservations">
+          <span class="profile-quick-action__icon" aria-hidden="true">📅</span>
+          <span class="profile-quick-action__label">Rezervasyon</span>
+        </button>
+        <button type="button" class="profile-quick-action" data-profile-tab="orders">
+          <span class="profile-quick-action__icon" aria-hidden="true">🍽</span>
+          <span class="profile-quick-action__label">Siparişler</span>
+        </button>
+        <button type="button" class="profile-quick-action" data-profile-tab="reviews">
+          <span class="profile-quick-action__icon" aria-hidden="true">★</span>
+          <span class="profile-quick-action__label">Yorumlar</span>
+        </button>
+        <button type="button" class="profile-quick-action" data-profile-tab="business">
+          <span class="profile-quick-action__icon" aria-hidden="true">🏢</span>
+          <span class="profile-quick-action__label">İşletme</span>
+        </button>
+        <button type="button" class="profile-quick-action" data-profile-tab="general">
+          <span class="profile-quick-action__icon" aria-hidden="true">⚙</span>
+          <span class="profile-quick-action__label">Ayarlar</span>
+        </button>
+      </nav>
+
+      <nav class="profile-tabs" role="tablist" aria-label="Profil sekmeleri">
+        <button type="button" class="profile-tab is-active" role="tab" aria-selected="true" data-profile-tab="general">
+          <span class="profile-tab__icon" aria-hidden="true">◉</span>
+          <span class="profile-tab__label">Genel</span>
+        </button>
+        <button type="button" class="profile-tab" role="tab" aria-selected="false" data-profile-tab="reservations">
+          <span class="profile-tab__icon" aria-hidden="true">📅</span>
+          <span class="profile-tab__label">Rezervasyon</span>
+        </button>
+        <button type="button" class="profile-tab" role="tab" aria-selected="false" data-profile-tab="favorites">
+          <span class="profile-tab__icon" aria-hidden="true">♥</span>
+          <span class="profile-tab__label">Favoriler</span>
+        </button>
+        <button type="button" class="profile-tab" role="tab" aria-selected="false" data-profile-tab="orders">
+          <span class="profile-tab__icon" aria-hidden="true">🍽</span>
+          <span class="profile-tab__label">Siparişler</span>
+        </button>
+        <button type="button" class="profile-tab" role="tab" aria-selected="false" data-profile-tab="reviews">
+          <span class="profile-tab__icon" aria-hidden="true">★</span>
+          <span class="profile-tab__label">Yorumlar</span>
+        </button>
+        <button type="button" class="profile-tab" role="tab" aria-selected="false" data-profile-tab="business">
+          <span class="profile-tab__icon" aria-hidden="true">🏢</span>
+          <span class="profile-tab__label">İşletme</span>
+        </button>
+      </nav>
+
+      <div class="profile-tab-panels">
+
+        <section class="profile-tab-panel profile-mobile-panel is-open" data-panel="general" data-profile-panel="general">
+          <div class="profile-info-panel dashboard-section profile-identity-panel">
+            <h2 class="profile-panel-title">Profil Bilgileri</h2>
+            <form id="profileIdentityForm" class="profile-identity-form">
+              <label for="profileEditFullName">Ad Soyad</label>
+              <input type="text" id="profileEditFullName" maxlength="80" required />
+              <label for="profileEditUsername">Kullanıcı adı</label>
+              <input type="text" id="profileEditUsername" maxlength="20" autocapitalize="off" spellcheck="false" required />
+              <p class="profile-identity-hint">3–20 karakter: a-z, 0-9, _</p>
+              <p id="profileEditUsernameStatus" class="profile-username-status" role="status"></p>
+              <label for="profileEditBio">Bio (opsiyonel)</label>
+              <textarea id="profileEditBio" rows="3" maxlength="280" placeholder="Kısa bio"></textarea>
+              <label for="profileEditAvatarUrl">Avatar URL (opsiyonel)</label>
+              <input type="url" id="profileEditAvatarUrl" placeholder="https://..." />
+              <input type="file" id="profileEditAvatarFile" accept="image/*" class="admin-file-input" />
+              <button type="submit" class="btn profile-btn-primary">Kaydet</button>
+            </form>
+          </div>
+
+          <div class="profile-grid profile-overview-grid">
+            <div class="profile-card">
+              <span>Hesap</span>
+              <strong>Aktif</strong>
+            </div>
+            <div class="profile-card">
+              <span>Favoriler</span>
+              <strong id="profileFavoritesCountOverview">0</strong>
+            </div>
+            <div class="profile-card">
+              <span>Rezervasyon</span>
+              <strong id="profileReservationsCountOverview">0</strong>
+            </div>
+          </div>
+
+          <section class="profile-actions-section dashboard-section profile-mobile-panel" data-panel="settings">
+            <h2 class="profile-panel-title">Hızlı Erişim</h2>
+            <div class="profile-action-grid">
+              <a href="./messages.html" class="secondary-btn profile-messages-link">Mesajlar</a>
+              <a href="./orders.html" class="secondary-btn">Siparişlerim</a>
+              <a href="./my-reservations.html" class="secondary-btn">Tüm Rezervasyonlar</a>
+              <a id="businessDashboardLink" href="./business.html" class="secondary-btn profile-business-link">İşletme Paneli</a>
+              <a id="profileAdminLinkCard" href="./admin.html" class="secondary-btn profile-admin-link" hidden>Admin Panel</a>
+              <button type="button" class="secondary-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑ Yukarı</button>
+              <button type="button" id="logoutBtn" class="profile-btn-danger">Çıkış</button>
+            </div>
+          </section>
+        </section>
+
+        <section class="profile-tab-panel profile-mobile-panel profile-reservations-section dashboard-section dashboard-section--reservations" data-panel="reservations" data-profile-panel="reservations" hidden>
+          <h2 class="profile-panel-title">Rezervasyonlarım</h2>
+          <p class="reservation-dashboard-copy">Yaklaşan ve geçmiş rezervasyon taleplerin.</p>
+          <a href="./my-reservations.html" class="secondary-btn">Tüm Rezervasyonlar</a>
+          <div id="profileReservationsList" class="reservation-list profile-reservation-preview"></div>
+        </section>
+
+        <section class="profile-tab-panel profile-mobile-panel profile-favorites-section dashboard-section" data-panel="favorites" data-profile-panel="favorites" hidden>
+          <h2 class="profile-panel-title">Favoriler</h2>
+          <p class="reservation-dashboard-copy">Kaydettiğin mekanlar.</p>
+          <a href="./favorites.html" class="secondary-btn">Tüm Favoriler</a>
+          <div id="profileFavoritesGrid" class="profile-favorites-grid venue-grid"></div>
+        </section>
+
+        <section class="profile-tab-panel profile-mobile-panel profile-orders-section dashboard-section" data-panel="orders" data-profile-panel="orders" hidden>
+          <h2 class="profile-panel-title">Siparişlerim</h2>
+          <p class="reservation-dashboard-copy">Yemek sipariş geçmişin.</p>
+          <a href="./orders.html" class="btn profile-btn-primary">Tüm Siparişler</a>
+          <div id="profileOrdersList" class="profile-orders-list"></div>
+        </section>
+
+        <section class="profile-tab-panel profile-mobile-panel profile-reviews-section dashboard-section" data-panel="reviews" data-profile-panel="reviews" hidden>
+          <h2 class="profile-panel-title">Yorumlarım</h2>
+          <p class="reservation-dashboard-copy">Mekanlara bıraktığın değerlendirmeler.</p>
+          <a href="./my-reviews.html" class="secondary-btn">Tüm Yorumlar</a>
+          <div id="profileReviewsList" class="profile-reviews-list"></div>
+        </section>
+
+        <section class="profile-tab-panel profile-mobile-panel profile-business-section dashboard-section dashboard-section--approvals dashboard-section--forms" data-panel="business" data-profile-panel="business" hidden>
+          <h2 class="profile-panel-title">İşletme</h2>
+          <div id="profileBusinessHero" class="profile-business-hero">
+            <p class="profile-business-hero__title">İşletmeni TANIDIK'a ekle</p>
+            <p class="profile-business-hero__copy">Onaylı işletme hesabıyla rezervasyon ve sipariş yönetimine eriş.</p>
+            <a id="profileBusinessCtaLink" href="./business.html" class="btn profile-btn-primary" hidden>İşletme Paneline Git</a>
+          </div>
+          <div id="profileBusinessApplications" class="business-list"></div>
+          <form id="businessApplicationForm" class="admin-form profile-business-form">
+            <input type="text" id="businessApplicationName" placeholder="İşletme Adı" required />
+            <input type="tel" id="businessApplicationPhone" placeholder="Telefon" />
+            <input type="text" id="businessApplicationAddress" placeholder="Adres" />
+            <textarea id="businessApplicationDescription" placeholder="İşletmenizi tanıtın" required></textarea>
+            <div class="admin-form-actions">
+              <button type="submit" class="btn profile-btn-primary">Başvuru Yap</button>
+            </div>
+          </form>
+        </section>
+
+      </div>
+    </div>
   </div>
 
-  <nav
-    class="mobile-bottom-nav"
-    aria-label="Primary mobile navigation"
-  >
-    <a href="./index.html" data-nav-page="index.html">
-      <span aria-hidden="true">⌂</span>
-      Home
-    </a>
-
-    <a href="./discover.html" data-nav-page="discover.html">
-      <span aria-hidden="true">⌕</span>
-      Discover
-    </a>
-
-    <a href="./store.html" data-nav-page="store.html">
-      <span aria-hidden="true">◈</span>
-      Store
-    </a>
-
-    <a href="./messages.html" data-nav-page="messages.html">
-      <span aria-hidden="true">♡</span>
-      Messages
-    </a>
-
-    <a href="./profile.html" data-nav-page="profile.html">
-      <span aria-hidden="true">◉</span>
-      Profile
-    </a>
-
+  <nav class="mobile-bottom-nav" aria-label="Primary mobile navigation">
+    <a href="./index.html" data-nav-page="index.html"><span aria-hidden="true">⌂</span>Home</a>
+    <a href="./discover.html" data-nav-page="discover.html"><span aria-hidden="true">⌕</span>Discover</a>
+    <a href="./store.html" data-nav-page="store.html"><span aria-hidden="true">◈</span>Store</a>
+    <a href="./messages.html" data-nav-page="messages.html"><span aria-hidden="true">♡</span>Messages</a>
+    <a href="./profile.html" data-nav-page="profile.html"><span aria-hidden="true">◉</span>Profile</a>
   </nav>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-
-<script src="./js/app.js"></script>
-
-<script>
-(function () {
-  /* Sections open by default */
-  var autoOpen = ['profile-info-panel', 'profile-actions-section', 'profile-reservations-section'];
-
-  /* Wrap every .dashboard-section's content in collapsible body */
-  document.querySelectorAll('.dashboard-section').forEach(function (sec) {
-    var h2 = sec.querySelector(':scope > h2');
-    if (!h2) return;
-
-    /* Chevron */
-    var chev = document.createElement('span');
-    chev.className = 'section-chevron';
-    chev.setAttribute('aria-hidden', 'true');
-    chev.textContent = '›';
-    h2.appendChild(chev);
-
-    /* Build section-body wrapper */
-    var body  = document.createElement('div');
-    body.className = 'section-body';
-    var inner = document.createElement('div');
-    inner.className = 'section-body-inner';
-    body.appendChild(inner);
-
-    /* Move all DOM nodes after h2 into inner */
-    var toMove = [], n = h2.nextSibling;
-    while (n) { toMove.push(n); n = n.nextSibling; }
-    toMove.forEach(function (node) { inner.appendChild(node); });
-    sec.appendChild(body);
-
-    /* Default open? */
-    if (autoOpen.some(function (c) { return sec.classList.contains(c); })) {
-      sec.classList.add('is-expanded');
-    }
-
-    h2.addEventListener('click', function () { sec.classList.toggle('is-expanded'); });
-  });
-
-  /* profile-info-panel has no h2 — inject one */
-  var info = document.querySelector('.profile-info-panel:not(.dashboard-section)');
-  if (info) {
-    info.classList.add('dashboard-section');
-
-    var h2    = document.createElement('h2');
-    var chev  = document.createElement('span');
-    chev.className = 'section-chevron';
-    chev.setAttribute('aria-hidden', 'true');
-    chev.textContent = '›';
-    h2.textContent = 'Overview';
-    h2.appendChild(chev);
-    h2.style.cursor = 'pointer';
-
-    var body  = document.createElement('div');
-    body.className = 'section-body';
-    var inner = document.createElement('div');
-    inner.className = 'section-body-inner';
-    body.appendChild(inner);
-
-    Array.from(info.children).forEach(function (el) { inner.appendChild(el); });
-    info.appendChild(h2);
-    info.appendChild(body);
-    info.classList.add('is-expanded');
-
-    h2.addEventListener('click', function () { info.classList.toggle('is-expanded'); });
-  }
-})();
-</script>
-
-<div id="toast" class="toast"></div>
-
+  <script src="./js/app.js"></script>
+  <div id="toast" class="toast"></div>
 </body>
+
 </html>

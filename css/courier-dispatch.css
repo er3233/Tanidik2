@@ -160,3 +160,40 @@
   flex: 1 1 180px;
   min-width: 0;
 }
+
+.courier-refresh-meta.is-live-meta {
+  color: #c9a227;
+}
+
+.fulfillment-live-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.fulfillment-live-badge.is-live {
+  color: #c9a227;
+}
+
+.fulfillment-live-badge.is-live::before {
+  content: "● ";
+  animation: fulfillment-live-pulse 1.4s ease-in-out infinite;
+}
+
+.fulfillment-live-badge.is-fallback {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+@keyframes fulfillment-live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}

@@ -9,6 +9,7 @@
   <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="./css/style.css" />
   <link rel="stylesheet" href="./css/courier-dispatch.css" />
+  <link rel="stylesheet" href="./css/courier-operations.css" />
 </head>
 
 <body>
@@ -19,9 +20,9 @@
     </div>
   </nav>
 
-  <main id="courierPage" class="order-page courier-page">
+  <main id="courierPage" class="order-page courier-page courier-ops-page">
     <header class="dashboard-header">
-      <span class="dashboard-kicker">Kurye</span>
+      <span class="dashboard-kicker">Kurye Operasyon</span>
       <h1>Teslimat Paneli</h1>
       <p class="page-message" id="courierWelcome"></p>
     </header>
@@ -30,32 +31,63 @@
       <h2>Erişim engellendi</h2>
       <p class="page-message">
         Bu panel yalnızca aktif kurye hesapları içindir. Admin, sizin TANIDIK giriş e-postanızla kurye kaydı oluşturmalıdır.
-        Giriş yaptıktan sonra bu sayfayı yenileyin.
       </p>
       <a href="./courier-login.html" class="secondary-btn">Kurye girişi</a>
       <a href="./auth.html?redirect=./courier.html" class="secondary-btn">Hesap girişi</a>
     </div>
 
     <div id="courierPanelContent" hidden>
+      <section class="courier-ops-duty dashboard-section" id="courierOpsDutySection">
+        <div class="courier-ops-duty__row">
+          <span id="courierDutyBadge" class="courier-ops-status-badge" data-status="offline">⚫ Offline</span>
+          <div class="courier-ops-duty__actions">
+            <button type="button" id="courierStartShiftBtn" class="btn">Mesaiye Başla</button>
+            <button type="button" id="courierEndShiftBtn" class="secondary-btn" hidden>Mesaiyi Bitir</button>
+          </div>
+        </div>
+        <p id="courierShiftMeta" class="courier-ops-shift-meta page-message"></p>
+      </section>
+
+      <section class="dashboard-section">
+        <div id="courierOpsStats" class="courier-ops-stats-grid" aria-live="polite"></div>
+      </section>
+
+      <section class="dashboard-section courier-ops-earnings">
+        <h2 class="courier-ops-section-title">Teslimat Özeti</h2>
+        <p class="page-message courier-ops-earnings-hint">Ödeme sistemi yakında — şimdilik teslimat adetleri.</p>
+        <div id="courierEarningsSummary" class="courier-ops-earnings-grid"></div>
+      </section>
+
       <div class="courier-toolbar dashboard-section">
         <button type="button" id="courierRefreshBtn" class="secondary-btn">Yenile</button>
-        <span class="courier-refresh-meta" id="courierRefreshMeta">Otomatik yenileme: 25 sn</span>
+        <span class="courier-refresh-meta" id="courierRefreshMeta">Canlı bağlantı kuruluyor…</span>
       </div>
 
-      <section class="dashboard-section">
-        <h2>Açık Teslimatlar</h2>
-        <div id="courierAvailableList" class="order-list" aria-live="polite"></div>
-      </section>
+      <nav class="courier-ops-tabs dashboard-section" role="tablist" aria-label="Kurye sekmeleri">
+        <button type="button" class="courier-ops-tab is-active" data-courier-tab="active" role="tab" aria-selected="true">Görevler</button>
+        <button type="button" class="courier-ops-tab" data-courier-tab="history" role="tab" aria-selected="false">Geçmiş</button>
+      </nav>
 
-      <section class="dashboard-section">
-        <h2>Atanan Teslimatlar</h2>
-        <div id="courierAssignedList" class="order-list" aria-live="polite"></div>
-      </section>
+      <div id="courierTabActive" class="courier-ops-tab-panel" data-courier-panel="active">
+        <section class="dashboard-section">
+          <h2>Açık Teslimatlar</h2>
+          <p id="courierPoolHint" class="page-message" hidden>Mesaiye başlayın — yeni görev kabul edebilirsiniz.</p>
+          <div id="courierAvailableList" class="order-list" aria-live="polite"></div>
+        </section>
+        <section class="dashboard-section">
+          <h2>Atanan Teslimatlar</h2>
+          <div id="courierAssignedList" class="order-list" aria-live="polite"></div>
+        </section>
+      </div>
 
-      <section class="dashboard-section">
-        <h2>Teslimat Geçmişi</h2>
-        <div id="courierHistoryList" class="order-list" aria-live="polite"></div>
-      </section>
+      <div id="courierTabHistory" class="courier-ops-tab-panel" data-courier-panel="history" hidden>
+        <nav class="courier-history-tabs" role="tablist" aria-label="Geçmiş dönemi">
+          <button type="button" class="courier-history-tab is-active" data-history-period="today">Bugün</button>
+          <button type="button" class="courier-history-tab" data-history-period="week">Bu Hafta</button>
+          <button type="button" class="courier-history-tab" data-history-period="month">Bu Ay</button>
+        </nav>
+        <div id="courierHistoryList" class="courier-history-list" aria-live="polite"></div>
+      </div>
 
       <section class="dashboard-section">
         <h2>Kurye Profili</h2>

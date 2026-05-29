@@ -8,6 +8,8 @@
   <meta name="theme-color" content="#050505" />
   <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="./css/style.css" />
+  <link rel="stylesheet" href="./css/courier-dispatch.css" />
+  <link rel="stylesheet" href="./css/courier-operations.css" />
 </head>
 
 <body>
@@ -29,6 +31,12 @@
 
     <section class="dashboard-section">
       <div id="orderDetailContent" class="order-detail-card" aria-live="polite"></div>
+      <div id="orderCourierTracking" class="order-courier-tracking dashboard-section" hidden>
+        <h2 id="orderTrackingTitle">Sipariş Durumu</h2>
+        <span id="orderTrackingLiveBadge" class="fulfillment-live-badge" hidden>Bağlanıyor…</span>
+        <ol id="orderCourierTrackingSteps" class="order-courier-tracking__steps"></ol>
+        <p id="orderCourierTrackingNote" class="page-message" hidden></p>
+      </div>
       <div id="orderStatusHistory" class="order-history-list"></div>
     </section>
   </main>

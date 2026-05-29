@@ -1,0 +1,312 @@
+/* Courier Operations Pack v1 */
+
+.courier-ops-duty__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.courier-ops-duty__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.courier-ops-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.courier-ops-status-badge[data-status="online"] {
+  color: #6ee7a0;
+  border-color: rgba(110, 231, 160, 0.35);
+}
+
+.courier-ops-status-badge[data-status="on_delivery"] {
+  color: #f5d76e;
+  border-color: rgba(245, 215, 110, 0.35);
+}
+
+.courier-ops-status-badge[data-status="offline"] {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.courier-ops-shift-meta {
+  margin: 0.5rem 0 0;
+}
+
+.courier-ops-stats-grid,
+.courier-ops-earnings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.courier-ops-stat-card,
+.courier-ops-earnings-card {
+  border: 1px solid rgba(201, 162, 39, 0.2);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.courier-ops-stat-card__label,
+.courier-ops-earnings-card__label {
+  display: block;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 0.25rem;
+}
+
+.courier-ops-stat-card__value,
+.courier-ops-earnings-card__value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #c9a227;
+}
+
+.courier-ops-section-title {
+  margin: 0 0 0.35rem;
+}
+
+.courier-ops-earnings-hint,
+.courier-ops-form-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+}
+
+.courier-ops-tabs,
+.courier-history-tabs,
+.admin-delivery-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.courier-ops-tab,
+.courier-history-tab,
+.admin-delivery-tab {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.75);
+  border-radius: 999px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.courier-ops-tab.is-active,
+.courier-history-tab.is-active,
+.admin-delivery-tab.is-active {
+  border-color: rgba(201, 162, 39, 0.55);
+  color: #c9a227;
+  background: rgba(201, 162, 39, 0.08);
+}
+
+.courier-history-list {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.75rem;
+}
+
+.courier-history-row {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 0.85rem;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.courier-history-row__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.courier-history-row__title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.courier-history-row__meta {
+  margin: 0.15rem 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.admin-courier-ops-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.65rem;
+}
+
+.admin-courier-ops-card {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.admin-courier-ops-card h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+}
+
+.admin-courier-rank-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.admin-courier-rank-row:last-child {
+  border-bottom: none;
+}
+
+.order-courier-tracking {
+  margin-top: 1rem;
+}
+
+.order-courier-tracking__terminal {
+  margin: 0;
+}
+
+.order-courier-tracking__steps {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0 0 0 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.order-courier-tracking__step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  align-items: start;
+  column-gap: 0.75rem;
+  padding: 0.85rem 0.75rem 0.85rem 0;
+  margin-left: 0.35rem;
+  color: rgba(255, 255, 255, 0.42);
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.order-courier-tracking__step::before {
+  content: "";
+  position: absolute;
+  left: 0.98rem;
+  top: 2.1rem;
+  bottom: -0.15rem;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  z-index: 0;
+}
+
+.order-courier-tracking__step:last-child::before {
+  display: none;
+}
+
+.order-courier-tracking__step.is-done::before {
+  background: rgba(201, 162, 39, 0.35);
+}
+
+.order-courier-tracking__step.is-done {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.order-courier-tracking__step.is-current {
+  color: #fff;
+}
+
+.order-courier-tracking__step.is-current .order-courier-tracking__label {
+  color: #c9a227;
+  font-weight: 600;
+}
+
+.order-courier-tracking__step.is-upcoming {
+  opacity: 0.45;
+}
+
+.order-courier-tracking__marker {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  background: #0a0a0a;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  color: transparent;
+  flex-shrink: 0;
+}
+
+.order-courier-tracking__step.is-done .order-courier-tracking__marker {
+  border-color: rgba(201, 162, 39, 0.55);
+  background: rgba(201, 162, 39, 0.15);
+  color: #c9a227;
+}
+
+.order-courier-tracking__step.is-current .order-courier-tracking__marker {
+  border-color: #c9a227;
+  background: rgba(201, 162, 39, 0.2);
+  box-shadow: 0 0 0 3px rgba(201, 162, 39, 0.12);
+  color: transparent;
+}
+
+.order-courier-tracking__step.is-current .order-courier-tracking__marker::after {
+  content: "";
+  position: absolute;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: #c9a227;
+}
+
+.order-courier-tracking__label {
+  position: relative;
+  z-index: 1;
+  padding-top: 0.2rem;
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.courier-completion-notes {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+
+.courier-completion-notes label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 640px) {
+  .courier-ops-stats-grid,
+  .courier-ops-earnings-grid,
+  .admin-courier-ops-board {
+    grid-template-columns: 1fr 1fr;
+  }
+}

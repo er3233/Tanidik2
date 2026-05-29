@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Yemek | TANIDIK</title>
+  <meta name="description" content="TANIDIK'te restoran keşfet, menüden sipariş ver." />
+  <meta name="theme-color" content="#050505" />
+  <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="./css/style.css" />
+  <link rel="stylesheet" href="./css/food-order.css" />
+</head>
+
+<body class="food-page-body">
+  <nav class="navbar">
+    <h1>TANIDIK</h1>
+    <button class="nav-toggle" type="button" aria-label="Menü" aria-expanded="false">Menü</button>
+    <div class="nav-links">
+      <a href="./index.html">Ana Sayfa</a>
+      <a href="./discover.html">Keşfet</a>
+      <a href="./food.html" data-nav-page="food.html">Yemek</a>
+      <a href="./events.html">Etkinlikler</a>
+      <a href="./orders.html">Siparişlerim</a>
+      <a href="./auth.html" id="authLink">Giriş</a>
+    </div>
+  </nav>
+
+  <main id="foodPage" class="food-page">
+    <header class="food-hero">
+      <span class="food-hero__kicker">TANIDIK Yemek</span>
+      <h1 class="food-hero__title">Restoranlardan sipariş ver</h1>
+      <p class="food-hero__subtitle">Teslimat veya gel-al — premium mekanlardan menü siparişi.</p>
+      <div class="food-search">
+        <input type="search" id="foodSearchInput" class="food-search__input" placeholder="Restoran veya mutfak ara…" autocomplete="off" />
+      </div>
+    </header>
+
+    <section class="food-filters dashboard-section" aria-label="Filtreler">
+      <div class="food-filter-row">
+        <span class="food-filter-label">Sipariş tipi</span>
+        <div class="food-chip-group" id="foodOrderTypeFilters" role="group"></div>
+      </div>
+      <div class="food-filter-row">
+        <span class="food-filter-label">Mutfak</span>
+        <div class="food-chip-group food-chip-group--scroll" id="foodCuisineFilters" role="group"></div>
+      </div>
+      <div class="food-filter-row">
+        <span class="food-filter-label">Durum</span>
+        <div class="food-chip-group" id="foodStatusFilters" role="group"></div>
+      </div>
+    </section>
+
+    <section class="food-section dashboard-section" id="foodPopularSection" hidden>
+      <h2 class="food-section__title">Popüler restoranlar</h2>
+      <div id="foodPopularList" class="food-restaurant-grid"></div>
+    </section>
+
+    <section class="food-section dashboard-section" id="foodCampaignSection" hidden>
+      <h2 class="food-section__title">Öne çıkanlar</h2>
+      <div id="foodCampaignList" class="food-restaurant-grid"></div>
+    </section>
+
+    <section class="food-section dashboard-section" id="foodOpenSection" hidden>
+      <h2 class="food-section__title">Şu an açık</h2>
+      <div id="foodOpenList" class="food-restaurant-grid"></div>
+    </section>
+
+    <section class="food-section dashboard-section">
+      <h2 class="food-section__title">Tüm restoranlar</h2>
+      <div id="foodRestaurantList" class="food-restaurant-grid" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="./js/app.js"></script>
+  <div id="toast" class="toast"></div>
+</body>
+
+</html>

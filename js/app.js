@@ -3907,44 +3907,133 @@ async function checkUser() {
     await syncProfileFromAuthMetadata(session);
     ensureBusinessApplicationSection();
     setupProfileMobilePanels();
+    setupProfileNotificationsDropdown();
     setupBusinessApplicationForm(session.user.id);
     await loadProfileStats(session.user.id);
     await loadAndRenderProfileIdentity(session.user.id);
   }
 }
 
+function activateProfileTab(tabId) {
+  if (!tabId) return;
+
+  const panels = document.querySelectorAll("[data-profile-panel]");
+
+  panels.forEach((panel) => {
+    const isMatch = panel.dataset.profilePanel === tabId;
+    panel.classList.toggle("is-open", isMatch);
+    panel.hidden = !isMatch;
+  });
+
+  document
+    .querySelectorAll(".profile-tab[data-profile-tab]")
+    .forEach((button) => {
+      const isActive = button.dataset.profileTab === tabId;
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-selected", isActive ? "true" : "false");
+    });
+
+  document
+    .querySelectorAll(".profile-quick-action[data-profile-tab]")
+    .forEach((button) => {
+      button.classList.toggle("is-active", button.dataset.profileTab === tabId);
+    });
+}
+
+function setupProfileNotificationsDropdown() {
+  const trigger = document.getElementById("profileNotificationsTrigger");
+  const dropdown = document.getElementById("profileNotificationsDropdown");
+
+  if (!trigger || !dropdown) return;
+
+  trigger.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const isOpen = !dropdown.hidden;
+    dropdown.hidden = isOpen;
+    trigger.setAttribute("aria-expanded", isOpen ? "false" : "true");
+  });
+
+  document.addEventListener("click", (event) => {
+    if (
+      dropdown.hidden ||
+      dropdown.contains(event.target) ||
+      trigger.contains(event.target)
+    ) {
+      return;
+    }
+
+    dropdown.hidden = true;
+    trigger.setAttribute("aria-expanded", "false");
+  });
+}
+
+function updateProfileNotificationBadge(notifications) {
+  const badge = document.getElementById("profileNotificationsBadge");
+
+  if (!badge) return;
+
+  const unreadCount = (notifications || []).filter(
+    (notification) => !notification.is_read
+  ).length;
+
+  if (unreadCount > 0) {
+    badge.hidden = false;
+    badge.textContent =
+      unreadCount > 9 ? "9+" : String(unreadCount);
+  } else {
+    badge.hidden = true;
+    badge.textContent = "0";
+  }
+}
+
 function setupProfileMobilePanels() {
-  const buttons =
-    document.querySelectorAll("[data-profile-panel]");
-  const panels =
-    document.querySelectorAll(".profile-mobile-panel");
+  const tabTriggers = document.querySelectorAll("[data-profile-tab]");
+  const tabPanels = document.querySelectorAll("[data-profile-panel]");
+
+  if (tabTriggers.length && tabPanels.length) {
+    const defaultTab =
+      document.querySelector("[data-profile-panel].is-open")?.dataset
+        .profilePanel || "general";
+
+    activateProfileTab(defaultTab);
+
+    tabTriggers.forEach((button) => {
+      button.addEventListener("click", () => {
+        activateProfileTab(button.dataset.profileTab);
+        const dropdown = document.getElementById(
+          "profileNotificationsDropdown"
+        );
+        if (dropdown) dropdown.hidden = true;
+      });
+    });
+
+    return;
+  }
+
+  const buttons = document.querySelectorAll("[data-profile-panel]");
+  const panels = document.querySelectorAll(".profile-mobile-panel");
 
   if (!buttons.length || !panels.length) return;
 
   buttons.forEach((button) => {
     const panelName = button.dataset.profilePanel;
-    const matchingPanels =
-      document.querySelectorAll(
-        `.profile-mobile-panel[data-panel="${panelName}"]`
-      );
+    const matchingPanels = document.querySelectorAll(
+      `.profile-mobile-panel[data-panel="${panelName}"]`
+    );
     const isOpen = [...matchingPanels].some((panel) =>
       panel.classList.contains("is-open")
     );
 
     button.classList.toggle("is-active", isOpen);
-    button.setAttribute(
-      "aria-expanded",
-      isOpen ? "true" : "false"
-    );
+    button.setAttribute("aria-expanded", isOpen ? "true" : "false");
   });
 
   buttons.forEach((button) => {
     button.addEventListener("click", () => {
       const panelName = button.dataset.profilePanel;
-      const matchingPanels =
-        document.querySelectorAll(
-          `.profile-mobile-panel[data-panel="${panelName}"]`
-        );
+      const matchingPanels = document.querySelectorAll(
+        `.profile-mobile-panel[data-panel="${panelName}"]`
+      );
 
       if (!matchingPanels.length) return;
 
@@ -4157,9 +4246,13 @@ async function loadProfileStats(userId) {
 
   if (favoritesResult.error) {
     showSafeError(favoritesResult.error, "Profile stats could not be loaded.");
-  } else if (favoritesCount) {
-    favoritesCount.innerText =
-      favoritesResult.count || 0;
+  } else {
+    const favoriteTotal = favoritesResult.count || 0;
+    if (favoritesCount) favoritesCount.innerText = favoriteTotal;
+    const favoritesOverview = document.getElementById(
+      "profileFavoritesCountOverview"
+    );
+    if (favoritesOverview) favoritesOverview.innerText = favoriteTotal;
   }
 
   if (reviewsResult.error) {
@@ -4170,17 +4263,27 @@ async function loadProfileStats(userId) {
 
   if (reservationsResult.error) {
     showSafeError(reservationsResult.error, "Profile stats could not be loaded.");
-  } else if (reservationsCount) {
-    reservationsCount.innerText =
-      reservationsResult.count || 0;
+  } else {
+    const reservationTotal = reservationsResult.count || 0;
+    if (reservationsCount) reservationsCount.innerText = reservationTotal;
+    const reservationsOverview = document.getElementById(
+      "profileReservationsCountOverview"
+    );
+    if (reservationsOverview) {
+      reservationsOverview.innerText = reservationTotal;
+    }
   }
 
   await loadProfileNotifications(userId);
   await loadProfileBusinessApplications(userId);
   await loadProfileReservations(userId, {
-    limit: 4,
+    limit: document.getElementById("profileReservationsList") ? 20 : 4,
   });
+  await loadProfileFavoritesGrid(userId);
+  await loadProfileReviews(userId);
+  await loadProfileOrdersPreview(userId);
   await setupBusinessProfileLink(userId);
+  await setupProfileAdminLink(userId);
 }
 
 function formatNotificationDate(value) {
@@ -4205,6 +4308,8 @@ function renderProfileNotifications(notifications) {
   if (!list) return;
 
   list.innerHTML = "";
+
+  updateProfileNotificationBadge(notifications || []);
 
   if (!notifications || notifications.length === 0) {
     renderEmptyState(
@@ -4324,7 +4429,9 @@ async function loadProfileNotifications(userId) {
     return;
   }
 
-  renderProfileNotifications(data || []);
+  const rows = data || [];
+  renderProfileNotifications(rows);
+  updateProfileNotificationBadge(rows);
 }
 
 async function markNotificationRead(notificationId) {
@@ -4834,31 +4941,175 @@ async function initMyReviewsPage() {
 }
 
 async function setupBusinessProfileLink(userId) {
-  const businessLink =
-    document.getElementById("businessDashboardLink");
+  const businessLink = document.getElementById("businessDashboardLink");
+  const businessCta = document.getElementById("profileBusinessCtaLink");
+  const businessHero = document.getElementById("profileBusinessHero");
 
-  if (!businessLink) return;
+  if (!businessLink && !businessCta) return;
 
-  businessLink.style.display = "none";
+  if (businessLink) businessLink.style.display = "none";
+  if (businessCta) businessCta.hidden = true;
 
-  const { count, error } =
-    await supabaseClient
-      .from("businesses")
-      .select("id", {
-        count: "exact",
-        head: true,
-      })
-      .eq("owner_id", userId)
-      .eq("status", "approved");
+  const { count, error } = await supabaseClient
+    .from("businesses")
+    .select("id", {
+      count: "exact",
+      head: true,
+    })
+    .eq("owner_id", userId)
+    .eq("status", "approved");
 
   if (error) {
     console.log(error);
     return;
   }
 
-  if (count && count > 0) {
-    businessLink.style.display = "inline-block";
+  const isOwner = count && count > 0;
+
+  if (isOwner) {
+    if (businessLink) businessLink.style.display = "inline-block";
+    if (businessCta) businessCta.hidden = false;
+    if (businessHero) {
+      const title = businessHero.querySelector(".profile-business-hero__title");
+      const copy = businessHero.querySelector(".profile-business-hero__copy");
+      if (title) title.textContent = "İşletme panelin hazır";
+      if (copy) {
+        copy.textContent =
+          "Rezervasyon, sipariş ve menü yönetimine panelden devam et.";
+      }
+    }
   }
+}
+
+async function setupProfileAdminLink(userId) {
+  const adminLink = document.getElementById("profileAdminLinkCard");
+
+  if (!adminLink) return;
+
+  adminLink.hidden = true;
+
+  const { data, error } = await supabaseClient
+    .from("admin_users")
+    .select("user_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    console.log(error);
+    return;
+  }
+
+  if (data) {
+    adminLink.hidden = false;
+  }
+}
+
+async function loadProfileFavoritesGrid(userId) {
+  const grid = document.getElementById("profileFavoritesGrid");
+
+  if (!grid) return;
+
+  renderEmptyState(grid, "Favoriler yükleniyor...");
+
+  const { data: favorites, error } = await supabaseClient
+    .from("favorites")
+    .select("*")
+    .eq("user_id", userId)
+    .limit(24);
+
+  if (error) {
+    showSafeError(error, "Favoriler yüklenemedi.");
+    return;
+  }
+
+  grid.innerHTML = "";
+
+  if (!favorites || favorites.length === 0) {
+    renderEmptyState(
+      grid,
+      "Henüz favori yok",
+      "Mekanları keşfet ve favorilere ekle."
+    );
+    return;
+  }
+
+  const venueIds = favorites.map((f) => f.venue_id).filter(Boolean);
+
+  if (!venueIds.length) {
+    renderEmptyState(grid, "Henüz favori yok");
+    return;
+  }
+
+  const { data: venues, error: venuesError } = await supabaseClient
+    .from("venues")
+    .select("*")
+    .in("id", venueIds);
+
+  if (venuesError) {
+    showSafeError(venuesError, "Favori mekanlar yüklenemedi.");
+    return;
+  }
+
+  const venuesById = new Map(
+    (venues || []).map((venue) => [String(venue.id), venue])
+  );
+  const fragment = document.createDocumentFragment();
+
+  venueIds.forEach((venueId) => {
+    const venue = venuesById.get(String(venueId));
+    if (!venue) return;
+    const card = createVenueCard(venue, {
+      favoriteCardId: true,
+      showRemoveButton: true,
+    });
+    card.classList.add("profile-favorite-card");
+    fragment.appendChild(card);
+  });
+
+  if (!fragment.children.length) {
+    renderEmptyState(grid, "Henüz favori yok");
+    return;
+  }
+
+  grid.appendChild(fragment);
+}
+
+async function loadProfileOrdersPreview(userId) {
+  const list = document.getElementById("profileOrdersList");
+
+  if (!list) return;
+
+  renderEmptyState(list, "Siparişler yükleniyor...");
+
+  const loadResult = await loadUserOrders(userId);
+
+  if (loadResult.error) {
+    showSafeError(loadResult.error, "Siparişler yüklenemedi.");
+    return;
+  }
+
+  list.innerHTML = "";
+
+  const orders = (loadResult.orders || []).slice(0, 12);
+
+  if (!orders.length) {
+    renderEmptyState(
+      list,
+      "Henüz sipariş yok",
+      "Yemek siparişi verdiğinde burada görünür."
+    );
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+
+  orders.forEach((order) => {
+    const card = renderOrderListCard(order);
+    card.classList.add("profile-order-card");
+    fragment.appendChild(card);
+  });
+
+  list.appendChild(fragment);
 }
 
 async function addFavorite(venueId) {
@@ -13108,11 +13359,34 @@ const DELIVERY_STATUS_LABELS = {
 };
 
 const COURIER_DELIVERY_NEXT_ACTIONS = {
-  assigned: [["picked_up", "Siparişi Aldım"]],
-  courier_assigned: [["picked_up", "Siparişi Aldım"]],
-  picked_up: [["on_the_way", "Yola Çıktım"]],
-  on_the_way: [["delivered", "Teslim Edildi"]],
+  assigned: [["picked_up", "Teslimatı Aldım"]],
+  courier_assigned: [["picked_up", "Teslimatı Aldım"]],
+  picked_up: [["on_the_way", "Yoldayım"]],
+  on_the_way: [["delivered", "Teslim Ettim"]],
 };
+
+const COURIER_COMPLETION_NOTE_OPTIONS = [
+  ["customer_absent", "Müşteri adreste yoktu"],
+  ["left_with_security", "Güvenliğe bırakıldı"],
+  ["traffic", "Trafik yoğun"],
+  ["other", "Diğer"],
+];
+
+const COURIER_OPS_STATUS_BADGES = {
+  online: { emoji: "🟢", label: "Online" },
+  on_delivery: { emoji: "🟡", label: "Teslimatta" },
+  offline: { emoji: "⚫", label: "Offline" },
+};
+
+const ORDER_DETAIL_TRACKING_STEPS = [
+  { key: "received", label: "Sipariş Alındı" },
+  { key: "awaiting_approval", label: "Restoran Onayı Bekleniyor" },
+  { key: "preparing", label: "Hazırlanıyor" },
+  { key: "courier_assigned", label: "Kurye Atandı" },
+  { key: "picked_up", label: "Teslimatı Aldı" },
+  { key: "on_the_way", label: "Yolda" },
+  { key: "delivered", label: "Teslim Edildi" },
+];
 
 function normalizeCourierDeliveryStatusKey(status) {
   const value = safeText(status).toLowerCase().trim();
@@ -13128,12 +13402,23 @@ function normalizeCourierDeliveryStatusKey(status) {
 const courierPageState = {
   refreshTimerId: null,
   lastRefreshedAt: null,
+  realtimeStatus: "off",
+  activeTab: "active",
+  historyPeriod: "today",
+  opsSummary: null,
+  isOnDuty: false,
 };
 
 const restaurantOrderCartState = {
   venueId: null,
   items: {},
 };
+
+function resetRestaurantOrderCart() {
+  restaurantOrderCartState.venueId = null;
+  restaurantOrderCartState.items = {};
+  updateRestaurantOrderCartUi();
+}
 
 function getRestaurantOrderStatusValue(status) {
   return safeText(status).toLowerCase().trim() || "pending";
@@ -14105,6 +14390,8 @@ async function acceptDelivery(deliveryId) {
     const msg = safeText(error && error.message).toLowerCase();
     if (msg.includes("already claimed") || msg.includes("unavailable")) {
       showToast("Bu teslimat başka bir kurye tarafından alındı.");
+    } else if (msg.includes("mesaiye başla")) {
+      showToast("Mesaiye başlamadan teslimat kabul edemezsiniz.");
     } else {
       showSafeError(error, "Teslimat kabul edilemedi.");
     }
@@ -14355,12 +14642,14 @@ function appendBusinessOrderActions(container, order) {
   });
 }
 
-async function refreshRestaurantOrdersPage() {
+async function refreshRestaurantOrdersPage(options = {}) {
   const filter = document.getElementById("restaurantOrdersVenueFilter");
   const list = document.getElementById("restaurantOrdersList");
   if (!list) return;
 
-  renderOrdersPageMessage(list, "Siparişler yükleniyor...", "");
+  if (!options.silent) {
+    renderOrdersPageMessage(list, "Siparişler yükleniyor...", "");
+  }
 
   const selectedVenueId =
     filter && safeText(filter.value) ? Number(filter.value) : null;
@@ -14615,6 +14904,9 @@ async function initOrderDetailPage() {
       historyList.appendChild(ul);
     }
   }
+
+  renderOrderCourierTracking(order);
+  setupOrderDetailRealtime(orderId);
 }
 
 async function loadBusinessVenueOptions(selectEl) {
@@ -14665,6 +14957,1032 @@ async function loadBusinessVenueOptions(selectEl) {
   return venues || [];
 }
 
+// ---------------------------------------------------------------------------
+// Phase 1A — Fulfillment Realtime (orders + deliveries)
+// ---------------------------------------------------------------------------
+
+const fulfillmentRealtimeState = {
+  channels: new Map(),
+  debounceTimers: new Map(),
+  pageStatus: new Map(),
+  audioContext: null,
+};
+
+const FULFILLMENT_REALTIME_DEBOUNCE_MS = 400;
+const COURIER_POLL_LIVE_MS = 120000;
+const COURIER_POLL_FALLBACK_MS = 25000;
+
+function scheduleFulfillmentDebounced(key, fn, delay = FULFILLMENT_REALTIME_DEBOUNCE_MS) {
+  const existing = fulfillmentRealtimeState.debounceTimers.get(key);
+  if (existing) window.clearTimeout(existing);
+
+  const timerId = window.setTimeout(() => {
+    fulfillmentRealtimeState.debounceTimers.delete(key);
+    fn();
+  }, delay);
+
+  fulfillmentRealtimeState.debounceTimers.set(key, timerId);
+}
+
+function setFulfillmentLiveBadge(badgeId, mode) {
+  const badge = badgeId ? document.getElementById(badgeId) : null;
+  if (!badge) return;
+
+  badge.hidden = false;
+  badge.classList.remove("is-live", "is-fallback");
+
+  if (mode === "live") {
+    badge.textContent = "Canlı";
+    badge.classList.add("is-live");
+  } else if (mode === "fallback") {
+    badge.textContent = "Yedek yenileme";
+    badge.classList.add("is-fallback");
+  } else if (mode === "connecting") {
+    badge.textContent = "Bağlanıyor…";
+  } else {
+    badge.hidden = true;
+  }
+}
+
+function setFulfillmentRealtimePageStatus(pageKey, status, badgeId) {
+  fulfillmentRealtimeState.pageStatus.set(pageKey, status);
+  if (pageKey === "courier") {
+    courierPageState.realtimeStatus = status;
+    updateCourierRefreshMeta();
+    setupCourierAutoRefresh();
+  } else if (badgeId) {
+    if (status === "live") setFulfillmentLiveBadge(badgeId, "live");
+    else if (status === "fallback") setFulfillmentLiveBadge(badgeId, "fallback");
+    else if (status === "connecting") setFulfillmentLiveBadge(badgeId, "connecting");
+    else setFulfillmentLiveBadge(badgeId, "off");
+  }
+}
+
+function teardownFulfillmentRealtimePage(pageKey) {
+  const channel = fulfillmentRealtimeState.channels.get(pageKey);
+  if (channel) {
+    supabaseClient.removeChannel(channel);
+    fulfillmentRealtimeState.channels.delete(pageKey);
+  }
+  fulfillmentRealtimeState.pageStatus.delete(pageKey);
+}
+
+function unlockFulfillmentAlertAudio() {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    if (!fulfillmentRealtimeState.audioContext) {
+      fulfillmentRealtimeState.audioContext = new Ctx();
+    }
+    if (fulfillmentRealtimeState.audioContext.state === "suspended") {
+      fulfillmentRealtimeState.audioContext.resume();
+    }
+  } catch (error) {
+    console.warn("[realtime] audio unlock failed", error);
+  }
+}
+
+function playFulfillmentAlertTone() {
+  try {
+    unlockFulfillmentAlertAudio();
+    const ctx = fulfillmentRealtimeState.audioContext;
+    if (!ctx) return;
+
+    const playBeep = (startAt, frequency) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = frequency;
+      gain.gain.setValueAtTime(0.0001, startAt);
+      gain.gain.exponentialRampToValueAtTime(0.14, startAt + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.22);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(startAt);
+      osc.stop(startAt + 0.24);
+    };
+
+    const t = ctx.currentTime;
+    playBeep(t, 880);
+    playBeep(t + 0.28, 660);
+  } catch (error) {
+    console.warn("[realtime] alert tone failed", error);
+  }
+}
+
+function isDeliveryPoolStatus(status, courierId) {
+  const normalized = normalizeDeliveryStatusValue(status);
+  return (
+    !courierId &&
+    ["available", "open", "pending"].includes(normalized)
+  );
+}
+
+function subscribeFulfillmentRealtime({
+  pageKey,
+  channelName,
+  table,
+  filter,
+  badgeId,
+  onChange,
+}) {
+  teardownFulfillmentRealtimePage(pageKey);
+  setFulfillmentRealtimePageStatus(pageKey, "connecting", badgeId);
+
+  const channel = supabaseClient.channel(channelName);
+  const changeConfig = {
+    event: "*",
+    schema: "public",
+    table,
+  };
+  if (filter) changeConfig.filter = filter;
+
+  channel.on("postgres_changes", changeConfig, (payload) => {
+    if (typeof onChange === "function") onChange(payload);
+  });
+
+  channel.subscribe((status) => {
+    if (status === "SUBSCRIBED") {
+      setFulfillmentRealtimePageStatus(pageKey, "live", badgeId);
+      console.log(`[realtime] ${pageKey} subscribed (${table})`);
+      return;
+    }
+
+    if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+      setFulfillmentRealtimePageStatus(pageKey, "fallback", badgeId);
+      console.warn(`[realtime] ${pageKey} ${status} — polling fallback`);
+    }
+  });
+
+  fulfillmentRealtimeState.channels.set(pageKey, channel);
+  return channel;
+}
+
+function handleRestaurantOrdersRealtimePayload(payload) {
+  const row = payload.new || payload.old;
+  if (!row) return;
+
+  scheduleFulfillmentDebounced("restaurant-orders-refresh", () => {
+    refreshRestaurantOrdersPage({ silent: true });
+  });
+
+  if (payload.eventType === "INSERT") {
+    const status = getRestaurantOrderStatusValue(row.status);
+    if (status === "pending") {
+      playFulfillmentAlertTone();
+      const amount = formatRestaurantOrderAmount(row.total_amount);
+      showToast(`Yeni sipariş · ${amount}`);
+    }
+  }
+
+  if (payload.eventType === "UPDATE" && payload.new) {
+    const newStatus = getRestaurantOrderStatusValue(payload.new.status);
+    const oldStatus = payload.old
+      ? getRestaurantOrderStatusValue(payload.old.status)
+      : "";
+    if (newStatus === "courier_assigned" && oldStatus !== "courier_assigned") {
+      showToast("Kurye siparişi kabul etti");
+    }
+  }
+}
+
+function setupRestaurantOrdersRealtime(session) {
+  if (!session || !session.user) return;
+
+  subscribeFulfillmentRealtime({
+    pageKey: "restaurant-orders",
+    channelName: `restaurant-orders-${session.user.id}`,
+    table: "orders",
+    badgeId: "restaurantOrdersLiveBadge",
+    onChange: handleRestaurantOrdersRealtimePayload,
+  });
+
+  if (!window.__fulfillmentRealtimeUnloadBound) {
+    window.__fulfillmentRealtimeUnloadBound = true;
+    window.addEventListener("beforeunload", () => {
+      teardownFulfillmentRealtimePage("restaurant-orders");
+      teardownFulfillmentRealtimePage("courier");
+      teardownFulfillmentRealtimePage("admin-deliveries");
+      teardownFulfillmentRealtimePage("admin-deliveries-orders");
+      teardownFulfillmentRealtimePage("order-detail-orders");
+      teardownFulfillmentRealtimePage("order-detail-deliveries");
+    });
+    document.addEventListener("click", unlockFulfillmentAlertAudio, { once: true });
+  }
+}
+
+function handleCourierDeliveriesRealtimePayload(payload) {
+  const row = payload.new || payload.old;
+  scheduleFulfillmentDebounced("courier-refresh", () => {
+    refreshCourierPage({ silent: true });
+  });
+
+  if (!row) return;
+
+  const poolRow = payload.new || row;
+  if (
+    payload.eventType === "INSERT" &&
+    isDeliveryPoolStatus(poolRow.status, poolRow.courier_id)
+  ) {
+    playFulfillmentAlertTone();
+    showToast("Yeni teslimat havuzda");
+  } else if (
+    payload.eventType === "UPDATE" &&
+    payload.new &&
+    isDeliveryPoolStatus(payload.new.status, payload.new.courier_id) &&
+    payload.old &&
+    !isDeliveryPoolStatus(payload.old.status, payload.old.courier_id)
+  ) {
+    showToast("Teslimat havuza düştü");
+  }
+}
+
+function setupCourierDeliveriesRealtime(session) {
+  if (!session || !session.user) return;
+
+  subscribeFulfillmentRealtime({
+    pageKey: "courier",
+    channelName: `courier-deliveries-${session.user.id}`,
+    table: "deliveries",
+    badgeId: null,
+    onChange: handleCourierDeliveriesRealtimePayload,
+  });
+}
+
+function handleAdminDeliveriesRealtimePayload(payload) {
+  const row = payload.new || payload.old;
+  scheduleFulfillmentDebounced("admin-deliveries-refresh", () => {
+    refreshAdminDeliveriesPage({ silent: true });
+  });
+
+  if (!row || payload.eventType === "DELETE") return;
+
+  if (
+    payload.eventType === "INSERT" &&
+    isDeliveryPoolStatus(row.status, row.courier_id)
+  ) {
+    showToast("Havuzda yeni teslimat");
+  } else if (payload.eventType === "UPDATE" && payload.new && payload.old) {
+    const assignedNow = Boolean(payload.new.courier_id) && !payload.old.courier_id;
+    const statusChanged =
+      normalizeDeliveryStatusValue(payload.new.status) !==
+      normalizeDeliveryStatusValue(payload.old.status);
+    if (assignedNow) {
+      showToast("Kurye ataması yapıldı");
+    } else if (statusChanged) {
+      showToast(`Teslimat: ${getDeliveryStatusLabel(payload.new.status)}`);
+    }
+  }
+}
+
+function setupAdminDeliveriesRealtime() {
+  subscribeFulfillmentRealtime({
+    pageKey: "admin-deliveries",
+    channelName: "admin-deliveries-board",
+    table: "deliveries",
+    badgeId: "adminDeliveriesLiveBadge",
+    onChange: handleAdminDeliveriesRealtimePayload,
+  });
+
+  subscribeFulfillmentRealtime({
+    pageKey: "admin-deliveries-orders",
+    channelName: "admin-deliveries-orders",
+    table: "orders",
+    filter: "order_type=eq.delivery",
+    badgeId: null,
+    onChange: handleAdminDeliveriesRealtimePayload,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Courier Operations Pack v1
+// ---------------------------------------------------------------------------
+
+function getCourierOpsStatusBadgeMarkup(status) {
+  const key = safeText(status).toLowerCase() || "offline";
+  const meta = COURIER_OPS_STATUS_BADGES[key] || COURIER_OPS_STATUS_BADGES.offline;
+  return `${meta.emoji} ${meta.label}`;
+}
+
+function getCourierCompletionNoteLabel(category) {
+  const key = safeText(category).toLowerCase();
+  const found = COURIER_COMPLETION_NOTE_OPTIONS.find(([value]) => value === key);
+  return found ? found[1] : safeText(category) || "—";
+}
+
+function formatCourierShiftDuration(minutes) {
+  const total = Math.max(0, Number(minutes) || 0);
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  if (h > 0) return `${h} sa ${m} dk`;
+  return `${m} dk`;
+}
+
+async function loadMyCourierOpsSummary() {
+  const { data, error } = await supabaseClient.rpc("get_my_courier_ops_summary");
+  if (error) {
+    console.log("[courier ops] summary", error);
+    return null;
+  }
+  return data || null;
+}
+
+async function startCourierShift() {
+  const { data, error } = await supabaseClient.rpc("start_courier_shift");
+  if (error || !data) {
+    const msg = safeText(error && error.message).toLowerCase();
+    showSafeError(error, "Mesai başlatılamadı.");
+    return null;
+  }
+  showToast("Mesaiye başladınız — yeni görev alabilirsiniz");
+  return data;
+}
+
+async function endCourierShift() {
+  const { data, error } = await supabaseClient.rpc("end_courier_shift");
+  if (error || !data) {
+    showSafeError(error, "Mesai bitirilemedi.");
+    return null;
+  }
+  showToast("Mesai sonlandırıldı");
+  return data;
+}
+
+async function loadCourierHistoryByPeriod(period) {
+  const { data, error } = await supabaseClient.rpc(
+    "get_courier_delivery_history_period",
+    { p_period: period || "today" }
+  );
+
+  if (error) {
+    console.log("[courier history period]", error);
+    return [];
+  }
+
+  const rows = Array.isArray(data) ? data : [];
+  return enrichDeliveriesWithCustomerProfiles(rows);
+}
+
+async function loadAdminCourierOpsBoard() {
+  const { data, error } = await supabaseClient.rpc("get_admin_courier_ops_board");
+  if (error) {
+    console.log("[admin courier ops]", error);
+    return { couriers: [], active_shifts: [], performance_ranking: [] };
+  }
+  return {
+    couriers: (data && data.couriers) || [],
+    active_shifts: (data && data.active_shifts) || [],
+    performance_ranking: (data && data.performance_ranking) || [],
+  };
+}
+
+function renderCourierOpsDuty(summary) {
+  const badge = document.getElementById("courierDutyBadge");
+  const startBtn = document.getElementById("courierStartShiftBtn");
+  const endBtn = document.getElementById("courierEndShiftBtn");
+  const meta = document.getElementById("courierShiftMeta");
+  const poolHint = document.getElementById("courierPoolHint");
+
+  const isOnDuty = Boolean(summary && summary.is_on_duty);
+  const opsStatus = (summary && summary.ops_status) || "offline";
+  courierPageState.isOnDuty = isOnDuty;
+  courierPageState.opsSummary = summary;
+
+  if (badge) {
+    badge.dataset.status = opsStatus;
+    badge.textContent = getCourierOpsStatusBadgeMarkup(opsStatus);
+  }
+
+  if (startBtn) startBtn.hidden = isOnDuty;
+  if (endBtn) endBtn.hidden = !isOnDuty;
+
+  if (meta && summary && summary.shift) {
+    const shift = summary.shift;
+    const duration = formatCourierShiftDuration(shift.duration_minutes);
+    meta.textContent = isOnDuty
+      ? `Vardiya: ${duration} · Bugün ${shift.today_delivery_count || 0} teslimat`
+      : "Mesai kapalı — görev kabul etmek için mesaiye başlayın.";
+  } else if (meta) {
+    meta.textContent = "Mesai kapalı";
+  }
+
+  if (poolHint) poolHint.hidden = isOnDuty;
+}
+
+function renderCourierPerformanceCards(summary) {
+  const grid = document.getElementById("courierOpsStats");
+  if (!grid) return;
+
+  grid.innerHTML = "";
+  const perf = (summary && summary.performance) || {};
+  const cards = [
+    ["Toplam teslimat", perf.total_deliveries || 0],
+    ["Bu ay teslimat", perf.month_deliveries || 0],
+    ["Ort. teslim süresi", `${perf.avg_delivery_minutes || 0} dk`],
+    ["Başarı oranı", `%${perf.success_rate_percent || 0}`],
+  ];
+
+  cards.forEach(([label, value]) => {
+    const card = document.createElement("article");
+    card.className = "courier-ops-stat-card";
+    const lbl = document.createElement("span");
+    lbl.className = "courier-ops-stat-card__label";
+    lbl.textContent = label;
+    const val = document.createElement("strong");
+    val.className = "courier-ops-stat-card__value";
+    val.textContent = String(value);
+    card.appendChild(lbl);
+    card.appendChild(val);
+    grid.appendChild(card);
+  });
+}
+
+function renderCourierEarningsSummary(summary) {
+  const grid = document.getElementById("courierEarningsSummary");
+  if (!grid) return;
+
+  grid.innerHTML = "";
+  const earnings = (summary && summary.earnings) || {};
+  [
+    ["Bugün", earnings.today_deliveries || 0],
+    ["Bu hafta", earnings.week_deliveries || 0],
+    ["Bu ay", earnings.month_deliveries || 0],
+  ].forEach(([label, value]) => {
+    const card = document.createElement("article");
+    card.className = "courier-ops-earnings-card";
+    const lbl = document.createElement("span");
+    lbl.className = "courier-ops-earnings-card__label";
+    lbl.textContent = `${label} teslimat`;
+    const val = document.createElement("strong");
+    val.className = "courier-ops-earnings-card__value";
+    val.textContent = String(value);
+    card.appendChild(lbl);
+    card.appendChild(val);
+    grid.appendChild(card);
+  });
+}
+
+function renderCourierHistoryRow(delivery) {
+  const row = document.createElement("article");
+  row.className = "courier-history-row";
+
+  const order = delivery.orders || {};
+  const venueName =
+    safeText(order.venues && order.venues.name) || `Mekan #${order.venue_id}`;
+  const customerName =
+    getProfileDisplayName(delivery.customerProfile) || "Müşteri";
+  const deliveredAt = delivery.delivered_at || delivery.updated_at;
+
+  const head = document.createElement("div");
+  head.className = "courier-history-row__head";
+  const title = document.createElement("h3");
+  title.className = "courier-history-row__title";
+  title.textContent = venueName;
+  head.appendChild(title);
+
+  const statusBadge = document.createElement("span");
+  statusBadge.className = `status-badge status-${safeText(delivery.status)}`;
+  statusBadge.textContent = getDeliveryStatusLabel(delivery.status);
+  head.appendChild(statusBadge);
+  row.appendChild(head);
+
+  const customer = document.createElement("p");
+  customer.className = "courier-history-row__meta";
+  customer.textContent = `Müşteri: ${customerName}`;
+  row.appendChild(customer);
+
+  const time = document.createElement("p");
+  time.className = "courier-history-row__meta";
+  time.textContent = deliveredAt
+    ? `Teslim: ${new Date(deliveredAt).toLocaleString("tr-TR")}`
+    : "Teslim tarihi yok";
+  row.appendChild(time);
+
+  const duration = document.createElement("p");
+  duration.className = "courier-history-row__meta";
+  duration.textContent = `Süre: ${delivery.delivery_duration_minutes != null ? `${delivery.delivery_duration_minutes} dk` : "—"}`;
+  row.appendChild(duration);
+
+  if (delivery.completion_note_category) {
+    const note = document.createElement("p");
+    note.className = "courier-history-row__meta";
+    note.textContent = `Not: ${getCourierCompletionNoteLabel(delivery.completion_note_category)}${delivery.completion_note_detail ? ` — ${delivery.completion_note_detail}` : ""}`;
+    row.appendChild(note);
+  }
+
+  return row;
+}
+
+async function refreshCourierHistoryPanel() {
+  const list = document.getElementById("courierHistoryList");
+  if (!list) return;
+
+  list.innerHTML = "";
+  const history = await loadCourierHistoryByPeriod(courierPageState.historyPeriod);
+
+  if (!history.length) {
+    renderEmptyState(list, "Kayıt yok", "Seçilen dönemde tamamlanan teslimat yok.");
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  history.forEach((delivery) => {
+    fragment.appendChild(renderCourierHistoryRow(delivery));
+  });
+  list.appendChild(fragment);
+}
+
+function setupCourierOpsTabs() {
+  document.querySelectorAll("[data-courier-tab]").forEach((btn) => {
+    if (btn.dataset.bound) return;
+    btn.dataset.bound = "true";
+    btn.addEventListener("click", () => {
+      const tab = btn.getAttribute("data-courier-tab");
+      courierPageState.activeTab = tab;
+
+      document.querySelectorAll("[data-courier-tab]").forEach((el) => {
+        const active = el.getAttribute("data-courier-tab") === tab;
+        el.classList.toggle("is-active", active);
+        el.setAttribute("aria-selected", active ? "true" : "false");
+      });
+
+      document.querySelectorAll("[data-courier-panel]").forEach((panel) => {
+        panel.hidden = panel.getAttribute("data-courier-panel") !== tab;
+      });
+
+      if (tab === "history") refreshCourierHistoryPanel();
+    });
+  });
+
+  document.querySelectorAll("[data-history-period]").forEach((btn) => {
+    if (btn.dataset.bound) return;
+    btn.dataset.bound = "true";
+    btn.addEventListener("click", () => {
+      const period = btn.getAttribute("data-history-period");
+      courierPageState.historyPeriod = period;
+      document.querySelectorAll("[data-history-period]").forEach((el) => {
+        el.classList.toggle("is-active", el.getAttribute("data-history-period") === period);
+      });
+      refreshCourierHistoryPanel();
+    });
+  });
+}
+
+function setupCourierShiftButtons() {
+  const startBtn = document.getElementById("courierStartShiftBtn");
+  const endBtn = document.getElementById("courierEndShiftBtn");
+
+  if (startBtn && !startBtn.dataset.bound) {
+    startBtn.dataset.bound = "true";
+    startBtn.addEventListener("click", async () => {
+      startBtn.disabled = true;
+      await startCourierShift();
+      await refreshCourierPage({ silent: true });
+      startBtn.disabled = false;
+    });
+  }
+
+  if (endBtn && !endBtn.dataset.bound) {
+    endBtn.dataset.bound = "true";
+    endBtn.addEventListener("click", async () => {
+      endBtn.disabled = true;
+      await endCourierShift();
+      await refreshCourierPage({ silent: true });
+      endBtn.disabled = false;
+    });
+  }
+}
+
+function promptCourierCompletionNote() {
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.className = "courier-completion-overlay";
+    overlay.style.cssText =
+      "position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:80;display:flex;align-items:center;justify-content:center;padding:1rem;";
+
+    const panel = document.createElement("div");
+    panel.className = "dashboard-section";
+    panel.style.maxWidth = "420px";
+    panel.style.width = "100%";
+
+    const title = document.createElement("h3");
+    title.textContent = "Teslimat notu";
+    panel.appendChild(title);
+
+    const notes = document.createElement("div");
+    notes.className = "courier-completion-notes";
+    let selected = "customer_absent";
+
+    COURIER_COMPLETION_NOTE_OPTIONS.forEach(([value, label]) => {
+      const labelEl = document.createElement("label");
+      const input = document.createElement("input");
+      input.type = "radio";
+      input.name = "completionNote";
+      input.value = value;
+      if (value === selected) input.checked = true;
+      input.addEventListener("change", () => {
+        selected = value;
+        detailInput.hidden = value !== "other";
+      });
+      labelEl.appendChild(input);
+      labelEl.appendChild(document.createTextNode(label));
+      notes.appendChild(labelEl);
+    });
+    panel.appendChild(notes);
+
+    const detailInput = document.createElement("textarea");
+    detailInput.placeholder = "Diğer not (opsiyonel)";
+    detailInput.hidden = true;
+    detailInput.rows = 2;
+    panel.appendChild(detailInput);
+
+    const actions = document.createElement("div");
+    actions.className = "order-card-actions";
+    actions.style.marginTop = "0.75rem";
+
+    const cancelBtn = document.createElement("button");
+    cancelBtn.type = "button";
+    cancelBtn.className = "secondary-btn";
+    cancelBtn.textContent = "İptal";
+    cancelBtn.addEventListener("click", () => {
+      overlay.remove();
+      resolve(null);
+    });
+
+    const okBtn = document.createElement("button");
+    okBtn.type = "button";
+    okBtn.className = "btn";
+    okBtn.textContent = "Teslim Ettim";
+    okBtn.addEventListener("click", () => {
+      overlay.remove();
+      resolve({
+        category: selected,
+        detail: selected === "other" ? detailInput.value.trim() : "",
+      });
+    });
+
+    actions.appendChild(cancelBtn);
+    actions.appendChild(okBtn);
+    panel.appendChild(actions);
+    overlay.appendChild(panel);
+    document.body.appendChild(overlay);
+  });
+}
+
+async function updateDeliveryStatusWithCompletion(
+  deliveryId,
+  newStatus,
+  completionNote
+) {
+  const normalizedStatus = safeText(newStatus).toLowerCase().trim();
+  const params = {
+    p_delivery_id: deliveryId,
+    p_new_status: normalizedStatus,
+    p_note: null,
+    p_completion_note_category: completionNote ? completionNote.category : null,
+    p_completion_note_detail: completionNote ? completionNote.detail : null,
+  };
+
+  let data = null;
+  let error = null;
+
+  const statusRpc = await supabaseClient.rpc(
+    "update_courier_delivery_status",
+    params
+  );
+  data = statusRpc.data;
+  error = statusRpc.error;
+
+  if (error && safeText(error.message).toLowerCase().includes("function")) {
+    const legacyRpc = await supabaseClient.rpc("update_delivery_status", {
+      p_delivery_id: deliveryId,
+      p_new_status: normalizedStatus,
+      p_note: completionNote
+        ? `${completionNote.category}${completionNote.detail ? `: ${completionNote.detail}` : ""}`
+        : null,
+    });
+    data = legacyRpc.data;
+    error = legacyRpc.error;
+  }
+
+  if (error || !data) {
+    showSafeError(error, "Teslimat durumu güncellenemedi.");
+    return null;
+  }
+
+  showToast("Teslimat tamamlandı");
+  if (normalizedStatus === "on_the_way") {
+    await notifyCourierDispatchEvent(data.order_id, "on_the_way");
+  } else if (normalizedStatus === "delivered") {
+    await notifyCourierDispatchEvent(data.order_id, "delivered");
+  }
+  return data;
+}
+
+function setupAdminDeliveryTabs() {
+  document.querySelectorAll("[data-admin-delivery-tab]").forEach((btn) => {
+    if (btn.dataset.bound) return;
+    btn.dataset.bound = "true";
+    btn.addEventListener("click", () => {
+      const tab = btn.getAttribute("data-admin-delivery-tab");
+      document.querySelectorAll("[data-admin-delivery-tab]").forEach((el) => {
+        el.classList.toggle("is-active", el.getAttribute("data-admin-delivery-tab") === tab);
+      });
+      document.querySelectorAll("[data-admin-delivery-panel]").forEach((panel) => {
+        panel.hidden = panel.getAttribute("data-admin-delivery-panel") !== tab;
+      });
+    });
+  });
+}
+
+function renderAdminCourierOpsBoard(board) {
+  const container = document.getElementById("adminCourierOpsBoard");
+  const rankingList = document.getElementById("adminCourierRankingList");
+  const shiftsList = document.getElementById("adminCourierActiveShifts");
+
+  if (container) {
+    container.innerHTML = "";
+    const couriers = board.couriers || [];
+    if (!couriers.length) {
+      container.textContent = "Aktif kurye yok";
+    } else {
+      couriers.forEach((courier) => {
+        const card = document.createElement("article");
+        card.className = "admin-courier-ops-card";
+        const title = document.createElement("h3");
+        title.textContent = courier.full_name;
+        card.appendChild(title);
+        const badge = document.createElement("span");
+        badge.className = "courier-ops-status-badge";
+        badge.dataset.status = courier.ops_status || "offline";
+        badge.textContent = getCourierOpsStatusBadgeMarkup(courier.ops_status);
+        card.appendChild(badge);
+        const meta = document.createElement("p");
+        meta.className = "page-message";
+        meta.textContent = `Bugün: ${courier.today_deliveries || 0} · Bu ay: ${courier.month_deliveries || 0}`;
+        card.appendChild(meta);
+        container.appendChild(card);
+      });
+    }
+  }
+
+  if (rankingList) {
+    rankingList.innerHTML = "";
+    const ranking = board.performance_ranking || [];
+    if (!ranking.length) {
+      renderEmptyState(rankingList, "Sıralama yok", "");
+    } else {
+      ranking.forEach((row, index) => {
+        const item = document.createElement("div");
+        item.className = "admin-courier-rank-row";
+        item.innerHTML = `<span>#${index + 1} ${safeText(row.full_name)}</span><span>${row.month_deliveries || 0} teslimat · ${row.avg_delivery_minutes || 0} dk ort.</span>`;
+        rankingList.appendChild(item);
+      });
+    }
+  }
+
+  if (shiftsList) {
+    shiftsList.innerHTML = "";
+    const shifts = board.active_shifts || [];
+    if (!shifts.length) {
+      renderEmptyState(shiftsList, "Aktif vardiya yok", "");
+    } else {
+      shifts.forEach((shift) => {
+        const card = document.createElement("article");
+        card.className = "business-card";
+        const courier = shift.courier || {};
+        const title = document.createElement("h3");
+        title.textContent = courier.full_name || "Kurye";
+        card.appendChild(title);
+        const badge = document.createElement("span");
+        badge.className = "courier-ops-status-badge";
+        badge.dataset.status = courier.ops_status || "online";
+        badge.textContent = getCourierOpsStatusBadgeMarkup(courier.ops_status);
+        card.appendChild(badge);
+        const meta = document.createElement("p");
+        meta.textContent = `Başlangıç: ${new Date(shift.started_at).toLocaleString("tr-TR")}`;
+        card.appendChild(meta);
+        shiftsList.appendChild(card);
+      });
+    }
+  }
+}
+
+async function refreshAdminCourierOpsPanels() {
+  const board = await loadAdminCourierOpsBoard();
+  renderAdminCourierOpsBoard(board);
+  return board;
+}
+
+function getOrderDetailTrackingProgress(order) {
+  const status = getRestaurantOrderStatusValue(order && order.status);
+  const delivery =
+    order && Array.isArray(order.deliveries) && order.deliveries.length
+      ? order.deliveries[0]
+      : null;
+  const hasCourierAssigned =
+    ["courier_assigned", "picked_up", "on_the_way", "delivered"].includes(status) ||
+    Boolean(delivery && delivery.courier_id);
+
+  if (status === "rejected" || status === "cancelled") {
+    return {
+      activeIndex: -1,
+      allDone: false,
+      hasCourierAssigned,
+      terminal: status,
+    };
+  }
+
+  let activeIndex = 0;
+  let allDone = false;
+
+  switch (status) {
+    case "pending":
+      activeIndex = 1;
+      break;
+    case "accepted":
+    case "preparing":
+      activeIndex = 2;
+      break;
+    case "ready_for_pickup":
+      activeIndex = hasCourierAssigned ? 3 : 2;
+      break;
+    case "courier_assigned":
+      activeIndex = 3;
+      break;
+    case "picked_up":
+      activeIndex = 4;
+      break;
+    case "on_the_way":
+      activeIndex = 5;
+      break;
+    case "delivered":
+      activeIndex = 6;
+      allDone = true;
+      break;
+    default:
+      activeIndex = 1;
+  }
+
+  return { activeIndex, allDone, hasCourierAssigned, terminal: null };
+}
+
+function renderOrderCourierTracking(order) {
+  const section = document.getElementById("orderCourierTracking");
+  const titleEl = document.getElementById("orderTrackingTitle");
+  const stepsEl = document.getElementById("orderCourierTrackingSteps");
+  const noteEl = document.getElementById("orderCourierTrackingNote");
+  if (!section || !stepsEl) return;
+
+  if (!order || safeText(order.order_type) !== "delivery") {
+    section.hidden = true;
+    return;
+  }
+
+  const progress = getOrderDetailTrackingProgress(order);
+  section.hidden = false;
+  stepsEl.innerHTML = "";
+
+  if (titleEl) {
+    titleEl.textContent = progress.hasCourierAssigned
+      ? "Teslimat Takibi"
+      : "Sipariş Durumu";
+  }
+
+  if (progress.terminal) {
+    const terminal = document.createElement("p");
+    terminal.className = "order-courier-tracking__terminal page-message";
+    terminal.textContent =
+      progress.terminal === "rejected"
+        ? "Sipariş restoran tarafından reddedildi."
+        : "Sipariş iptal edildi.";
+    stepsEl.appendChild(terminal);
+    return;
+  }
+
+  ORDER_DETAIL_TRACKING_STEPS.forEach((step, index) => {
+    const li = document.createElement("li");
+    li.className = "order-courier-tracking__step";
+
+    const isDone = progress.allDone || index < progress.activeIndex;
+    const isCurrent = !progress.allDone && index === progress.activeIndex;
+    const isUpcoming = !isDone && !isCurrent;
+
+    if (isDone) li.classList.add("is-done");
+    if (isCurrent) li.classList.add("is-current");
+    if (isUpcoming) li.classList.add("is-upcoming");
+
+    const marker = document.createElement("span");
+    marker.className = "order-courier-tracking__marker";
+    marker.setAttribute("aria-hidden", "true");
+    marker.textContent = isDone ? "✓" : "";
+    li.appendChild(marker);
+
+    const text = document.createElement("span");
+    text.className = "order-courier-tracking__label";
+    text.textContent = step.label;
+    li.appendChild(text);
+
+    stepsEl.appendChild(li);
+  });
+
+  const deliveryRow =
+    order.deliveries && order.deliveries[0] ? order.deliveries[0] : null;
+  if (noteEl) {
+    if (deliveryRow && deliveryRow.completion_note_category) {
+      noteEl.hidden = false;
+      noteEl.textContent = `Kurye notu: ${getCourierCompletionNoteLabel(deliveryRow.completion_note_category)}${deliveryRow.completion_note_detail ? ` — ${deliveryRow.completion_note_detail}` : ""}`;
+    } else {
+      noteEl.hidden = true;
+    }
+  }
+}
+
+const orderDetailRealtimeState = {
+  orderId: null,
+};
+
+function setupOrderDetailRealtime(orderId) {
+  if (!orderId) return;
+  orderDetailRealtimeState.orderId = orderId;
+
+  teardownFulfillmentRealtimePage("order-detail-orders");
+  teardownFulfillmentRealtimePage("order-detail-deliveries");
+
+  subscribeFulfillmentRealtime({
+    pageKey: "order-detail-orders",
+    channelName: `order-detail-orders-${orderId}`,
+    table: "orders",
+    filter: `id=eq.${orderId}`,
+    badgeId: "orderTrackingLiveBadge",
+    onChange: () => {
+      scheduleFulfillmentDebounced("order-detail-refresh", () => {
+        refreshOrderDetailTracking(orderId);
+      });
+    },
+  });
+
+  subscribeFulfillmentRealtime({
+    pageKey: "order-detail-deliveries",
+    channelName: `order-detail-deliveries-${orderId}`,
+    table: "deliveries",
+    filter: `order_id=eq.${orderId}`,
+    badgeId: null,
+    onChange: () => {
+      scheduleFulfillmentDebounced("order-detail-refresh", () => {
+        refreshOrderDetailTracking(orderId);
+      });
+    },
+  });
+}
+
+async function refreshOrderDetailTracking(orderId) {
+  const session = await getSafeSession();
+  if (!session) return;
+
+  const orderRow = await fetchMyRestaurantOrderById(orderId, session.user.id);
+  if (!orderRow) return;
+
+  const [order] = await enrichOrdersWithRelations([orderRow], {
+    includeDeliveries: true,
+    includeStatusHistory: true,
+  });
+  if (!order) return;
+
+  renderOrderCourierTracking(order);
+
+  const historyList = document.getElementById("orderStatusHistory");
+  if (historyList) {
+    const title = historyList.querySelector("h2");
+    historyList.innerHTML = "";
+    if (title) historyList.appendChild(title);
+    else {
+      const h2 = document.createElement("h2");
+      h2.textContent = "Durum Geçmişi";
+      historyList.appendChild(h2);
+    }
+    const entries = order.order_status_history || [];
+    if (!entries.length) {
+      const empty = document.createElement("p");
+      empty.className = "page-message";
+      empty.textContent = "Henüz kayıt yok.";
+      historyList.appendChild(empty);
+    } else {
+      const ul = document.createElement("ul");
+      ul.className = "order-history-items";
+      entries
+        .slice()
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+        .forEach((entry) => {
+          const li = document.createElement("li");
+          li.textContent = `${getRestaurantOrderStatusLabel(entry.status)} — ${new Date(entry.created_at).toLocaleString("tr-TR")}${entry.note ? ` (${entry.note})` : ""}`;
+          ul.appendChild(li);
+        });
+      historyList.appendChild(ul);
+    }
+  }
+}
+
 async function initRestaurantOrdersPage() {
   const page = document.getElementById("restaurantOrdersPage");
   if (!page) return;
@@ -14692,6 +16010,7 @@ async function initRestaurantOrdersPage() {
 
   filter.addEventListener("change", refreshRestaurantOrdersPage);
   await refreshRestaurantOrdersPage();
+  setupRestaurantOrdersRealtime(session);
 }
 
 function renderRestaurantMenuManageList(items, menuId) {
@@ -14946,45 +16265,7 @@ async function initRestaurantMenuPage() {
 
   const { items } = await loadRestaurantMenu(venueIdFromQuery);
   renderRestaurantMenuOrderList(items);
-
-  document.querySelectorAll('input[name="orderType"]').forEach((input) => {
-    input.addEventListener("change", () => {
-      const addressInput = document.getElementById("restaurantOrderDeliveryAddress");
-      if (!addressInput) return;
-      const isDelivery = document.querySelector('input[name="orderType"]:checked').value === "delivery";
-      addressInput.hidden = !isDelivery;
-      addressInput.required = isDelivery;
-    });
-  });
-
-  const submitBtn = document.getElementById("restaurantOrderSubmitBtn");
-  if (submitBtn && !submitBtn.dataset.bound) {
-    submitBtn.dataset.bound = "true";
-    submitBtn.addEventListener("click", async () => {
-      const session = await getSafeSession();
-      if (!session) {
-        redirectToAuthForCurrentPage();
-        return;
-      }
-
-      const orderType =
-        document.querySelector('input[name="orderType"]:checked')?.value || "pickup";
-      const order = await createOrder({
-        venueId: restaurantOrderCartState.venueId,
-        orderType,
-        deliveryAddress: document.getElementById("restaurantOrderDeliveryAddress")?.value,
-        customerNote: document.getElementById("restaurantOrderNote")?.value,
-        items: Object.values(restaurantOrderCartState.items).map((entry) => ({
-          menuItemId: entry.menuItemId,
-          quantity: entry.quantity,
-        })),
-      });
-
-      if (order && order.id) {
-        window.location.href = `./orders.html?id=${encodeURIComponent(order.id)}`;
-      }
-    });
-  }
+  setupRestaurantOrderCheckoutHandlers();
 }
 
 function renderCourierDeliveryCard(delivery, options = {}) {
@@ -15069,11 +16350,19 @@ function renderCourierDeliveryCard(delivery, options = {}) {
     const acceptBtn = document.createElement("button");
     acceptBtn.type = "button";
     acceptBtn.className = "btn";
-    acceptBtn.textContent = "Teslimatı Kabul Et";
+    acceptBtn.textContent = "Görevi Kabul Et";
+    if (!courierPageState.isOnDuty) {
+      acceptBtn.disabled = true;
+      acceptBtn.title = "Mesaiye başlayın";
+    }
     acceptBtn.addEventListener("click", async () => {
+      if (!courierPageState.isOnDuty) {
+        showToast("Önce mesaiye başlayın");
+        return;
+      }
       acceptBtn.disabled = true;
       const result = await acceptDelivery(delivery.id);
-      if (result) await refreshCourierPage();
+      if (result) await refreshCourierPage({ silent: true });
       else acceptBtn.disabled = false;
     });
     actions.appendChild(acceptBtn);
@@ -15090,8 +16379,22 @@ function renderCourierDeliveryCard(delivery, options = {}) {
       btn.textContent = label;
       btn.addEventListener("click", async () => {
         btn.disabled = true;
-        const result = await updateDeliveryStatus(delivery.id, status);
-        if (result) await refreshCourierPage();
+        let result = null;
+        if (status === "delivered") {
+          const note = await promptCourierCompletionNote();
+          if (!note) {
+            btn.disabled = false;
+            return;
+          }
+          result = await updateDeliveryStatusWithCompletion(
+            delivery.id,
+            status,
+            note
+          );
+        } else {
+          result = await updateDeliveryStatus(delivery.id, status);
+        }
+        if (result) await refreshCourierPage({ silent: true });
         else btn.disabled = false;
       });
       actions.appendChild(btn);
@@ -15133,9 +16436,26 @@ function renderCourierProfileCard(courier) {
 
 function updateCourierRefreshMeta() {
   const meta = document.getElementById("courierRefreshMeta");
-  if (!meta || !courierPageState.lastRefreshedAt) return;
+  if (!meta) return;
 
-  meta.textContent = `Son yenileme: ${courierPageState.lastRefreshedAt.toLocaleTimeString("tr-TR")} · Otomatik: 25 sn`;
+  const timeLabel = courierPageState.lastRefreshedAt
+    ? `Son yenileme: ${courierPageState.lastRefreshedAt.toLocaleTimeString("tr-TR")}`
+    : "";
+
+  if (courierPageState.realtimeStatus === "live") {
+    meta.textContent = timeLabel
+      ? `${timeLabel} · Canlı`
+      : "Canlı · anlık güncelleme";
+    meta.classList.add("is-live-meta");
+    return;
+  }
+
+  meta.classList.remove("is-live-meta");
+  const pollSec =
+    courierPageState.realtimeStatus === "fallback" ? 25 : 25;
+  meta.textContent = timeLabel
+    ? `${timeLabel} · Yedek yenileme: ${pollSec} sn`
+    : `Yedek yenileme: ${pollSec} sn`;
 }
 
 function showCourierAccessDenied() {
@@ -15152,15 +16472,14 @@ function showCourierPanel() {
   if (panel) panel.hidden = false;
 }
 
-async function refreshCourierPage() {
+async function refreshCourierPage(options = {}) {
   const availableList = document.getElementById("courierAvailableList");
   const assignedList = document.getElementById("courierAssignedList");
-  const historyList = document.getElementById("courierHistoryList");
   if (!availableList || !assignedList) return;
 
   const { courier, available, assigned } =
     await loadCourierAvailableDeliveries();
-  const history = historyList ? await loadCourierDeliveryHistory() : [];
+  const opsSummary = await loadMyCourierOpsSummary();
 
   courierPageState.lastRefreshedAt = new Date();
   updateCourierRefreshMeta();
@@ -15179,18 +16498,25 @@ async function refreshCourierPage() {
 
   showCourierPanel();
   renderCourierProfileCard(courier);
+  renderCourierOpsDuty(opsSummary);
+  renderCourierPerformanceCards(opsSummary);
+  renderCourierEarningsSummary(opsSummary);
 
   availableList.innerHTML = "";
   assignedList.innerHTML = "";
 
-  if (!available.length) {
+  const poolItems = courierPageState.isOnDuty ? available : [];
+
+  if (!poolItems.length) {
     renderEmptyState(
       availableList,
-      "Açık teslimat yok",
-      "Sipariş teslimat (delivery) tipinde olmalı ve işletme Kabul Et demeli. Hâlâ boşsa Supabase'de sql/courier_pool_hotfix.sql çalıştırın."
+      courierPageState.isOnDuty ? "Açık teslimat yok" : "Mesai kapalı",
+      courierPageState.isOnDuty
+        ? "İşletme onayladığında delivery görevleri burada görünür."
+        : "Yeni görev almak için mesaiye başlayın."
     );
   } else {
-    available.forEach((delivery) => {
+    poolItems.forEach((delivery) => {
       availableList.appendChild(
         renderCourierDeliveryCard(delivery, { canAccept: true })
       );
@@ -15210,32 +16536,27 @@ async function refreshCourierPage() {
     });
   }
 
-  if (historyList) {
-    historyList.innerHTML = "";
-    if (!history.length) {
-      renderEmptyState(
-        historyList,
-        "Geçmiş teslimat yok",
-        "Tamamlanan teslimatlar burada listelenir."
-      );
-    } else {
-      history.forEach((delivery) => {
-        historyList.appendChild(
-          renderCourierDeliveryCard(delivery, { readOnly: true })
-        );
-      });
-    }
+  if (courierPageState.activeTab === "history") {
+    await refreshCourierHistoryPanel();
   }
 }
 
 function setupCourierAutoRefresh() {
   if (courierPageState.refreshTimerId) {
     clearInterval(courierPageState.refreshTimerId);
+    courierPageState.refreshTimerId = null;
   }
 
+  const intervalMs =
+    courierPageState.realtimeStatus === "live"
+      ? COURIER_POLL_LIVE_MS
+      : COURIER_POLL_FALLBACK_MS;
+
   courierPageState.refreshTimerId = window.setInterval(() => {
-    refreshCourierPage();
-  }, 25000);
+    refreshCourierPage({ silent: true });
+  }, intervalMs);
+
+  updateCourierRefreshMeta();
 }
 
 async function initCourierPage() {
@@ -15271,6 +16592,7 @@ async function initCourierPage() {
       if (courierPageState.refreshTimerId) {
         clearInterval(courierPageState.refreshTimerId);
       }
+      teardownFulfillmentRealtimePage("courier");
       await supabaseClient.auth.signOut();
       window.location.href = "./auth.html";
     });
@@ -15283,7 +16605,10 @@ async function initCourierPage() {
   }
 
   await refreshCourierPage();
+  setupCourierDeliveriesRealtime(session);
   setupCourierAutoRefresh();
+  setupCourierOpsTabs();
+  setupCourierShiftButtons();
 }
 
 async function initCourierLoginPage() {
@@ -15312,14 +16637,32 @@ async function initCourierLoginPage() {
   }
 }
 
+async function loadAdminCouriersWithOps() {
+  const [couriers, board] = await Promise.all([
+    loadAdminCouriers(),
+    loadAdminCourierOpsBoard(),
+  ]);
+  const opsById = new Map((board.couriers || []).map((c) => [c.id, c]));
+  return couriers.map((courier) => ({
+    ...courier,
+    ...(opsById.get(courier.id) || {}),
+  }));
+}
+
 async function loadAdminCouriers() {
   const { data, error } = await supabaseClient
     .from("couriers")
-    .select("*")
+    .select("id, user_id, email, full_name, phone, vehicle_type, status, created_at")
     .order("created_at", { ascending: false });
 
   if (error) {
-    showSafeError(error, "Kuryeler yüklenemedi.");
+    console.log("[admin courier] list error", error);
+    const errMsg = safeText(error.message);
+    showToast(
+      errMsg
+        ? `Kurye listesi yüklenemedi: ${errMsg}`
+        : "Kurye listesi yüklenemedi. sql/admin_upsert_courier_fix.sql çalıştırın."
+    );
     return [];
   }
 
@@ -15346,6 +16689,14 @@ function renderAdminCouriersList(couriers) {
     card.appendChild(title);
 
     card.appendChild(createStatusBadge(courier.status));
+
+    const opsBadge = document.createElement("span");
+    opsBadge.className = "courier-ops-status-badge";
+    opsBadge.dataset.status = courier.ops_status || "offline";
+    opsBadge.textContent = getCourierOpsStatusBadgeMarkup(
+      courier.ops_status || (courier.is_on_duty ? "online" : "offline")
+    );
+    card.appendChild(opsBadge);
 
     const meta = document.createElement("p");
     const linkLabel = courier.user_id ? "Hesap bağlı" : "Davet (giriş bekliyor)";
@@ -15422,6 +16773,13 @@ function renderAdminDeliveryCard(delivery, options = {}) {
     card.appendChild(courierRow);
   }
 
+  if (delivery.completion_note_category) {
+    const noteRow = document.createElement("p");
+    noteRow.className = "page-message";
+    noteRow.textContent = `Kurye notu: ${getCourierCompletionNoteLabel(delivery.completion_note_category)}${delivery.completion_note_detail ? ` — ${delivery.completion_note_detail}` : ""}`;
+    card.appendChild(noteRow);
+  }
+
   if (options.showAssign && options.couriers && options.couriers.length) {
     const row = document.createElement("div");
     row.className = "admin-delivery-card__assign";
@@ -15487,7 +16845,7 @@ function renderAdminDeliverySection(container, deliveries, options = {}) {
   container.appendChild(fragment);
 }
 
-async function refreshAdminDeliveriesPage() {
+async function refreshAdminDeliveriesPage(_options = {}) {
   const poolList = document.getElementById("adminDeliveryPoolList");
   const activeList = document.getElementById("adminDeliveryActiveList");
   const completedList = document.getElementById("adminDeliveryCompletedList");
@@ -15532,6 +16890,8 @@ async function initAdminDeliveriesPage() {
   }
 
   await refreshAdminDeliveriesPage();
+  setupAdminDeliveriesRealtime();
+  setupAdminDeliveryTabs();
 }
 
 async function initAdminCouriersPage() {
@@ -15554,12 +16914,31 @@ async function initAdminCouriersPage() {
       const status = document.getElementById("adminCourierStatus").value;
 
       const normalizedEmail = normalizeEmail(email);
-      const { data: userId, error: lookupError } = await supabaseClient.rpc(
+      if (!isValidEmail(normalizedEmail)) {
+        showToast("Geçerli bir e-posta girin.");
+        return;
+      }
+
+      let userId = null;
+      const { data: foundUserId, error: lookupError } = await supabaseClient.rpc(
         "admin_find_user_id_by_email",
         { p_email: normalizedEmail }
       );
 
+      if (lookupError) {
+        const lookupMsg = safeText(lookupError.message).toLowerCase();
+        console.log("[admin courier] user lookup", lookupError);
+        if (lookupMsg.includes("admin access")) {
+          showSafeError(lookupError, "Admin yetkisi gerekli. admin_users tablosunu kontrol edin.");
+          return;
+        }
+        console.log("[admin courier] lookup skipped, invite by email only");
+      } else if (foundUserId) {
+        userId = foundUserId;
+      }
+
       const rpcPayload = {
+        p_user_id: userId,
         p_full_name: fullName,
         p_phone: phone,
         p_vehicle_type: vehicle,
@@ -15567,36 +16946,40 @@ async function initAdminCouriersPage() {
         p_email: normalizedEmail,
       };
 
-      if (lookupError) {
-        console.log(lookupError);
-        showSafeError(lookupError, "Kullanıcı araması başarısız.");
-        return;
-      }
+      const { data: savedCourier, error: upsertError } = await supabaseClient.rpc(
+        "admin_upsert_courier",
+        rpcPayload
+      );
 
-      if (userId) {
-        rpcPayload.p_user_id = userId;
-      } else {
-        rpcPayload.p_user_id = null;
-      }
-
-      const { error } = await supabaseClient.rpc("admin_upsert_courier", rpcPayload);
-
-      if (error) {
-        showSafeError(error, "Kurye kaydedilemedi.");
+      if (upsertError || !savedCourier) {
+        const errMsg = safeText(upsertError && upsertError.message);
+        console.log("[admin courier] upsert error", upsertError);
+        if (errMsg.toLowerCase().includes("admin access")) {
+          showToast("Admin yetkisi yok. Giriş yaptığınız hesap admin_users içinde olmalı.");
+        } else if (errMsg.toLowerCase().includes("email required")) {
+          showToast("E-posta zorunlu.");
+        } else if (errMsg) {
+          showToast(`Kurye kaydedilemedi: ${errMsg}`);
+        } else {
+          showToast("Kurye kaydedilemedi.");
+        }
         return;
       }
 
       form.reset();
       showToast(
         userId
-          ? "Kurye kaydedildi"
-          : "Kurye daveti oluşturuldu. Kurye aynı e-posta ile giriş yapınca panel açılır."
+          ? "Kurye kaydedildi ve hesaba bağlandı."
+          : "Kurye daveti oluşturuldu. Kullanıcı aynı e-posta ile giriş yapınca panel açılır."
       );
-      renderAdminCouriersList(await loadAdminCouriers());
+      console.log("[admin courier] saved", savedCourier.id, savedCourier.email, savedCourier.user_id);
+      renderAdminCouriersList(await loadAdminCouriersWithOps());
+      await refreshAdminCourierOpsPanels();
     });
   }
 
-  renderAdminCouriersList(await loadAdminCouriers());
+  await refreshAdminCourierOpsPanels();
+  renderAdminCouriersList(await loadAdminCouriersWithOps());
 }
 
 async function loadVenueRestaurantMenuSummary(venueId) {
@@ -15650,7 +17033,7 @@ async function renderVenueOrderCta(venueId) {
   const stickyMeta = document.getElementById("venueOrderStickyMeta");
   const actionBtn = document.getElementById("venueOrderActionBtn");
 
-  const menuUrl = `./restaurant-menu.html?venue=${encodeURIComponent(
+  const menuUrl = `./food-venue.html?venue=${encodeURIComponent(
     venueId
   )}`;
   const { itemCount } = await loadVenueRestaurantMenuSummary(venueId);
@@ -15698,6 +17081,672 @@ function setupVenueOrderLink(venueId) {
   renderVenueOrderCta(venueId);
 }
 
+// ---------------------------------------------------------------------------
+// Food ordering hub (food.html / food-venue.html) — additive
+// ---------------------------------------------------------------------------
+
+const FOOD_ORDER_TYPE_FILTERS = [
+  ["all", "Tümü"],
+  ["delivery", "Teslimat"],
+  ["pickup", "Gel-al"],
+];
+
+const FOOD_STATUS_FILTERS = [
+  ["all", "Tümü"],
+  ["open", "Açık"],
+  ["closed", "Kapalı"],
+];
+
+const FOOD_DEFAULT_DELIVERY_FEE_LABEL = "Ücretsiz teslimat";
+const FOOD_DEFAULT_DELIVERY_TIME = "30-45 dk";
+
+const foodPageState = {
+  catalog: [],
+  filters: {
+    search: "",
+    orderType: "all",
+    cuisine: "all",
+    status: "all",
+  },
+};
+
+function openFoodVenue(venueId) {
+  window.location.href = `./food-venue.html?venue=${encodeURIComponent(venueId)}`;
+}
+
+function parseFoodTimeToMinutes(timeStr) {
+  const raw = safeText(timeStr);
+  if (!raw) return null;
+  const parts = raw.split(":");
+  const h = Number(parts[0]);
+  const m = Number(parts[1] || 0);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  return h * 60 + m;
+}
+
+function isVenueOpenFromHoursRow(hoursRow) {
+  if (!hoursRow) return true;
+  if (hoursRow.is_closed) return false;
+  const openMin = parseFoodTimeToMinutes(hoursRow.opens_at);
+  const closeMin = parseFoodTimeToMinutes(hoursRow.closes_at);
+  if (openMin === null || closeMin === null) return true;
+  const now = new Date();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  if (closeMin < openMin) {
+    return nowMin >= openMin || nowMin <= closeMin;
+  }
+  return nowMin >= openMin && nowMin <= closeMin;
+}
+
+function getFoodMinOrderLabel(minPrice) {
+  const value = Number(minPrice) || 0;
+  if (value <= 0) return "Min. sepet yok";
+  const rounded = Math.max(25, Math.ceil(value / 10) * 10);
+  return `Min. ₺${rounded}`;
+}
+
+function getFoodRatingLabel(stats) {
+  const avg = stats && Number(stats.averageRating);
+  const count = stats && Number(stats.reviewCount);
+  if (!count) return "Yeni · Puan yok";
+  return `★ ${avg.toFixed(1)} (${count})`;
+}
+
+async function loadFoodRestaurantCatalog() {
+  const { data: menus, error: menuError } = await supabaseClient
+    .from("restaurant_menus")
+    .select("id, venue_id")
+    .eq("is_active", true);
+
+  if (menuError) {
+    console.log("[food] menu load", menuError);
+    showSafeError(menuError, "Restoran menüleri yüklenemedi.");
+    return [];
+  }
+
+  const activeMenus = menus || [];
+  const menuIds = activeMenus.map((m) => m.id);
+  if (!menuIds.length) return [];
+
+  const menuIdByVenueId = new Map(
+    activeMenus.map((m) => [String(m.venue_id), m.id])
+  );
+
+  const { data: items, error: itemsError } = await supabaseClient
+    .from("menu_items")
+    .select("menu_id, category, price, is_available")
+    .in("menu_id", menuIds)
+    .eq("is_available", true);
+
+  if (itemsError) {
+    console.log("[food] items load", itemsError);
+    return [];
+  }
+
+  const itemsByMenuId = new Map();
+  (items || []).forEach((item) => {
+    const list = itemsByMenuId.get(item.menu_id) || [];
+    list.push(item);
+    itemsByMenuId.set(item.menu_id, list);
+  });
+
+  const venueIds = [
+    ...new Set(
+      activeMenus
+        .filter((m) => (itemsByMenuId.get(m.id) || []).length > 0)
+        .map((m) => m.venue_id)
+    ),
+  ];
+
+  if (!venueIds.length) return [];
+
+  const { data: venues, error: venueError } = await supabaseClient
+    .from("venues")
+    .select("*")
+    .in("id", venueIds);
+
+  if (venueError) {
+    showSafeError(venueError, "Restoranlar yüklenemedi.");
+    return [];
+  }
+
+  const dayOfWeek = new Date().getDay();
+  const [photosResult, hoursResult, statsMap] = await Promise.all([
+    supabaseClient
+      .from("venue_photos")
+      .select("venue_id, image_url, sort_order")
+      .in("venue_id", venueIds)
+      .order("sort_order", { ascending: true }),
+    supabaseClient
+      .from("venue_operating_hours")
+      .select("venue_id, day_of_week, opens_at, closes_at, is_closed")
+      .in("venue_id", venueIds)
+      .eq("day_of_week", dayOfWeek),
+    loadVenueStats(venueIds),
+  ]);
+
+  const coverByVenueId = new Map();
+  (photosResult.data || []).forEach((photo) => {
+    const key = String(photo.venue_id);
+    if (!coverByVenueId.has(key)) {
+      coverByVenueId.set(key, photo.image_url);
+    }
+  });
+
+  const hoursByVenueId = new Map(
+    (hoursResult.data || []).map((row) => [String(row.venue_id), row])
+  );
+
+  return (venues || []).map((venue) => {
+    const menuId = menuIdByVenueId.get(String(venue.id));
+    const menuItems = menuId ? itemsByMenuId.get(menuId) || [] : [];
+    const prices = menuItems.map((i) => Number(i.price)).filter((p) => p >= 0);
+    const minPrice = prices.length ? Math.min(...prices) : 0;
+    const cuisines = [
+      ...new Set(
+        menuItems
+          .map((i) => safeText(i.category).trim())
+          .filter(Boolean)
+      ),
+    ];
+    const stats = statsMap[String(venue.id)] || getVenueStats(venue.id);
+    const hours = hoursByVenueId.get(String(venue.id));
+    const isOpen = isVenueOpenFromHoursRow(hours);
+    const cover =
+      coverByVenueId.get(String(venue.id)) || venue.image || PLACEHOLDER_IMAGE;
+
+    return {
+      venue,
+      menuItemCount: menuItems.length,
+      minPrice,
+      cuisines,
+      stats,
+      isOpen,
+      cover,
+      deliveryFeeLabel: FOOD_DEFAULT_DELIVERY_FEE_LABEL,
+      deliveryTimeLabel: FOOD_DEFAULT_DELIVERY_TIME,
+      cuisineLabel:
+        cuisines[0] || getVenueCategoryLabel(venue),
+      supportsDelivery: true,
+      supportsPickup: true,
+      isPopular:
+        (stats.reviewCount || 0) >= 2 &&
+        (stats.averageRating || 0) >= 4,
+      isFeatured:
+        (stats.favoriteCount || 0) >= 2 ||
+        (stats.averageRating || 0) >= 4.5,
+    };
+  });
+}
+
+function createFoodRestaurantCard(entry) {
+  const card = document.createElement("article");
+  card.className = "food-restaurant-card";
+  card.addEventListener("click", () => openFoodVenue(entry.venue.id));
+
+  const coverWrap = document.createElement("div");
+  coverWrap.className = "food-restaurant-card__cover-wrap";
+
+  const img = document.createElement("img");
+  img.className = "food-restaurant-card__cover";
+  img.src = getImage(entry.cover);
+  img.alt = safeText(entry.venue.name);
+  img.loading = "lazy";
+  coverWrap.appendChild(img);
+
+  const statusBadge = document.createElement("span");
+  statusBadge.className = `food-restaurant-card__badge ${
+    entry.isOpen
+      ? "food-restaurant-card__badge--open"
+      : "food-restaurant-card__badge--closed"
+  }`;
+  statusBadge.textContent = entry.isOpen ? "Açık" : "Kapalı";
+  coverWrap.appendChild(statusBadge);
+
+  if (entry.isFeatured) {
+    const promo = document.createElement("span");
+    promo.className = "food-restaurant-card__badge food-restaurant-card__badge--promo";
+    promo.textContent = "Öne çıkan";
+    coverWrap.appendChild(promo);
+  }
+
+  card.appendChild(coverWrap);
+
+  const body = document.createElement("div");
+  body.className = "food-restaurant-card__body";
+
+  const title = document.createElement("h3");
+  title.className = "food-restaurant-card__title";
+  title.textContent = safeText(entry.venue.name);
+  body.appendChild(title);
+
+  const rating = document.createElement("p");
+  rating.className = "food-restaurant-card__rating";
+  rating.textContent = getFoodRatingLabel(entry.stats);
+  body.appendChild(rating);
+
+  const meta = document.createElement("div");
+  meta.className = "food-restaurant-card__meta";
+  [
+    entry.cuisineLabel,
+    entry.deliveryTimeLabel,
+    getFoodMinOrderLabel(entry.minPrice),
+    entry.deliveryFeeLabel,
+    safeText(entry.venue.city),
+  ]
+    .filter(Boolean)
+    .forEach((text) => {
+      const span = document.createElement("span");
+      span.textContent = text;
+      meta.appendChild(span);
+    });
+  body.appendChild(meta);
+
+  card.appendChild(body);
+  return card;
+}
+
+function renderFoodRestaurantGrid(container, entries) {
+  if (!container) return;
+  container.innerHTML = "";
+  if (!entries.length) {
+    renderEmptyState(container, "Restoran bulunamadı", "Filtreleri değiştirmeyi dene.");
+    return;
+  }
+  const fragment = document.createDocumentFragment();
+  entries.forEach((entry) => fragment.appendChild(createFoodRestaurantCard(entry)));
+  container.appendChild(fragment);
+}
+
+function getFilteredFoodCatalog() {
+  const { search, orderType, cuisine, status } = foodPageState.filters;
+  const q = search.toLowerCase().trim();
+
+  return foodPageState.catalog.filter((entry) => {
+    if (q) {
+      const haystack = [
+        entry.venue.name,
+        entry.venue.city,
+        entry.cuisineLabel,
+        ...(entry.cuisines || []),
+        getVenueCategoryLabel(entry.venue),
+      ]
+        .join(" ")
+        .toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+
+    if (orderType === "delivery" && !entry.supportsDelivery) return false;
+    if (orderType === "pickup" && !entry.supportsPickup) return false;
+
+    if (cuisine !== "all") {
+      const cat = cuisine.toLowerCase();
+      const venueCat = getVenueCategoryValue(entry.venue);
+      const matchCuisine = (entry.cuisines || []).some(
+        (c) => safeText(c).toLowerCase() === cat
+      );
+      if (venueCat !== cat && !matchCuisine && entry.cuisineLabel.toLowerCase() !== cat) {
+        return false;
+      }
+    }
+
+    if (status === "open" && !entry.isOpen) return false;
+    if (status === "closed" && entry.isOpen) return false;
+
+    return true;
+  });
+}
+
+function renderFoodChipGroup(container, options, activeValue, onSelect) {
+  if (!container) return;
+  container.innerHTML = "";
+  options.forEach(([value, label]) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `food-chip${activeValue === value ? " is-active" : ""}`;
+    btn.textContent = label;
+    btn.addEventListener("click", () => onSelect(value));
+    container.appendChild(btn);
+  });
+}
+
+function refreshFoodPageSections() {
+  const filtered = getFilteredFoodCatalog();
+  const popular = [...filtered]
+    .filter((e) => e.isPopular)
+    .sort(
+      (a, b) =>
+        (b.stats.averageRating || 0) - (a.stats.averageRating || 0)
+    )
+    .slice(0, 6);
+  const featured = [...filtered]
+    .filter((e) => e.isFeatured)
+    .slice(0, 6);
+  const openNow = filtered.filter((e) => e.isOpen).slice(0, 8);
+
+  const popularSection = document.getElementById("foodPopularSection");
+  const campaignSection = document.getElementById("foodCampaignSection");
+  const openSection = document.getElementById("foodOpenSection");
+
+  if (popularSection) popularSection.hidden = !popular.length;
+  if (campaignSection) campaignSection.hidden = !featured.length;
+  if (openSection) openSection.hidden = !openNow.length;
+
+  renderFoodRestaurantGrid(document.getElementById("foodPopularList"), popular);
+  renderFoodRestaurantGrid(document.getElementById("foodCampaignList"), featured);
+  renderFoodRestaurantGrid(document.getElementById("foodOpenList"), openNow);
+  renderFoodRestaurantGrid(document.getElementById("foodRestaurantList"), filtered);
+}
+
+function buildFoodCuisineFilterOptions(catalog) {
+  const values = new Set();
+  catalog.forEach((entry) => {
+    values.add(getVenueCategoryValue(entry.venue));
+    (entry.cuisines || []).forEach((c) => {
+      const v = safeText(c).toLowerCase().trim();
+      if (v) values.add(v);
+    });
+  });
+
+  const options = [["all", "Tümü"]];
+  values.forEach((value) => {
+    const venueLabel = VENUE_CATEGORIES.find(([v]) => v === value);
+    options.push([value, venueLabel ? venueLabel[1] : value]);
+  });
+  return options;
+}
+
+async function initFoodPage() {
+  const page = document.getElementById("foodPage");
+  if (!page) return;
+
+  renderEmptyState(
+    document.getElementById("foodRestaurantList"),
+    "Restoranlar yükleniyor…",
+    ""
+  );
+
+  foodPageState.catalog = await loadFoodRestaurantCatalog();
+  const cuisineOptions = buildFoodCuisineFilterOptions(foodPageState.catalog);
+
+  renderFoodChipGroup(
+    document.getElementById("foodOrderTypeFilters"),
+    FOOD_ORDER_TYPE_FILTERS,
+    foodPageState.filters.orderType,
+    (value) => {
+      foodPageState.filters.orderType = value;
+      refreshFoodPageSections();
+    }
+  );
+
+  renderFoodChipGroup(
+    document.getElementById("foodCuisineFilters"),
+    cuisineOptions,
+    foodPageState.filters.cuisine,
+    (value) => {
+      foodPageState.filters.cuisine = value;
+      refreshFoodPageSections();
+    }
+  );
+
+  renderFoodChipGroup(
+    document.getElementById("foodStatusFilters"),
+    FOOD_STATUS_FILTERS,
+    foodPageState.filters.status,
+    (value) => {
+      foodPageState.filters.status = value;
+      refreshFoodPageSections();
+    }
+  );
+
+  const searchInput = document.getElementById("foodSearchInput");
+  if (searchInput && !searchInput.dataset.bound) {
+    searchInput.dataset.bound = "true";
+    searchInput.addEventListener("input", () => {
+      foodPageState.filters.search = searchInput.value;
+      refreshFoodPageSections();
+    });
+  }
+
+  refreshFoodPageSections();
+}
+
+function renderFoodVenueMenuGrouped(items) {
+  const list = document.getElementById("restaurantMenuItemsList");
+  const tabs = document.getElementById("foodMenuCategoryTabs");
+  if (!list) return;
+
+  list.innerHTML = "";
+  if (!items.length) {
+    renderEmptyState(list, "Menü boş", "Bu restoran için ürün yok.");
+    if (tabs) tabs.innerHTML = "";
+    return;
+  }
+
+  const groups = new Map();
+  items.forEach((item) => {
+    const key = safeText(item.category).trim() || "Menü";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(item);
+  });
+
+  const categories = [...groups.keys()];
+  let activeCategory = categories[0];
+
+  function renderItems() {
+    list.innerHTML = "";
+    const groupItems = groups.get(activeCategory) || [];
+    const fragment = document.createDocumentFragment();
+
+    groupItems.forEach((item) => {
+      const card = document.createElement("article");
+      card.className = "order-menu-item food-menu-item";
+
+      const head = document.createElement("div");
+      head.className = "food-menu-item__head";
+
+      const title = document.createElement("h3");
+      title.textContent = item.name;
+      head.appendChild(title);
+
+      const price = document.createElement("span");
+      price.className = "food-menu-item__price";
+      price.textContent = formatRestaurantOrderAmount(item.price);
+      head.appendChild(price);
+      card.appendChild(head);
+
+      if (item.description) {
+        const desc = document.createElement("p");
+        desc.className = "food-menu-item__desc";
+        desc.textContent = item.description;
+        card.appendChild(desc);
+      }
+
+      const addBtn = document.createElement("button");
+      addBtn.type = "button";
+      addBtn.className = "btn btn--small";
+      addBtn.textContent = "Sepete Ekle";
+      addBtn.addEventListener("click", () => {
+        const existing = restaurantOrderCartState.items[item.id];
+        restaurantOrderCartState.items[item.id] = {
+          menuItemId: item.id,
+          name: item.name,
+          price: Number(item.price),
+          quantity: (existing ? existing.quantity : 0) + 1,
+        };
+        updateRestaurantOrderCartUi();
+        showToast("Sepete eklendi");
+      });
+      card.appendChild(addBtn);
+      fragment.appendChild(card);
+    });
+
+    list.appendChild(fragment);
+    updateRestaurantOrderCartUi();
+  }
+
+  if (tabs) {
+    tabs.innerHTML = "";
+    categories.forEach((cat) => {
+      const tab = document.createElement("button");
+      tab.type = "button";
+      tab.className = `food-menu-tab${cat === activeCategory ? " is-active" : ""}`;
+      tab.textContent = cat;
+      tab.addEventListener("click", () => {
+        activeCategory = cat;
+        tabs.querySelectorAll(".food-menu-tab").forEach((el) => {
+          el.classList.toggle("is-active", el.textContent === cat);
+        });
+        renderItems();
+      });
+      tabs.appendChild(tab);
+    });
+  }
+
+  renderItems();
+}
+
+function setupRestaurantOrderCheckoutHandlers() {
+  document.querySelectorAll('input[name="orderType"]').forEach((input) => {
+    if (input.dataset.bound) return;
+    input.dataset.bound = "true";
+    input.addEventListener("change", () => {
+      const addressInput = document.getElementById("restaurantOrderDeliveryAddress");
+      if (!addressInput) return;
+      const isDelivery =
+        document.querySelector('input[name="orderType"]:checked')?.value ===
+        "delivery";
+      addressInput.hidden = !isDelivery;
+      addressInput.required = isDelivery;
+    });
+  });
+
+  const submitBtn = document.getElementById("restaurantOrderSubmitBtn");
+  if (submitBtn && !submitBtn.dataset.bound) {
+    submitBtn.dataset.bound = "true";
+    submitBtn.addEventListener("click", async () => {
+      const session = await getSafeSession();
+      if (!session) {
+        redirectToAuthForCurrentPage();
+        return;
+      }
+
+      const orderType =
+        document.querySelector('input[name="orderType"]:checked')?.value ||
+        "pickup";
+      const order = await createOrder({
+        venueId: restaurantOrderCartState.venueId,
+        orderType,
+        deliveryAddress: document.getElementById("restaurantOrderDeliveryAddress")
+          ?.value,
+        customerNote: document.getElementById("restaurantOrderNote")?.value,
+        items: Object.values(restaurantOrderCartState.items).map((entry) => ({
+          menuItemId: entry.menuItemId,
+          quantity: entry.quantity,
+        })),
+      });
+
+      if (order && order.id) {
+        window.location.href = `./orders.html?id=${encodeURIComponent(order.id)}`;
+      }
+    });
+  }
+}
+
+async function initFoodVenuePage() {
+  const page = document.getElementById("foodVenuePage");
+  if (!page) return;
+
+  const venueIdFromQuery = getVenueIdFromQuery();
+  if (!venueIdFromQuery) {
+    showToast("Restoran seçilmedi");
+    window.location.href = "./food.html";
+    return;
+  }
+
+  resetRestaurantOrderCart();
+  restaurantOrderCartState.venueId = Number(venueIdFromQuery);
+
+  const { data: venue, error: venueError } = await supabaseClient
+    .from("venues")
+    .select("*")
+    .eq("id", venueIdFromQuery)
+    .maybeSingle();
+
+  if (venueError || !venue) {
+    showToast("Restoran bulunamadı");
+    window.location.href = "./food.html";
+    return;
+  }
+
+  const dayOfWeek = new Date().getDay();
+  const [photos, hoursResult, statsMap, menuResult] = await Promise.all([
+    loadVenueGalleryPhotos(venue.id),
+    supabaseClient
+      .from("venue_operating_hours")
+      .select("opens_at, closes_at, is_closed")
+      .eq("venue_id", venue.id)
+      .eq("day_of_week", dayOfWeek)
+      .maybeSingle(),
+    loadVenueStats([venue.id]),
+    loadRestaurantMenu(venue.id),
+  ]);
+
+  const isOpen = isVenueOpenFromHoursRow(hoursResult.data);
+  const stats = statsMap[String(venue.id)] || getVenueStats(venue.id);
+  const cover =
+    (photos && photos[0] && photos[0].image_url) ||
+    venue.image ||
+    PLACEHOLDER_IMAGE;
+  const prices = (menuResult.items || [])
+    .map((i) => Number(i.price))
+    .filter((p) => p >= 0);
+  const minPrice = prices.length ? Math.min(...prices) : 0;
+
+  const hero = document.getElementById("foodVenueHero");
+  if (hero) hero.hidden = false;
+
+  const coverEl = document.getElementById("foodVenueCover");
+  if (coverEl) {
+    coverEl.src = getImage(cover);
+    coverEl.alt = safeText(venue.name);
+  }
+
+  const openBadge = document.getElementById("foodVenueOpenBadge");
+  if (openBadge) {
+    openBadge.textContent = isOpen ? "Şu an açık" : "Şu an kapalı";
+    openBadge.className = `food-venue-hero__status ${isOpen ? "is-open" : "is-closed"}`;
+  }
+
+  setTextIfPresent("foodVenueName", venue.name);
+  setTextIfPresent(
+    "foodVenueMeta",
+    [safeText(venue.city), getVenueCategoryLabel(venue), getFoodRatingLabel(stats)]
+      .filter(Boolean)
+      .join(" · ")
+  );
+
+  const chips = document.getElementById("foodVenueChips");
+  if (chips) {
+    chips.innerHTML = "";
+    [
+      FOOD_DEFAULT_DELIVERY_TIME,
+      getFoodMinOrderLabel(minPrice),
+      FOOD_DEFAULT_DELIVERY_FEE_LABEL,
+      "Gel-al & Teslimat",
+    ].forEach((label) => {
+      const chip = document.createElement("span");
+      chip.className = "food-venue-chip";
+      chip.textContent = label;
+      chips.appendChild(chip);
+    });
+  }
+
+  document.title = `${venue.name} | TANIDIK Yemek`;
+  renderFoodVenueMenuGrouped(menuResult.items || []);
+  setupRestaurantOrderCheckoutHandlers();
+}
+
 function setActiveNav() {
   const currentPage =
     window.location.pathname.split("/").pop() ||
@@ -15712,6 +17761,7 @@ function setActiveNav() {
     "order-detail.html": "profile.html",
     "restaurant-orders.html": "business.html",
     "restaurant-menu.html": "discover.html",
+    "food-venue.html": "food.html",
     "courier.html": "profile.html",
     "courier-login.html": "profile.html",
     "admin-couriers.html": "profile.html",
@@ -15795,6 +17845,8 @@ runSafeInitializer("initCourierPage", initCourierPage);
 runSafeInitializer("initCourierLoginPage", initCourierLoginPage);
 runSafeInitializer("initAdminCouriersPage", initAdminCouriersPage);
 runSafeInitializer("initAdminDeliveriesPage", initAdminDeliveriesPage);
+runSafeInitializer("initFoodPage", initFoodPage);
+runSafeInitializer("initFoodVenuePage", initFoodVenuePage);
 runSafeInitializer("setActiveNav", setActiveNav);
 runSafeInitializer("setupMobileNav", setupMobileNav);
 runSafeInitializer("registerServiceWorker", registerServiceWorker);
@@ -15802,6 +17854,7 @@ runSafeInitializer("registerServiceWorker", registerServiceWorker);
 window.addFavorite = addFavorite;
 window.removeFavorite = removeFavorite;
 window.openVenue = openVenue;
+window.openFoodVenue = openFoodVenue;
 window.openEvent = openEvent;
 window.filterByCity = filterByCity;
 window.openReservationConversation =
