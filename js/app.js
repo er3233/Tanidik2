@@ -5747,9 +5747,12 @@ async function loadEventDetails() {
 }
 
 async function checkAdminAccess() {
-  const adminPage = document.getElementById("adminPage");
+  const isAdminShell =
+    document.getElementById("adminPage") ||
+    document.getElementById("adminCouriersPage") ||
+    document.getElementById("adminDeliveriesPage");
 
-  if (!adminPage) return null;
+  if (!isAdminShell) return null;
 
   const session = await getSafeSession();
 
@@ -13089,24 +13092,38 @@ const RESTAURANT_ORDER_STATUSES = {
 
 const ORDERS_PAGE_DEBUG = true;
 const BUSINESS_ORDERS_DEBUG = true;
+const COURIER_DELIVERY_DEBUG = true;
 
 const DELIVERY_STATUS_LABELS = {
+  available: "Havuzda",
   open: "Havuzda",
+  assigned: "Kurye atandı",
   courier_assigned: "Kurye atandı",
   picked_up: "Alındı",
   on_the_way: "Yolda",
   delivered: "Teslim edildi",
   cancelled: "İptal",
   pending: "Havuzda",
-  assigned: "Kurye atandı",
   in_transit: "Yolda",
 };
 
 const COURIER_DELIVERY_NEXT_ACTIONS = {
+  assigned: [["picked_up", "Siparişi Aldım"]],
   courier_assigned: [["picked_up", "Siparişi Aldım"]],
   picked_up: [["on_the_way", "Yola Çıktım"]],
   on_the_way: [["delivered", "Teslim Edildi"]],
 };
+
+function normalizeCourierDeliveryStatusKey(status) {
+  const value = safeText(status).toLowerCase().trim();
+  if (value === "open" || value === "available" || value === "pending") {
+    return "available";
+  }
+  if (value === "courier_assigned" || value === "assigned") {
+    return "assigned";
+  }
+  return value;
+}
 
 const courierPageState = {
   refreshTimerId: null,
@@ -13698,6 +13715,8 @@ async function enrichBusinessOrdersWithCustomers(orders) {
 async function updateOrderStatus(orderId, newStatus, note = "") {
   const normalizedStatus = getRestaurantOrderStatusValue(newStatus);
 
+  console.log("[business approve] order id/status", orderId, normalizedStatus);
+
   const { data, error } = await supabaseClient.rpc(
     "update_restaurant_order_status",
     {
@@ -13708,8 +13727,35 @@ async function updateOrderStatus(orderId, newStatus, note = "") {
   );
 
   if (error || !data) {
+    console.log("[delivery create] error", {
+      orderId,
+      status: normalizedStatus,
+      message: safeText(error && error.message),
+      code: error && error.code,
+      details: error && error.details,
+    });
     showSafeError(error, "Sipariş durumu güncellenemedi.");
     return null;
+  }
+
+  console.log("[business approve] result", data.id, data.status);
+  if (
+    ["accepted", "preparing", "ready_for_pickup"].includes(normalizedStatus) &&
+    safeText(data.order_type).toLowerCase() === "delivery"
+  ) {
+    const { data: deliveryRow, error: deliveryError } = await supabaseClient.rpc(
+      "ensure_courier_delivery_for_order",
+      { p_order_id: orderId }
+    );
+    if (deliveryError) {
+      console.log("[delivery create] ensure error", {
+        orderId,
+        message: safeText(deliveryError.message),
+        code: deliveryError.code,
+      });
+    } else {
+      console.log("[delivery create] ensured", deliveryRow?.id, deliveryRow?.status);
+    }
   }
 
   showToast("Sipariş durumu güncellendi");
@@ -13953,47 +13999,53 @@ async function loadCourierAvailableDeliveries() {
   const courier = await resolveActiveCourierForSession(session);
   if (!courier) return { available: [], assigned: [], courier: null };
 
-  const deliverySelect = `
-    *,
-    orders(
-      id,
-      user_id,
-      status,
-      total_amount,
-      delivery_address,
-      customer_note,
-      created_at,
-      venue_id,
-      venues(name, city, address, latitude, longitude),
-      order_items(item_name, quantity, total_price)
-    )
-  `;
+  console.log("[courier load] courier id/email", courier.id, courier.email || session.user.email);
 
-  const { data: available, error: availableError } = await supabaseClient
-    .from("deliveries")
-    .select(deliverySelect)
-    .eq("status", "open")
-    .is("courier_id", null)
-    .order("created_at", { ascending: true });
+  let available = [];
+  let assigned = [];
+  let loadError = null;
 
-  const { data: assigned, error: assignedError } = await supabaseClient
-    .from("deliveries")
-    .select(deliverySelect)
-    .eq("courier_id", courier.id)
-    .in("status", ["courier_assigned", "picked_up", "on_the_way"])
-    .order("created_at", { ascending: false });
+  const { data: pool, error: poolError } = await supabaseClient.rpc(
+    "get_courier_delivery_pool"
+  );
 
-  if (availableError || assignedError) {
-    console.log(availableError || assignedError);
-    showSafeError(availableError || assignedError, "Teslimatlar yüklenemedi.");
+  if (poolError) {
+    loadError = poolError;
+    const poolMsg = safeText(poolError.message).toLowerCase();
+    console.log("[courier load] RPC error", {
+      message: safeText(poolError.message),
+      code: poolError.code,
+      details: poolError.details,
+      hint: poolError.hint,
+    });
+    if (poolMsg.includes("active courier")) {
+      showToast(
+        "Aktif kurye hesabı bulunamadı. Admin aynı e-posta ile kurye kaydı açmalı."
+      );
+    } else {
+      showSafeError(
+        poolError,
+        "Teslimatlar yüklenemedi. Supabase'de sql/courier_pool_hotfix.sql çalıştırın."
+      );
+    }
+  } else if (pool) {
+    available = Array.isArray(pool.available) ? pool.available : [];
+    assigned = Array.isArray(pool.assigned) ? pool.assigned : [];
+    if (COURIER_DELIVERY_DEBUG) {
+      console.log("[courier load] deliveries via RPC", {
+        available: available.length,
+        assigned: assigned.length,
+      });
+    }
+    if (!available.length && !assigned.length) {
+      console.log(
+        "[courier load] pool empty — işletme Kabul Et + sipariş delivery tipi olmalı"
+      );
+    }
   }
 
-  const availableEnriched = await enrichDeliveriesWithCustomerProfiles(
-    available || []
-  );
-  const assignedEnriched = await enrichDeliveriesWithCustomerProfiles(
-    assigned || []
-  );
+  const availableEnriched = await enrichDeliveriesWithCustomerProfiles(available);
+  const assignedEnriched = await enrichDeliveriesWithCustomerProfiles(assigned);
 
   return {
     courier,
@@ -14002,12 +14054,54 @@ async function loadCourierAvailableDeliveries() {
   };
 }
 
-async function acceptDelivery(deliveryId) {
-  const { data, error } = await supabaseClient.rpc("accept_delivery", {
-    p_delivery_id: deliveryId,
+async function loadCourierDeliveryHistory(limit = 50) {
+  const session = await getSafeSession();
+  if (!session) return [];
+
+  const courier = await resolveActiveCourierForSession(session);
+  if (!courier) return [];
+
+  const { data, error } = await supabaseClient.rpc("get_courier_delivery_history", {
+    p_limit: limit,
   });
 
+  if (error) {
+    console.log("[courier history] error", {
+      message: safeText(error.message),
+      code: error.code,
+      details: error.details,
+    });
+    return [];
+  }
+
+  const rows = Array.isArray(data) ? data : [];
+  return enrichDeliveriesWithCustomerProfiles(rows);
+}
+
+async function acceptDelivery(deliveryId) {
+  let data = null;
+  let error = null;
+
+  const acceptRpc = await supabaseClient.rpc("accept_courier_delivery", {
+    p_delivery_id: deliveryId,
+  });
+  data = acceptRpc.data;
+  error = acceptRpc.error;
+
+  if (error && safeText(error.message).toLowerCase().includes("function")) {
+    const legacyRpc = await supabaseClient.rpc("accept_delivery", {
+      p_delivery_id: deliveryId,
+    });
+    data = legacyRpc.data;
+    error = legacyRpc.error;
+  }
+
   if (error || !data) {
+    console.log("[courier accept] error", {
+      deliveryId,
+      message: safeText(error && error.message),
+      code: error && error.code,
+    });
     const msg = safeText(error && error.message).toLowerCase();
     if (msg.includes("already claimed") || msg.includes("unavailable")) {
       showToast("Bu teslimat başka bir kurye tarafından alındı.");
@@ -14025,13 +14119,34 @@ async function acceptDelivery(deliveryId) {
 async function updateDeliveryStatus(deliveryId, newStatus, note = "") {
   const normalizedStatus = safeText(newStatus).toLowerCase().trim();
 
-  const { data, error } = await supabaseClient.rpc("update_delivery_status", {
+  let data = null;
+  let error = null;
+
+  const statusRpc = await supabaseClient.rpc("update_courier_delivery_status", {
     p_delivery_id: deliveryId,
     p_new_status: normalizedStatus,
     p_note: note || null,
   });
+  data = statusRpc.data;
+  error = statusRpc.error;
+
+  if (error && safeText(error.message).toLowerCase().includes("function")) {
+    const legacyRpc = await supabaseClient.rpc("update_delivery_status", {
+      p_delivery_id: deliveryId,
+      p_new_status: normalizedStatus,
+      p_note: note || null,
+    });
+    data = legacyRpc.data;
+    error = legacyRpc.error;
+  }
 
   if (error || !data) {
+    console.log("[courier status] error", {
+      deliveryId,
+      status: normalizedStatus,
+      message: safeText(error && error.message),
+      code: error && error.code,
+    });
     showSafeError(error, "Teslimat durumu güncellenemedi.");
     return null;
   }
@@ -14945,6 +15060,11 @@ function renderCourierDeliveryCard(delivery, options = {}) {
   const actions = document.createElement("div");
   actions.className = "courier-delivery-card__actions";
 
+  if (options.readOnly) {
+    card.appendChild(actions);
+    return card;
+  }
+
   if (options.canAccept) {
     const acceptBtn = document.createElement("button");
     acceptBtn.type = "button";
@@ -14960,7 +15080,7 @@ function renderCourierDeliveryCard(delivery, options = {}) {
   }
 
   if (options.canUpdate) {
-    const statusKey = safeText(delivery.status).toLowerCase();
+    const statusKey = normalizeCourierDeliveryStatusKey(delivery.status);
     const nextActions = COURIER_DELIVERY_NEXT_ACTIONS[statusKey] || [];
 
     nextActions.forEach(([status, label]) => {
@@ -15035,10 +15155,12 @@ function showCourierPanel() {
 async function refreshCourierPage() {
   const availableList = document.getElementById("courierAvailableList");
   const assignedList = document.getElementById("courierAssignedList");
+  const historyList = document.getElementById("courierHistoryList");
   if (!availableList || !assignedList) return;
 
   const { courier, available, assigned } =
     await loadCourierAvailableDeliveries();
+  const history = historyList ? await loadCourierDeliveryHistory() : [];
 
   courierPageState.lastRefreshedAt = new Date();
   updateCourierRefreshMeta();
@@ -15065,7 +15187,7 @@ async function refreshCourierPage() {
     renderEmptyState(
       availableList,
       "Açık teslimat yok",
-      "İşletme siparişi hazır yaptığında burada görünecek."
+      "Sipariş teslimat (delivery) tipinde olmalı ve işletme Kabul Et demeli. Hâlâ boşsa Supabase'de sql/courier_pool_hotfix.sql çalıştırın."
     );
   } else {
     available.forEach((delivery) => {
@@ -15086,6 +15208,23 @@ async function refreshCourierPage() {
         })
       );
     });
+  }
+
+  if (historyList) {
+    historyList.innerHTML = "";
+    if (!history.length) {
+      renderEmptyState(
+        historyList,
+        "Geçmiş teslimat yok",
+        "Tamamlanan teslimatlar burada listelenir."
+      );
+    } else {
+      history.forEach((delivery) => {
+        historyList.appendChild(
+          renderCourierDeliveryCard(delivery, { readOnly: true })
+        );
+      });
+    }
   }
 }
 
@@ -15151,16 +15290,26 @@ async function initCourierLoginPage() {
   const page = document.getElementById("courierLoginPage");
   if (!page) return;
 
+  const messageEl = document.getElementById("courierLoginMessage");
   const session = await getSafeSession();
   if (!session) {
-    window.location.href = "./auth.html?redirect=./courier.html";
+    if (messageEl) {
+      messageEl.textContent =
+        "Kurye paneline erişmek için TANIDIK hesabınızla giriş yapın.";
+    }
     return;
   }
 
   const courier = await resolveActiveCourierForSession(session);
-  window.location.href = courier
-    ? "./courier.html"
-    : "./auth.html?redirect=./courier.html";
+  if (courier) {
+    window.location.href = "./courier.html";
+    return;
+  }
+
+  if (messageEl) {
+    messageEl.textContent =
+      "Giriş yapıldı ancak aktif kurye kaydı bulunamadı. Admin, bu hesabın e-postasıyla kurye oluşturmalı.";
+  }
 }
 
 async function loadAdminCouriers() {
@@ -15199,13 +15348,190 @@ function renderAdminCouriersList(couriers) {
     card.appendChild(createStatusBadge(courier.status));
 
     const meta = document.createElement("p");
-    meta.textContent = `${courier.phone || "—"} · ${courier.vehicle_type || "—"}`;
+    const linkLabel = courier.user_id ? "Hesap bağlı" : "Davet (giriş bekliyor)";
+    meta.textContent = `${courier.email || "—"} · ${courier.phone || "—"} · ${courier.vehicle_type || "—"} · ${linkLabel}`;
     card.appendChild(meta);
 
     fragment.appendChild(card);
   });
 
   list.appendChild(fragment);
+}
+
+async function loadAdminDeliveryDispatchBoard() {
+  const { data, error } = await supabaseClient.rpc(
+    "get_admin_delivery_dispatch_board"
+  );
+
+  if (error) {
+    console.log("[admin deliveries] board error", error);
+    showSafeError(error, "Teslimat listesi yüklenemedi.");
+    return { pool: [], active: [], completed: [] };
+  }
+
+  return {
+    pool: (data && data.pool) || [],
+    active: (data && data.active) || [],
+    completed: (data && data.completed) || [],
+  };
+}
+
+async function adminAssignCourierToDelivery(deliveryId, courierId) {
+  const { data, error } = await supabaseClient.rpc(
+    "admin_assign_courier_delivery",
+    {
+      p_delivery_id: deliveryId,
+      p_courier_id: courierId,
+      p_note: "Admin ataması",
+    }
+  );
+
+  if (error || !data) {
+    showSafeError(error, "Kurye ataması yapılamadı.");
+    return null;
+  }
+
+  showToast("Kurye atandı");
+  return data;
+}
+
+function renderAdminDeliveryCard(delivery, options = {}) {
+  const card = document.createElement("article");
+  card.className = "business-card admin-delivery-card";
+
+  const order = delivery.orders || {};
+  const venueName =
+    safeText(order.venues && order.venues.name) || `Mekan #${order.venue_id}`;
+  const courierInfo = delivery.couriers || {};
+
+  const title = document.createElement("h3");
+  title.textContent = venueName;
+  card.appendChild(title);
+
+  const meta = document.createElement("p");
+  meta.textContent = `Sipariş: ${safeText(order.status)} · Teslimat: ${getDeliveryStatusLabel(delivery.status)} · ${formatRestaurantOrderAmount(order.total_amount)}`;
+  card.appendChild(meta);
+
+  const address = document.createElement("p");
+  address.textContent = safeText(order.delivery_address) || "—";
+  card.appendChild(address);
+
+  if (courierInfo.full_name) {
+    const courierRow = document.createElement("p");
+    courierRow.textContent = `Kurye: ${courierInfo.full_name}${courierInfo.email ? ` (${courierInfo.email})` : ""}`;
+    card.appendChild(courierRow);
+  }
+
+  if (options.showAssign && options.couriers && options.couriers.length) {
+    const row = document.createElement("div");
+    row.className = "admin-delivery-card__assign";
+
+    const select = document.createElement("select");
+    select.className = "admin-delivery-card__select";
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "Kurye seç…";
+    select.appendChild(placeholder);
+
+    options.couriers
+      .filter((c) => safeText(c.status).toLowerCase() === "active")
+      .forEach((courier) => {
+        const opt = document.createElement("option");
+        opt.value = courier.id;
+        opt.textContent = `${courier.full_name} (${courier.email || "—"})`;
+        select.appendChild(opt);
+      });
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn";
+    btn.textContent = "Kurye Ata";
+    btn.addEventListener("click", async () => {
+      if (!select.value) {
+        showToast("Kurye seçin");
+        return;
+      }
+      btn.disabled = true;
+      const result = await adminAssignCourierToDelivery(
+        delivery.id,
+        select.value
+      );
+      if (result && typeof options.onAssigned === "function") {
+        await options.onAssigned();
+      } else {
+        btn.disabled = false;
+      }
+    });
+
+    row.appendChild(select);
+    row.appendChild(btn);
+    card.appendChild(row);
+  }
+
+  return card;
+}
+
+function renderAdminDeliverySection(container, deliveries, options = {}) {
+  if (!container) return;
+  container.innerHTML = "";
+
+  if (!deliveries.length) {
+    renderEmptyState(container, options.emptyTitle || "Kayıt yok", options.emptyHint || "");
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  deliveries.forEach((delivery) => {
+    fragment.appendChild(renderAdminDeliveryCard(delivery, options));
+  });
+  container.appendChild(fragment);
+}
+
+async function refreshAdminDeliveriesPage() {
+  const poolList = document.getElementById("adminDeliveryPoolList");
+  const activeList = document.getElementById("adminDeliveryActiveList");
+  const completedList = document.getElementById("adminDeliveryCompletedList");
+  if (!poolList || !activeList || !completedList) return;
+
+  const [board, couriers] = await Promise.all([
+    loadAdminDeliveryDispatchBoard(),
+    loadAdminCouriers(),
+  ]);
+
+  const refresh = async () => {
+    const next = await loadAdminDeliveryDispatchBoard();
+    renderAdminDeliverySection(poolList, next.pool, {
+      emptyTitle: "Havuzda teslimat yok",
+      emptyHint: "İşletme onayladığında delivery görevleri burada görünür.",
+      showAssign: true,
+      couriers,
+      onAssigned: refresh,
+    });
+    renderAdminDeliverySection(activeList, next.active, {
+      emptyTitle: "Aktif teslimat yok",
+    });
+    renderAdminDeliverySection(completedList, next.completed, {
+      emptyTitle: "Tamamlanan teslimat yok",
+    });
+  };
+
+  await refresh();
+}
+
+async function initAdminDeliveriesPage() {
+  const page = document.getElementById("adminDeliveriesPage");
+  if (!page) return;
+
+  const session = await checkAdminAccess();
+  if (!session) return;
+
+  const refreshBtn = document.getElementById("adminDeliveriesRefreshBtn");
+  if (refreshBtn && !refreshBtn.dataset.bound) {
+    refreshBtn.dataset.bound = "true";
+    refreshBtn.addEventListener("click", () => refreshAdminDeliveriesPage());
+  }
+
+  await refreshAdminDeliveriesPage();
 }
 
 async function initAdminCouriersPage() {
@@ -15468,6 +15794,7 @@ runSafeInitializer("initRestaurantMenuPage", initRestaurantMenuPage);
 runSafeInitializer("initCourierPage", initCourierPage);
 runSafeInitializer("initCourierLoginPage", initCourierLoginPage);
 runSafeInitializer("initAdminCouriersPage", initAdminCouriersPage);
+runSafeInitializer("initAdminDeliveriesPage", initAdminDeliveriesPage);
 runSafeInitializer("setActiveNav", setActiveNav);
 runSafeInitializer("setupMobileNav", setupMobileNav);
 runSafeInitializer("registerServiceWorker", registerServiceWorker);

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Teslimat Yönetimi | TANIDIK</title>
+  <meta name="theme-color" content="#050505" />
+  <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="./css/style.css" />
+  <link rel="stylesheet" href="./css/courier-dispatch.css" />
+</head>
+
+<body>
+  <nav class="navbar">
+    <h1>TANIDIK</h1>
+    <div class="nav-links">
+      <a href="./admin.html">Admin Panel</a>
+      <a href="./admin-couriers.html">Kuryeler</a>
+    </div>
+  </nav>
+
+  <main id="adminDeliveriesPage" class="admin-page order-page">
+    <header class="dashboard-header dashboard-header--admin">
+      <h1>Teslimat Yönetimi</h1>
+      <p class="page-message">Delivery siparişlerini görün ve kurye atayın.</p>
+      <a href="./admin.html" class="secondary-btn">← Admin Panel</a>
+      <button type="button" id="adminDeliveriesRefreshBtn" class="secondary-btn">Yenile</button>
+    </header>
+
+    <section class="admin-section dashboard-section">
+      <h2>Havuz (atanmamış)</h2>
+      <div id="adminDeliveryPoolList" class="admin-list" aria-live="polite"></div>
+    </section>
+
+    <section class="admin-section dashboard-section">
+      <h2>Aktif teslimatlar</h2>
+      <div id="adminDeliveryActiveList" class="admin-list" aria-live="polite"></div>
+    </section>
+
+    <section class="admin-section dashboard-section">
+      <h2>Tamamlanan</h2>
+      <div id="adminDeliveryCompletedList" class="admin-list" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="./js/app.js"></script>
+  <div id="toast" class="toast"></div>
+</body>
+
+</html>

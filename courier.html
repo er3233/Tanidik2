@@ -29,9 +29,11 @@
     <div id="courierAccessDenied" class="courier-access-denied dashboard-section" hidden>
       <h2>Erişim engellendi</h2>
       <p class="page-message">
-        Bu panel yalnızca aktif kurye hesapları içindir. Admin tarafından kurye olarak tanımlanmanız gerekir.
+        Bu panel yalnızca aktif kurye hesapları içindir. Admin, sizin TANIDIK giriş e-postanızla kurye kaydı oluşturmalıdır.
+        Giriş yaptıktan sonra bu sayfayı yenileyin.
       </p>
-      <a href="./auth.html?redirect=./courier.html" class="secondary-btn">Giriş sayfasına dön</a>
+      <a href="./courier-login.html" class="secondary-btn">Kurye girişi</a>
+      <a href="./auth.html?redirect=./courier.html" class="secondary-btn">Hesap girişi</a>
     </div>
 
     <div id="courierPanelContent" hidden>
@@ -48,6 +50,11 @@
       <section class="dashboard-section">
         <h2>Atanan Teslimatlar</h2>
         <div id="courierAssignedList" class="order-list" aria-live="polite"></div>
+      </section>
+
+      <section class="dashboard-section">
+        <h2>Teslimat Geçmişi</h2>
+        <div id="courierHistoryList" class="order-list" aria-live="polite"></div>
       </section>
 
       <section class="dashboard-section">

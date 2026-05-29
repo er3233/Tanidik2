@@ -289,6 +289,7 @@ drop policy if exists "Business owners read venue orders" on public.orders;
 drop policy if exists "Business owners update venue orders" on public.orders;
 drop policy if exists "Couriers read related orders" on public.orders;
 drop policy if exists "Admins manage all orders" on public.orders;
+drop policy if exists "Admins read all orders" on public.orders;
 
 create policy "Customers read own orders"
 on public.orders for select
@@ -388,6 +389,7 @@ drop policy if exists "Business owners read venue deliveries" on public.deliveri
 drop policy if exists "Couriers read open or assigned deliveries" on public.deliveries;
 drop policy if exists "Couriers update assigned deliveries" on public.deliveries;
 drop policy if exists "Admins manage all deliveries" on public.deliveries;
+drop policy if exists "Admins read all deliveries" on public.deliveries;
 
 create policy "Customers read own deliveries"
 on public.deliveries for select
@@ -873,9 +875,11 @@ revoke all on function public.get_business_owner_id_for_venue(bigint) from publi
 drop policy if exists "Customers create own orders" on public.orders;
 drop policy if exists "Business owners update venue orders" on public.orders;
 drop policy if exists "Admins manage all orders" on public.orders;
+drop policy if exists "Admins read all orders" on public.orders;
 drop policy if exists "Customers create own order items" on public.order_items;
 drop policy if exists "Couriers update assigned deliveries" on public.deliveries;
 drop policy if exists "Admins manage all deliveries" on public.deliveries;
+drop policy if exists "Admins read all deliveries" on public.deliveries;
 
 revoke insert, update, delete on public.orders from anon, authenticated;
 revoke insert, update, delete on public.order_items from anon, authenticated;
