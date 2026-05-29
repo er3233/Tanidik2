@@ -1,0 +1,219 @@
+/* Venue detail — restaurant ordering CTA (noir premium) */
+
+.venue-order-cta {
+  position: relative;
+  overflow: hidden;
+  margin-top: 8px;
+  border: 1px solid rgba(250, 204, 21, 0.18) !important;
+  background: linear-gradient(
+    145deg,
+    rgba(18, 18, 22, 0.96) 0%,
+    rgba(8, 8, 10, 0.98) 55%,
+    rgba(22, 18, 8, 0.92) 100%
+  ) !important;
+}
+
+.venue-order-cta__glow {
+  position: absolute;
+  inset: -40% -20% auto auto;
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(
+    circle,
+    rgba(250, 204, 21, 0.22) 0%,
+    transparent 68%
+  );
+  pointer-events: none;
+}
+
+.venue-order-cta__inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.venue-order-cta__kicker {
+  display: inline-block;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(250, 204, 21, 0.75);
+  margin-bottom: 4px;
+}
+
+.venue-order-cta__title {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #fafafa;
+}
+
+.venue-order-cta__desc {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: rgba(210, 210, 220, 0.78);
+}
+
+.venue-order-cta__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.venue-order-cta__count {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.88);
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.venue-order-cta__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.venue-order-cta__badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.venue-order-cta__badge--delivery {
+  border-color: rgba(250, 204, 21, 0.35);
+  color: #facc15;
+  background: rgba(250, 204, 21, 0.08);
+}
+
+.venue-order-cta__btn {
+  width: 100%;
+  text-align: center;
+  padding: 14px 20px;
+  border-radius: 16px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  box-shadow: 0 12px 32px rgba(250, 204, 21, 0.18);
+}
+
+.venue-order-cta__empty {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 14px;
+  text-align: center;
+  font-size: 0.9rem;
+  color: rgba(200, 200, 210, 0.75);
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.venue-order-cta--empty .venue-order-cta__title {
+  opacity: 0.88;
+}
+
+/* Sticky mobile order bar (bottom sheet feel) */
+.venue-order-sticky {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  z-index: 90;
+  padding: 0 12px 10px;
+  pointer-events: none;
+}
+
+.venue-order-sticky__sheet {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 20px 20px 22px 22px;
+  border: 1px solid rgba(250, 204, 21, 0.22);
+  background: rgba(10, 10, 12, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow:
+    0 -8px 32px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+}
+
+.venue-order-sticky__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.venue-order-sticky__info strong {
+  font-size: 0.95rem;
+  color: #fafafa;
+}
+
+.venue-order-sticky__meta {
+  font-size: 0.75rem;
+  color: rgba(200, 200, 210, 0.72);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.venue-order-sticky__btn {
+  flex-shrink: 0;
+  padding: 10px 16px;
+  border-radius: 14px;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.vp-toggles--store-only {
+  padding-top: 8px;
+}
+
+@media (min-width: 769px) {
+  .venue-order-sticky {
+    display: none !important;
+  }
+
+  .venue-order-cta__btn {
+    width: auto;
+    min-width: 220px;
+    align-self: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .venue-detail-page.vp-main:has(.venue-order-sticky:not([hidden])) {
+    padding-bottom: 88px;
+  }
+
+  .venue-order-cta.is-open {
+    animation: venueOrderCtaIn 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+
+@keyframes venueOrderCtaIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

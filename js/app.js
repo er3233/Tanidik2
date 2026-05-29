@@ -120,7 +120,41 @@ function getBusinessDisplayStatus(business) {
 }
 
 function safeText(value) {
-  return value || "";
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (value instanceof Error) {
+    return safeText(value.message);
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  if (typeof value === "object") {
+    const messageLike =
+      value.message ||
+      value.error ||
+      value.description ||
+      value.code;
+
+    if (messageLike !== undefined && messageLike !== null) {
+      return safeText(messageLike);
+    }
+
+    try {
+      return JSON.stringify(value);
+    } catch (_error) {
+      return String(value);
+    }
+  }
+
+  return String(value);
 }
 
 function normalizeEmail(value) {
@@ -612,8 +646,10 @@ function validateAuthForm(mode) {
 }
 
 function translateAuthError(error, fallback) {
-  const message = safeText(error && error.message).toLowerCase();
-  const status = safeText(error && error.status).toLowerCase();
+  const message = String(safeText(error && error.message) || "")
+    .toLowerCase();
+  const status = String(safeText(error && error.status) || "")
+    .toLowerCase();
   const combined = `${message} ${status}`;
 
   if (!message) {
@@ -674,7 +710,15 @@ function translateAuthError(error, fallback) {
     return "Bağlantı kurulamadı. İnternet bağlantını kontrol edip tekrar dene.";
   }
 
-  return fallback || error.message;
+  if (
+    combined.includes("429") ||
+    combined.includes("too many requests") ||
+    combined.includes("rate limit")
+  ) {
+    return "Çok fazla deneme yapıldı. Biraz bekleyip tekrar dene.";
+  }
+
+  return fallback || safeText(error);
 }
 
 function getVenueCategoryValue(venue) {
@@ -930,6 +974,7 @@ function renderVenueGallery(photos) {
   setupVenueGalleryCarouselTouch();
 }
 
+/** @deprecated Legacy venue.html accordion (venue_menu_*). Use renderVenueOrderCta + restaurant-menu.html. */
 function setupVenueMenuToggle() {
   const toggle = document.getElementById("venueMenuToggle");
   const panel = document.getElementById("venueMenu");
@@ -1125,6 +1170,7 @@ async function loadVenueProducts(venueId) {
   }
 }
 
+/** @deprecated Legacy venue.html menu cards (venue_menu_items). */
 function createVenueMenuItem(item) {
   const card = document.createElement("article");
   card.className = "venue-menu-item";
@@ -1167,6 +1213,7 @@ function createVenueMenuItem(item) {
   return card;
 }
 
+/** @deprecated Legacy venue.html menu renderer (venue_menu_*). */
 function renderVenueMenu(menuData) {
   const panel = document.getElementById("venueMenu");
 
@@ -1223,6 +1270,7 @@ function renderVenueMenu(menuData) {
   }
 }
 
+/** @deprecated Legacy venue_menu_categories / venue_menu_items loader for venue.html. */
 async function loadVenueMenu(venueId) {
   if (!venueId) return { categories: [], items: [] };
 
@@ -5470,7 +5518,6 @@ async function loadVenueDetails() {
   if (!venueName) return;
 
   setupVenueMobilePanels();
-  setupVenueMenuToggle();
   setupVenueStoreToggle();
 
   const params = new URLSearchParams(
@@ -5519,7 +5566,7 @@ async function loadVenueDetails() {
   setTextIfPresent("venueDescription", venue.description);
 
   renderVenueGallery(await loadVenueGalleryPhotos(venue.id));
-  renderVenueMenu(await loadVenueMenu(venue.id));
+  await renderVenueOrderCta(venue.id);
   renderVenueStore(await loadVenueProducts(venue.id));
 
   renderVenueLocation(venue);
@@ -5547,7 +5594,6 @@ async function loadVenueDetails() {
   await setupVenueReviewForm(venue.id);
   await loadUserReservations(venue.id);
   await setupReservationForm(venue.id);
-  setupVenueOrderLink(venue.id);
 
   let events = [];
   let eventsError = null;
@@ -13027,18 +13073,20 @@ async function initBusinessDashboard() {
 // ---------------------------------------------------------------------------
 
 const RESTAURANT_ORDER_STATUSES = {
-  pending: "Beklemede",
-  accepted: "Kabul Edildi",
+  pending: "Onay bekliyor",
+  accepted: "Kabul edildi",
   rejected: "Reddedildi",
   preparing: "Hazırlanıyor",
-  ready_for_pickup: "Teslime Hazır",
-  courier_assigned: "Kurye Atandı",
-  picked_up: "Kurye Aldı",
+  ready_for_pickup: "Teslime hazır",
+  courier_assigned: "Kurye atandı",
+  picked_up: "Kurye aldı",
   on_the_way: "Yolda",
   out_for_delivery: "Yolda",
-  delivered: "Teslim Edildi",
-  cancelled: "İptal",
+  delivered: "Teslim edildi",
+  cancelled: "İptal edildi",
 };
+
+const ORDERS_PAGE_DEBUG = true;
 
 const DELIVERY_STATUS_LABELS = {
   open: "Havuzda",
@@ -13091,6 +13139,170 @@ function formatRestaurantOrderAmount(amount) {
 
 function getOrderIdFromQuery() {
   return safeText(new URLSearchParams(window.location.search).get("id")).trim();
+}
+
+/** Normalizes create_restaurant_order RPC row (object or single-element array). */
+function normalizeRestaurantOrderRow(data) {
+  if (!data) return null;
+
+  if (Array.isArray(data)) {
+    return data[0] && data[0].id ? data[0] : null;
+  }
+
+  if (typeof data === "object" && data.id) {
+    return data;
+  }
+
+  return null;
+}
+
+function normalizeRestaurantOrderRows(data) {
+  if (!data) return [];
+  if (Array.isArray(data)) {
+    return data.filter((row) => row && row.id);
+  }
+  if (typeof data === "object" && data.id) {
+    return [data];
+  }
+  return [];
+}
+
+function getSupabaseErrorMessage(error) {
+  if (!error) return "";
+  return (
+    safeText(error.message) ||
+    safeText(error.details) ||
+    safeText(error.hint) ||
+    safeText(error.code) ||
+    String(error)
+  );
+}
+
+function renderOrdersPageMessage(list, title, message, isError = false) {
+  if (!list) return;
+  list.innerHTML = "";
+  const wrap = document.createElement("div");
+  wrap.className = isError
+    ? "order-list-status order-list-status--error"
+    : "order-list-status";
+  const heading = document.createElement("h3");
+  heading.textContent = title;
+  wrap.appendChild(heading);
+  if (message) {
+    const body = document.createElement("p");
+    body.textContent = message;
+    wrap.appendChild(body);
+  }
+  list.appendChild(wrap);
+}
+
+async function enrichOrdersWithRelations(orders, options = {}) {
+  const list = Array.isArray(orders) ? orders : [];
+  if (!list.length) return [];
+
+  const venueIds = [
+    ...new Set(list.map((order) => order.venue_id).filter(Boolean)),
+  ];
+  const orderIds = list.map((order) => order.id).filter(Boolean);
+
+  const venuesById = {};
+  const itemsByOrderId = {};
+  const deliveriesByOrderId = {};
+  const historyByOrderId = {};
+
+  if (venueIds.length) {
+    const { data: venues, error: venuesError } = await supabaseClient
+      .from("venues")
+      .select("id, name, city")
+      .in("id", venueIds);
+
+    if (venuesError) {
+      console.log(venuesError);
+    } else {
+      (venues || []).forEach((venue) => {
+        venuesById[String(venue.id)] = venue;
+      });
+    }
+  }
+
+  if (orderIds.length) {
+    const { data: items, error: itemsError } = await supabaseClient
+      .from("order_items")
+      .select("id, order_id, item_name, quantity, total_price, unit_price, menu_item_id")
+      .in("order_id", orderIds);
+
+    if (itemsError) {
+      console.log(itemsError);
+    } else {
+      (items || []).forEach((item) => {
+        const key = String(item.order_id);
+        if (!itemsByOrderId[key]) itemsByOrderId[key] = [];
+        itemsByOrderId[key].push(item);
+      });
+    }
+
+    if (options.includeDeliveries) {
+      const { data: deliveries, error: deliveriesError } =
+        await supabaseClient
+          .from("deliveries")
+          .select("*")
+          .in("order_id", orderIds);
+
+      if (deliveriesError) {
+        console.log(deliveriesError);
+      } else {
+        (deliveries || []).forEach((delivery) => {
+          deliveriesByOrderId[String(delivery.order_id)] = delivery;
+        });
+      }
+    }
+
+    if (options.includeStatusHistory) {
+      const { data: history, error: historyError } =
+        await supabaseClient
+          .from("order_status_history")
+          .select("order_id, status, note, created_at")
+          .in("order_id", orderIds)
+          .order("created_at", { ascending: true });
+
+      if (historyError) {
+        console.log(historyError);
+      } else {
+        (history || []).forEach((entry) => {
+          const key = String(entry.order_id);
+          if (!historyByOrderId[key]) historyByOrderId[key] = [];
+          historyByOrderId[key].push(entry);
+        });
+      }
+    }
+  }
+
+  return list.map((order) => {
+    const orderId = String(order.id);
+    const venue =
+      order.venues ||
+      venuesById[String(order.venue_id)] ||
+      null;
+    const orderItems = order.order_items || itemsByOrderId[orderId] || [];
+    const delivery =
+      order.deliveries ||
+      (options.includeDeliveries
+        ? deliveriesByOrderId[orderId] || null
+        : order.delivery);
+    const statusHistory =
+      order.order_status_history ||
+      (options.includeStatusHistory
+        ? historyByOrderId[orderId] || []
+        : []);
+
+    return {
+      ...order,
+      venues: venue,
+      order_items: orderItems,
+      deliveries: delivery,
+      order_status_history: statusHistory,
+    };
+  });
 }
 
 function getVenueIdFromQuery() {
@@ -13191,33 +13403,151 @@ async function createOrder(payload) {
     rpcPayload
   );
 
-  if (error || !data) {
+  const order = normalizeRestaurantOrderRow(data);
+
+  if (ORDERS_PAGE_DEBUG) {
+    console.log("[createOrder] create_restaurant_order", {
+      rpcPayload,
+      data,
+      error: error ? getSupabaseErrorMessage(error) : null,
+      normalized: order,
+      sessionUserId: session.user.id,
+    });
+  }
+
+  if (error || !order || !order.id) {
     showSafeError(error, "Sipariş oluşturulamadı. Sistem yapılandırmasını kontrol edin.");
+    return null;
+  }
+
+  const orderUserId = safeText(order.user_id);
+  if (orderUserId && String(orderUserId) !== String(session.user.id)) {
+    console.warn(
+      "[createOrder] user_id mismatch",
+      orderUserId,
+      session.user.id
+    );
+    showToast("Sipariş oluşturuldu ancak doğrulanamadı.");
     return null;
   }
 
   showToast("Sipariş oluşturuldu");
   restaurantOrderCartState.venueId = null;
   restaurantOrderCartState.items = {};
-  return data;
+  return order;
 }
 
 async function loadUserOrders(userId) {
-  const { data, error } = await supabaseClient
-    .from("orders")
-    .select(
-      "*, venues(name, city), order_items(id, item_name, quantity, total_price)"
-    )
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false });
+  const uid = safeText(userId);
+  const result = {
+    orders: [],
+    error: null,
+    source: "",
+    rawCount: 0,
+  };
 
-  if (error) {
-    console.log(error);
-    showSafeError(error, "Siparişler yüklenemedi.");
-    return [];
+  if (!uid) {
+    result.error = new Error("Kullanıcı oturumu bulunamadı.");
+    return result;
   }
 
-  return data || [];
+  let rows = [];
+  let loadError = null;
+
+  const { data: rpcData, error: rpcError } = await supabaseClient.rpc(
+    "get_my_restaurant_orders"
+  );
+
+  if (!rpcError && rpcData) {
+    rows = normalizeRestaurantOrderRows(rpcData);
+    result.source = "rpc:get_my_restaurant_orders";
+  } else if (rpcError) {
+    if (ORDERS_PAGE_DEBUG) {
+      console.log("[loadUserOrders] RPC failed, trying table select", rpcError);
+    }
+    loadError = rpcError;
+  }
+
+  if (!rows.length) {
+    const { data, error } = await supabaseClient
+      .from("orders")
+      .select("*")
+      .eq("user_id", uid)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      loadError = error;
+    } else {
+      rows = data || [];
+      result.source = result.source || "table:orders";
+    }
+  }
+
+  result.rawCount = rows.length;
+
+  if (ORDERS_PAGE_DEBUG) {
+    console.log("[loadUserOrders]", {
+      userId: uid,
+      source: result.source,
+      rawCount: result.rawCount,
+      error: loadError ? getSupabaseErrorMessage(loadError) : null,
+      statuses: rows.map((o) => o.status),
+    });
+  }
+
+  if (loadError && !rows.length) {
+    result.error = loadError;
+    return result;
+  }
+
+  if (!rows.length) {
+    return result;
+  }
+
+  try {
+    result.orders = await enrichOrdersWithRelations(rows);
+  } catch (enrichError) {
+    console.log(enrichError);
+    result.orders = rows.map((order) => ({
+      ...order,
+      venues: order.venues || null,
+      order_items: Array.isArray(order.order_items) ? order.order_items : [],
+    }));
+    result.source += "+enrich-fallback";
+  }
+
+  return result;
+}
+
+async function fetchMyRestaurantOrderById(orderId, userId) {
+  const id = safeText(orderId);
+  if (!id) return null;
+
+  const { data: rpcRow, error: rpcError } = await supabaseClient.rpc(
+    "get_my_restaurant_order",
+    { p_order_id: id }
+  );
+
+  if (!rpcError && rpcRow) {
+    const row = normalizeRestaurantOrderRow(rpcRow);
+    if (row) return row;
+  }
+
+  const { data, error } = await supabaseClient
+    .from("orders")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error || !data) {
+    if (ORDERS_PAGE_DEBUG) {
+      console.log("[fetchMyRestaurantOrderById]", id, rpcError, error);
+    }
+    return null;
+  }
+
+  return data;
 }
 
 async function loadRestaurantOrders(venueIds) {
@@ -13229,9 +13559,7 @@ async function loadRestaurantOrders(venueIds) {
 
   const { data, error } = await supabaseClient
     .from("orders")
-    .select(
-      "*, venues(name, city), order_items(id, item_name, quantity, total_price), deliveries(id, status, courier_id)"
-    )
+    .select("*")
     .in("venue_id", ids)
     .order("created_at", { ascending: false });
 
@@ -13241,7 +13569,10 @@ async function loadRestaurantOrders(venueIds) {
     return [];
   }
 
-  return data || [];
+  const orders = data || [];
+  if (!orders.length) return [];
+
+  return enrichOrdersWithRelations(orders, { includeDeliveries: true });
 }
 
 async function updateOrderStatus(orderId, newStatus, note = "") {
@@ -13576,6 +13907,13 @@ function appendCourierNavigationButtons(actions, delivery, courierId) {
 }
 
 function renderOrderListCard(order, options = {}) {
+  if (!order || !order.id) {
+    const fallback = document.createElement("article");
+    fallback.className = "order-card order-card--invalid";
+    fallback.textContent = "Sipariş verisi okunamadı.";
+    return fallback;
+  }
+
   const card = document.createElement("article");
   card.className = "order-card";
 
@@ -13583,9 +13921,10 @@ function renderOrderListCard(order, options = {}) {
   head.className = "order-card-head";
 
   const title = document.createElement("h3");
+  const orderIdLabel = String(order.id);
   title.textContent =
     safeText(order.venues && order.venues.name) ||
-    `Sipariş #${String(order.id).slice(0, 8)}`;
+    `Sipariş #${orderIdLabel.slice(0, 8)}`;
   head.appendChild(title);
   head.appendChild(createRestaurantOrderStatusBadge(order.status));
   card.appendChild(head);
@@ -13595,10 +13934,12 @@ function renderOrderListCard(order, options = {}) {
   meta.textContent = `${formatRestaurantOrderAmount(order.total_amount)} · ${safeText(order.order_type) === "delivery" ? "Teslimat" : "Gel-al"}`;
   card.appendChild(meta);
 
-  if (order.order_items && order.order_items.length) {
+  const lineItems = Array.isArray(order.order_items) ? order.order_items : [];
+
+  if (lineItems.length) {
     const items = document.createElement("ul");
     items.className = "order-card-items";
-    order.order_items.forEach((line) => {
+    lineItems.forEach((line) => {
       const li = document.createElement("li");
       li.textContent = `${line.quantity}x ${line.item_name}`;
       items.appendChild(li);
@@ -13685,24 +14026,107 @@ async function initOrdersPage() {
   const page = document.getElementById("ordersPage");
   if (!page) return;
 
-  const session = await getSafeSession();
-  if (!session) {
+  const list = document.getElementById("userOrdersList");
+  if (!list) {
+    console.error("[initOrdersPage] #userOrdersList not found");
+    return;
+  }
+
+  if (ORDERS_PAGE_DEBUG) {
+    console.log("[initOrdersPage] start", window.location.href);
+  }
+
+  renderOrdersPageMessage(list, "Siparişler yükleniyor...", "");
+
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabaseClient.auth.getSession();
+
+  if (sessionError || !session || !session.user) {
     window.location.href = "./auth.html?redirect=./orders.html";
     return;
   }
 
-  const list = document.getElementById("userOrdersList");
-  const orders = await loadUserOrders(session.user.id);
-  if (!list) return;
+  const userId = session.user.id;
+  const highlightId = getOrderIdFromQuery();
+  const loadResult = await loadUserOrders(userId);
+
+  if (ORDERS_PAGE_DEBUG) {
+    console.log("[initOrdersPage] loadResult", {
+      container: Boolean(list),
+      userId,
+      highlightId,
+      ...loadResult,
+      orderCount: loadResult.orders.length,
+    });
+  }
 
   list.innerHTML = "";
+
+  if (loadResult.error) {
+    renderOrdersPageMessage(
+      list,
+      "Siparişler yüklenemedi",
+      getSupabaseErrorMessage(loadResult.error) ||
+        "Veritabanı veya RLS yapılandırmasını kontrol edin. sql/orders_customer_read_rpc.sql dosyasını Supabase SQL Editor'da çalıştırın.",
+      true
+    );
+    showSafeError(loadResult.error, "Siparişler yüklenemedi.");
+    return;
+  }
+
+  let orders = loadResult.orders || [];
+
+  if (
+    highlightId &&
+    !orders.some((order) => String(order.id) === String(highlightId))
+  ) {
+    const missing = await fetchMyRestaurantOrderById(highlightId, userId);
+    if (missing) {
+      let enrichedMissing = missing;
+      try {
+        const enriched = await enrichOrdersWithRelations([missing]);
+        enrichedMissing = enriched[0] || missing;
+      } catch (enrichError) {
+        console.log(enrichError);
+      }
+      orders = [enrichedMissing, ...orders];
+    }
+  }
+
   if (!orders.length) {
-    renderEmptyState(list, "Sipariş yok", "İlk siparişinizi bir mekandan verin.");
+    renderOrdersPageMessage(
+      list,
+      "Sipariş yok",
+      "İlk siparişinizi bir mekandan verin."
+    );
     return;
   }
 
   const fragment = document.createDocumentFragment();
-  orders.forEach((order) => fragment.appendChild(renderOrderListCard(order)));
+  orders.forEach((order) => {
+    try {
+      const card = renderOrderListCard(order);
+      if (highlightId && String(order.id) === String(highlightId)) {
+        card.classList.add("order-card--highlight");
+      }
+      fragment.appendChild(card);
+    } catch (renderError) {
+      console.log("[initOrdersPage] render failed", order, renderError);
+    }
+  });
+
+  if (!fragment.childElementCount) {
+    renderOrdersPageMessage(
+      list,
+      "Siparişler gösterilemedi",
+      "Liste yüklendi ancak kartlar oluşturulamadı. Konsolu kontrol edin.",
+      true
+    );
+    return;
+  }
+
   list.appendChild(fragment);
 }
 
@@ -13710,8 +14134,12 @@ async function initOrderDetailPage() {
   const page = document.getElementById("orderDetailPage");
   if (!page) return;
 
-  const session = await getSafeSession();
-  if (!session) {
+  const {
+    data: { user },
+    error: userError,
+  } = await supabaseClient.auth.getUser();
+
+  if (userError || !user) {
     window.location.href = "./auth.html?redirect=" + encodeURIComponent(window.location.href);
     return;
   }
@@ -13719,19 +14147,24 @@ async function initOrderDetailPage() {
   const orderId = getOrderIdFromQuery();
   if (!orderId) {
     showToast("Sipariş bulunamadı");
+    window.location.href = "./orders.html";
     return;
   }
 
-  const { data: order, error } = await supabaseClient
-    .from("orders")
-    .select(
-      "*, venues(name, city), order_items(*), deliveries(*), order_status_history(status, note, created_at)"
-    )
-    .eq("id", orderId)
-    .maybeSingle();
+  const orderRow = await fetchMyRestaurantOrderById(orderId, user.id);
 
-  if (error || !order) {
-    showSafeError(error, "Sipariş bulunamadı.");
+  if (!orderRow) {
+    showToast("Sipariş bulunamadı.");
+    window.location.href = "./orders.html";
+    return;
+  }
+
+  const [order] = await enrichOrdersWithRelations([orderRow], {
+    includeDeliveries: true,
+    includeStatusHistory: true,
+  });
+  if (!order) {
+    showToast("Sipariş bulunamadı.");
     return;
   }
 
@@ -14135,7 +14568,7 @@ async function initRestaurantMenuPage() {
       });
 
       if (order && order.id) {
-        window.location.href = `./order-detail.html?id=${encodeURIComponent(order.id)}`;
+        window.location.href = `./orders.html?id=${encodeURIComponent(order.id)}`;
       }
     });
   }
@@ -14518,11 +14951,103 @@ async function initAdminCouriersPage() {
   renderAdminCouriersList(await loadAdminCouriers());
 }
 
+async function loadVenueRestaurantMenuSummary(venueId) {
+  const normalizedVenueId = Number(venueId);
+  if (!normalizedVenueId) return { itemCount: 0 };
+
+  try {
+    const { data: menu, error: menuError } = await supabaseClient
+      .from("restaurant_menus")
+      .select("id")
+      .eq("venue_id", normalizedVenueId)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (menuError) {
+      console.warn("Restaurant menu lookup failed.", menuError);
+      return { itemCount: 0 };
+    }
+
+    if (!menu) return { itemCount: 0 };
+
+    const { count, error: countError } = await supabaseClient
+      .from("menu_items")
+      .select("id", { count: "exact", head: true })
+      .eq("menu_id", menu.id)
+      .eq("is_available", true);
+
+    if (countError) {
+      console.warn("Menu item count failed.", countError);
+      return { itemCount: 0 };
+    }
+
+    return { itemCount: count || 0 };
+  } catch (error) {
+    console.warn("Restaurant menu summary failed.", error);
+    return { itemCount: 0 };
+  }
+}
+
+async function renderVenueOrderCta(venueId) {
+  const section = document.getElementById("venueOrderCta");
+  if (!section || !venueId) return;
+
+  const description = document.getElementById("venueOrderCtaDescription");
+  const meta = document.getElementById("venueOrderCtaMeta");
+  const countEl = document.getElementById("venueOrderCtaCount");
+  const emptyEl = document.getElementById("venueOrderCtaEmpty");
+  const link = document.getElementById("venueOrderCtaLink");
+  const sticky = document.getElementById("venueOrderSticky");
+  const stickyLink = document.getElementById("venueOrderStickyLink");
+  const stickyMeta = document.getElementById("venueOrderStickyMeta");
+  const actionBtn = document.getElementById("venueOrderActionBtn");
+
+  const menuUrl = `./restaurant-menu.html?venue=${encodeURIComponent(
+    venueId
+  )}`;
+  const { itemCount } = await loadVenueRestaurantMenuSummary(venueId);
+  const hasItems = itemCount > 0;
+
+  section.classList.toggle("venue-order-cta--empty", !hasItems);
+
+  if (description) {
+    description.textContent = hasItems
+      ? "Dijital menüden seç, sepete ekle ve siparişini tamamla."
+      : "Bu mekan için sipariş menüsü henüz hazırlanıyor.";
+  }
+
+  if (meta) meta.hidden = !hasItems;
+
+  if (countEl) {
+    countEl.textContent =
+      itemCount === 1 ? "1 ürün" : `${itemCount} ürün`;
+  }
+
+  if (emptyEl) emptyEl.hidden = hasItems;
+
+  if (link) {
+    link.href = menuUrl;
+    link.hidden = !hasItems;
+  }
+
+  if (sticky) sticky.hidden = !hasItems;
+
+  if (stickyLink) {
+    stickyLink.href = menuUrl;
+  }
+
+  if (stickyMeta) {
+    stickyMeta.textContent = hasItems
+      ? `${itemCount} ürün · Gel-al & Teslimat`
+      : "";
+  }
+
+  if (actionBtn) actionBtn.hidden = !hasItems;
+}
+
+/** @deprecated Use renderVenueOrderCta — kept for legacy callers. */
 function setupVenueOrderLink(venueId) {
-  const link = document.getElementById("venueOrderLink");
-  if (!link || !venueId) return;
-  link.href = `./restaurant-menu.html?venue=${encodeURIComponent(venueId)}`;
-  link.hidden = false;
+  renderVenueOrderCta(venueId);
 }
 
 function setActiveNav() {

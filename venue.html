@@ -48,6 +48,7 @@
 
   <link rel="stylesheet" href="./css/style.css" />
   <link rel="stylesheet" href="./css/venue-premium.css" />
+  <link rel="stylesheet" href="./css/venue-order-cta.css" />
   <link rel="stylesheet" href="./css/social-profile-media.css" />
 </head>
 
@@ -133,7 +134,7 @@
         aria-label="Venue actions"
       >
         <button type="button" data-open-panel="reservation" class="vp-action--primary">Reserve</button>
-        <a id="venueOrderLink" class="vp-action vp-action--order" href="#" hidden>Sipariş Ver</a>
+        <button type="button" data-open-panel="order" id="venueOrderActionBtn" class="vp-action vp-action--order" hidden>Sipariş</button>
         <button type="button" data-open-panel="reviews">Reviews</button>
         <button type="button" data-open-panel="location">Location</button>
         <button type="button" data-open-panel="events">Events</button>
@@ -148,17 +149,65 @@
         <p id="venueDescription" class="vp-description"></p>
       </section>
 
-      <!-- Menu / Store toggle buttons -->
-      <div class="vp-toggles">
-        <button
-          type="button"
-          id="venueMenuToggle"
-          class="vp-toggle-btn venue-menu-toggle"
-          aria-expanded="false"
-        >
-          View Menu
-        </button>
+      <!-- Restaurant ordering CTA (restaurant-menu.html) -->
+      <section
+        id="venueOrderCta"
+        class="vp-card venue-order-cta venue-mobile-panel"
+        data-panel="order"
+        aria-label="Sipariş ve menü"
+      >
+        <div class="venue-order-cta__glow" aria-hidden="true"></div>
+        <div class="venue-order-cta__inner">
+          <div class="venue-order-cta__head">
+            <span class="venue-order-cta__kicker">Menü &amp; Sipariş</span>
+            <h2 class="venue-order-cta__title">Sipariş Ver</h2>
+            <p id="venueOrderCtaDescription" class="venue-order-cta__desc">
+              Dijital menüden seç, sepete ekle ve siparişini tamamla.
+            </p>
+          </div>
 
+          <div id="venueOrderCtaMeta" class="venue-order-cta__meta" hidden>
+            <span id="venueOrderCtaCount" class="venue-order-cta__count"></span>
+            <div id="venueOrderCtaBadges" class="venue-order-cta__badges">
+              <span class="venue-order-cta__badge">Gel-al</span>
+              <span class="venue-order-cta__badge venue-order-cta__badge--delivery">Teslimat</span>
+            </div>
+          </div>
+
+          <p id="venueOrderCtaEmpty" class="venue-order-cta__empty" hidden>
+            Menü yakında eklenecek
+          </p>
+
+          <a
+            id="venueOrderCtaLink"
+            class="btn venue-order-cta__btn"
+            href="#"
+            hidden
+          >
+            Sipariş Ver
+          </a>
+        </div>
+      </section>
+
+      <aside
+        id="venueOrderSticky"
+        class="venue-order-sticky"
+        hidden
+        aria-label="Hızlı sipariş"
+      >
+        <div class="venue-order-sticky__sheet">
+          <div class="venue-order-sticky__info">
+            <strong id="venueOrderStickyTitle">Sipariş Ver</strong>
+            <span id="venueOrderStickyMeta" class="venue-order-sticky__meta"></span>
+          </div>
+          <a id="venueOrderStickyLink" class="btn venue-order-sticky__btn" href="#">
+            Menüye Git
+          </a>
+        </div>
+      </aside>
+
+      <!-- Venue product store (separate from restaurant menu) -->
+      <div class="vp-toggles vp-toggles--store-only">
         <button
           type="button"
           id="venueStoreToggle"
@@ -168,12 +217,6 @@
           Shop Store
         </button>
       </div>
-
-      <section
-        id="venueMenu"
-        class="venue-menu-panel vp-panel-reveal"
-        hidden
-      ></section>
 
       <section
         id="venueStore"
