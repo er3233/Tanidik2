@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="tr">
 
 <head>
@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="./css/style.css" />
   <link rel="stylesheet" href="./css/social-profile-media.css" />
   <link rel="stylesheet" href="./css/design-system.css" />
+<link rel="stylesheet" href="./css/bottom-nav.css" />
 </head>
 
 <body class="profile-page">
@@ -159,28 +160,32 @@
   </div><!-- /ds-scroll-content -->
 
   <!-- ── Bottom Navigation ───────────────────────────────── -->
-  <nav class="ds-bottom-nav mobile-bottom-nav" aria-label="Ana navigasyon">
-    <a href="./index.html" data-nav-page="index.html">
-      <span aria-hidden="true">⌂</span>
-      <span>Ana Sayfa</span>
-    </a>
-    <a href="./discover.html" data-nav-page="discover.html">
-      <span aria-hidden="true">⌕</span>
-      <span>Keşfet</span>
-    </a>
-    <a href="./store.html" data-nav-page="store.html">
-      <span aria-hidden="true">◈</span>
-      <span>Mağaza</span>
-    </a>
-    <a href="./messages.html" data-nav-page="messages.html">
-      <span aria-hidden="true">♡</span>
-      <span>Mesajlar</span>
-    </a>
-    <a href="./profile.html" data-nav-page="profile.html">
-      <span aria-hidden="true">◉</span>
-      <span>Profil</span>
-    </a>
-  </nav>
+  <nav class="bnav mobile-bottom-nav" aria-label="Ana navigasyon">
+  <a href="./index.html" class="bnav-item" data-nav-page="index.html">
+    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1z"/><path d="M9 21V12h6v9"/></svg></span>
+    <span class="bnav-label">Ana Sayfa</span>
+  </a>
+  <a href="./discover.html" class="bnav-item" data-nav-page="discover.html">
+    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+    <span class="bnav-label">Keşfet</span>
+  </a>
+  <a href="./store.html" class="bnav-item" data-nav-page="store.html">
+    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></span>
+    <span class="bnav-label">Mağaza</span>
+  </a>
+  <a href="./food.html" class="bnav-item" data-nav-page="food.html">
+    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></span>
+    <span class="bnav-label">Yemek</span>
+  </a>
+  <a href="./messages.html" class="bnav-item" data-nav-page="messages.html">
+    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></span>
+    <span class="bnav-label">Mesajlar</span>
+  </a>
+  <a href="./profile.html" class="bnav-item" data-nav-page="profile.html">
+    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+    <span class="bnav-label">Profil</span>
+  </a>
+</nav>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script src="./js/app.js"></script>

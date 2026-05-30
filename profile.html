@@ -1,12 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="tr">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Profil | TANIDIK</title>
-  <meta name="description" content="TANIDIK profil" />
-  <meta name="theme-color" content="#030406" />
+  <meta name="theme-color" content="#060508" />
   <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="apple-touch-icon" href="./assets/icon-192.png" />
@@ -14,488 +12,564 @@
   <link rel="stylesheet" href="./css/social-profile-media.css" />
   <link rel="stylesheet" href="./css/design-system.css" />
   <link rel="stylesheet" href="./css/profile-v3.css" />
+<link rel="stylesheet" href="./css/bottom-nav.css" />
 </head>
 
 <body class="profile-page">
 
-  <!-- ════════════════════════════════════════
-       HEADER (fixed)
-  ════════════════════════════════════════ -->
-  <header class="pv3-header profile-top-bar">
-    <a href="./index.html" class="pv3-hdr-btn profile-top-bar__btn" aria-label="Ana sayfa">
+<!-- ══════════════════════════════════════════════════
+     HEADER
+══════════════════════════════════════════════════ -->
+<header class="pv3-header profile-top-bar">
+  <a href="./index.html" class="pv3-hdr-btn profile-top-bar__btn" aria-label="Ana Sayfa">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1z"/>
+      <path d="M9 21V12h6v9"/>
+    </svg>
+  </a>
+
+  <span class="pv3-hdr-title profile-top-bar__title" id="pv3HeaderTitle">profil</span>
+
+  <div class="pv3-hdr-right profile-top-bar__actions">
+    <button type="button"
+            class="pv3-hdr-btn profile-top-bar__btn profile-notifications-trigger"
+            id="profileNotificationsTrigger"
+            aria-label="Bildirimler" aria-expanded="false">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1z"/>
-        <path d="M9 21V12h6v9"/>
+        <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+        <path d="M13.73 21a2 2 0 01-3.46 0"/>
+      </svg>
+      <span id="profileNotificationsBadge" class="pv3-notif-dot profile-notifications-badge" hidden></span>
+    </button>
+    <a href="./settings.html" class="pv3-hdr-btn profile-top-bar__btn" aria-label="Ayarlar">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
       </svg>
     </a>
-
-    <span class="pv3-hdr-title profile-top-bar__title" id="pv3HeaderTitle">profil</span>
-
-    <div class="pv3-hdr-right profile-top-bar__actions">
-      <button type="button"
-              class="pv3-hdr-btn profile-top-bar__btn profile-notifications-trigger"
-              id="profileNotificationsTrigger"
-              aria-label="Bildirimler"
-              aria-expanded="false">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-          <path d="M13.73 21a2 2 0 01-3.46 0"/>
-        </svg>
-        <span id="profileNotificationsBadge" class="pv3-notif-dot profile-notifications-badge" hidden></span>
-      </button>
-      <a href="./settings.html" class="pv3-hdr-btn profile-top-bar__btn" aria-label="Ayarlar">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
-        </svg>
-      </a>
-    </div>
-  </header>
-
-  <!-- Notifications Dropdown -->
-  <div id="profileNotificationsDropdown" class="pv3-notif-dropdown profile-notifications-dropdown" hidden>
-    <div id="profileNotificationsList" class="notifications-list profile-notifications-dropdown__list"></div>
   </div>
+</header>
 
-  <!-- ════════════════════════════════════════
-       SCROLL CONTENT
-  ════════════════════════════════════════ -->
-  <div class="pv3-scroll">
+<!-- Notifications Dropdown -->
+<div id="profileNotificationsDropdown" class="pv3-notif-dropdown profile-notifications-dropdown" hidden>
+  <div id="profileNotificationsList" class="notifications-list profile-notifications-dropdown__list"></div>
+</div>
 
-    <!-- ── Identity Zone ───────────────────── -->
-    <div class="pv3-identity-zone">
+<!-- ══════════════════════════════════════════════════
+     SCROLL CONTENT
+══════════════════════════════════════════════════ -->
+<div class="pv3-scroll">
 
-      <!-- Avatar -->
+  <!-- ── HERO: Avatar + Identity ─────────────────── -->
+  <section class="pv3-hero">
+
+    <!-- 3D Avatar Zone -->
+    <div class="pv3-avatar-zone">
+      <div class="pv3-avatar-glow"></div>
       <div class="pv3-avatar-ring profile-identity-block__avatar-wrap">
         <div id="profileAvatar" class="pv3-avatar profile-avatar" aria-hidden="true">T</div>
       </div>
-
-      <!-- Name + handle + bio -->
-      <h1 id="profileDisplayName" class="pv3-name profile-identity-block__name">Profilim</h1>
-      <p id="profileUsernameLine" class="pv3-username profile-identity-hint profile-identity-block__handle"></p>
-
-      <!-- Premium badge (always shown; JS can hide if not premium) -->
-      <span class="pv3-badge-premium">✦ Premium Üye</span>
-
-      <p id="profileBioLine" class="pv3-bio profile-identity-hint profile-identity-block__bio"></p>
-      <p class="pv3-email">
-        <strong id="userEmail" style="font-weight:400;"></strong>
-      </p>
+      <!-- Level Badge -->
+      <div class="pv3-level-badge" id="pv3LevelBadge" data-level="gold" aria-label="Seviye">
+        <span id="pv3LevelIcon">✦</span>
+      </div>
     </div>
 
-    <!-- ── Stats Row ────────────────────────── -->
-    <div class="pv3-stats profile-stats-row" aria-label="Profil istatistikleri">
-      <button type="button" class="pv3-stat profile-stat profile-quick-action" data-profile-tab="reviews">
-        <strong id="profileReviewsCount" class="pv3-stat-num">0</strong>
-        <span class="pv3-stat-lbl">Yorum</span>
-      </button>
-      <button type="button" class="pv3-stat profile-stat profile-quick-action" data-profile-tab="favorites">
-        <strong id="profileFavoritesCount" class="pv3-stat-num">0</strong>
-        <span class="pv3-stat-lbl">Favori</span>
-      </button>
-      <button type="button" class="pv3-stat profile-stat profile-quick-action" data-profile-tab="reservations">
-        <strong id="profileReservationsCount" class="pv3-stat-num">0</strong>
-        <span class="pv3-stat-lbl">Rezervasyon</span>
-      </button>
-    </div>
+    <!-- Identity -->
+    <h1 id="profileDisplayName" class="pv3-name profile-identity-block__name">Profilim</h1>
+    <p id="profileUsernameLine" class="pv3-username profile-identity-hint profile-identity-block__handle"></p>
+    <span class="pv3-badge-premium">✦ Premium Üye</span>
+    <p id="profileBioLine" class="pv3-bio profile-identity-hint profile-identity-block__bio"></p>
+    <p class="pv3-email"><strong id="userEmail" style="font-weight:400;"></strong></p>
 
-    <!-- ── Action Row ───────────────────────── -->
-    <div class="pv3-actions">
-      <button type="button"
-              class="pv3-btn pv3-btn-primary profile-quick-action"
-              data-profile-tab="general">
-        Profili Düzenle
-      </button>
-      <a href="./messages.html" class="pv3-btn pv3-btn-secondary">
-        Mesajlar
-      </a>
-      <a href="./business.html"
-         class="pv3-btn pv3-btn-icon profile-business-link"
-         aria-label="İşletme Paneli">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
-          <polyline points="9 22 9 12 15 12 15 22"/>
-        </svg>
-      </a>
-    </div>
+  </section>
 
-    <!-- ── Tab Bar (Instagram-style) ──────────── -->
-    <nav class="pv3-tabbar" role="tablist" aria-label="İçerik sekmeleri">
+  <!-- ── STATS (4 columns) ────────────────────────── -->
+  <div class="pv3-stats profile-stats-row" aria-label="Profil istatistikleri">
 
-      <!-- General / Overview -->
-      <button type="button" class="pv3-tab profile-tab is-active" role="tab" aria-selected="true" data-profile-tab="general">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-          <rect x="3" y="3" width="7" height="7" rx="1"/>
-          <rect x="14" y="3" width="7" height="7" rx="1"/>
-          <rect x="3" y="14" width="7" height="7" rx="1"/>
-          <rect x="14" y="14" width="7" height="7" rx="1"/>
-        </svg>
-      </button>
+    <button type="button" class="pv3-stat profile-stat profile-quick-action" data-profile-tab="reviews">
+      <strong id="profileReviewsCount" class="pv3-stat-num">0</strong>
+      <span class="pv3-stat-lbl">Yorum</span>
+    </button>
 
-      <!-- Orders -->
-      <button type="button" class="pv3-tab profile-tab" role="tab" aria-selected="false" data-profile-tab="orders">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 11l19-9-9 19-2-8-8-2z"/>
-        </svg>
-      </button>
+    <button type="button" class="pv3-stat profile-stat" id="pv3TanidikBtn">
+      <strong id="pv3TanidikCount" class="pv3-stat-num">—</strong>
+      <span class="pv3-stat-lbl">Tanıdık</span>
+    </button>
 
-      <!-- Favorites -->
-      <button type="button" class="pv3-tab profile-tab" role="tab" aria-selected="false" data-profile-tab="favorites">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
-        </svg>
-      </button>
+    <button type="button" class="pv3-stat profile-stat profile-quick-action" data-profile-tab="favorites">
+      <strong id="profileFavoritesCount" class="pv3-stat-num">0</strong>
+      <span class="pv3-stat-lbl">Favori</span>
+    </button>
 
-      <!-- Reservations -->
-      <button type="button" class="pv3-tab profile-tab" role="tab" aria-selected="false" data-profile-tab="reservations">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-          <line x1="16" y1="2" x2="16" y2="6"/>
-          <line x1="8" y1="2" x2="8" y2="6"/>
-          <line x1="3" y1="10" x2="21" y2="10"/>
-        </svg>
-      </button>
+    <button type="button" class="pv3-stat profile-stat profile-quick-action" data-profile-tab="reservations">
+      <strong id="profileReservationsCount" class="pv3-stat-num">0</strong>
+      <span class="pv3-stat-lbl">Rezervasyon</span>
+    </button>
 
-      <!-- Reviews -->
-      <button type="button" class="pv3-tab profile-tab" role="tab" aria-selected="false" data-profile-tab="reviews">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-        </svg>
-      </button>
+  </div>
 
-      <!-- Business -->
-      <button type="button" class="pv3-tab profile-tab" role="tab" aria-selected="false" data-profile-tab="business">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
-          <line x1="3" y1="6" x2="21" y2="6"/>
-          <path d="M16 10a4 4 0 01-8 0"/>
-        </svg>
-      </button>
-    </nav>
+  <!-- ── ACTION BUTTONS ───────────────────────────── -->
+  <div class="pv3-actions">
+    <button type="button" class="pv3-btn pv3-btn-primary profile-quick-action" data-profile-tab="general">
+      Profili Düzenle
+    </button>
+    <a href="./messages.html" class="pv3-btn pv3-btn-secondary">
+      Mesajlar
+    </a>
+    <button type="button" class="pv3-btn pv3-btn-icon" id="pv3MoreBtn" aria-label="Daha fazla">
+      •••
+    </button>
+  </div>
 
-    <!-- ════════════════════════════════════════
-         TAB PANELS
-    ════════════════════════════════════════ -->
-    <div class="profile-tab-panels pv3-panels">
+  <!-- ── HIGHLIGHTS / STORY STRIP ─────────────────── -->
+  <div class="pv3-highlights" aria-label="Hızlı erişim">
+    <button type="button" class="pv3-highlight profile-quick-action" data-profile-tab="orders">
+      <div class="pv3-highlight__ring">
+        <div class="pv3-highlight__inner">🍽</div>
+      </div>
+      <span class="pv3-highlight__label">Siparişler</span>
+    </button>
+    <button type="button" class="pv3-highlight profile-quick-action" data-profile-tab="reservations">
+      <div class="pv3-highlight__ring">
+        <div class="pv3-highlight__inner">📅</div>
+      </div>
+      <span class="pv3-highlight__label">Rezervasyon</span>
+    </button>
+    <button type="button" class="pv3-highlight profile-quick-action" data-profile-tab="favorites">
+      <div class="pv3-highlight__ring">
+        <div class="pv3-highlight__inner">❤️</div>
+      </div>
+      <span class="pv3-highlight__label">Favoriler</span>
+    </button>
+    <button type="button" class="pv3-highlight profile-quick-action" data-profile-tab="reviews">
+      <div class="pv3-highlight__ring">
+        <div class="pv3-highlight__inner">⭐</div>
+      </div>
+      <span class="pv3-highlight__label">Yorumlar</span>
+    </button>
+    <button type="button" class="pv3-highlight profile-quick-action" data-profile-tab="business">
+      <div class="pv3-highlight__ring">
+        <div class="pv3-highlight__inner">🏢</div>
+      </div>
+      <span class="pv3-highlight__label">İşletme</span>
+    </button>
+    <a href="./business.html" id="businessDashboardLink" class="pv3-highlight profile-business-link">
+      <div class="pv3-highlight__ring">
+        <div class="pv3-highlight__inner">🔑</div>
+      </div>
+      <span class="pv3-highlight__label">Panel</span>
+    </a>
+  </div>
 
-      <!-- ──────────────────────────────────────
-           GENERAL (default) — Son Siparişlerim
-      ────────────────────────────────────── -->
-      <section class="profile-tab-panel profile-mobile-panel is-open pv3-panel-anim"
-               data-panel="general"
-               data-profile-panel="general">
+  <!-- ── TAB BAR ──────────────────────────────────── -->
+  <nav class="pv3-tabbar" role="tablist">
 
-        <!-- Son Siparişlerim -->
-        <div class="pv3-section-hdr">
-          <span class="pv3-section-title">Son Siparişlerim</span>
-          <a href="./orders.html" class="pv3-section-link">Tümünü Gör</a>
-        </div>
-        <div class="pv3-card">
-          <div id="profileOrdersList" class="profile-orders-list"></div>
-        </div>
+    <!-- Grid / General -->
+    <button type="button" class="pv3-tab profile-tab is-active" role="tab" aria-selected="true" data-profile-tab="general">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+        <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+        <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+        <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+        <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+      </svg>
+    </button>
 
-        <!-- Hızlı Erişim -->
-        <span class="pv3-group-label">Hızlı Erişim</span>
-        <div class="pv3-link-row">
-          <a href="./my-reservations.html" class="pv3-link-item">
-            <span class="pv3-link-icon pv3-link-icon--gold">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f8d36b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-              </svg>
-            </span>
-            <span class="pv3-link-body">
-              <span class="pv3-link-label">Tüm Rezervasyonlar</span>
-              <span class="pv3-link-sub">Yaklaşan ve geçmiş</span>
-            </span>
-            <span class="pv3-link-arrow">›</span>
-          </a>
+    <!-- Orders -->
+    <button type="button" class="pv3-tab profile-tab" role="tab" aria-selected="false" data-profile-tab="orders">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 11l19-9-9 19-2-8-8-2z"/>
+      </svg>
+    </button>
 
-          <a href="./orders.html" class="pv3-link-item">
-            <span class="pv3-link-icon pv3-link-icon--gold">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f8d36b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 11l19-9-9 19-2-8-8-2z"/>
-              </svg>
-            </span>
-            <span class="pv3-link-body">
-              <span class="pv3-link-label">Tüm Siparişler</span>
-              <span class="pv3-link-sub">Sipariş geçmişi</span>
-            </span>
-            <span class="pv3-link-arrow">›</span>
-          </a>
+    <!-- Favorites -->
+    <button type="button" class="pv3-tab profile-tab" role="tab" aria-selected="false" data-profile-tab="favorites">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+      </svg>
+    </button>
 
-          <a href="./messages.html" class="pv3-link-item">
-            <span class="pv3-link-icon pv3-link-icon--blue">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#80aaff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-              </svg>
-            </span>
-            <span class="pv3-link-body">
-              <span class="pv3-link-label">Mesajlar</span>
-              <span class="pv3-link-sub">Direkt mesajlar</span>
-            </span>
-            <span class="pv3-link-arrow">›</span>
-          </a>
+    <!-- Reservations -->
+    <button type="button" class="pv3-tab profile-tab" role="tab" aria-selected="false" data-profile-tab="reservations">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+    </button>
 
-          <a href="./favorites.html" class="pv3-link-item">
-            <span class="pv3-link-icon pv3-link-icon--red">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff8080" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
-              </svg>
-            </span>
-            <span class="pv3-link-body">
-              <span class="pv3-link-label">Favorilerim</span>
-              <span class="pv3-link-sub">Kaydettiğin mekanlar</span>
-            </span>
-            <span class="pv3-link-arrow">›</span>
-          </a>
+    <!-- Reviews -->
+    <button type="button" class="pv3-tab profile-tab" role="tab" aria-selected="false" data-profile-tab="reviews">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+      </svg>
+    </button>
 
-          <a href="./business.html" id="businessDashboardLink" class="pv3-link-item profile-business-link">
-            <span class="pv3-link-icon pv3-link-icon--green">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4fffb0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/>
-              </svg>
-            </span>
-            <span class="pv3-link-body">
-              <span class="pv3-link-label">İşletme Paneli</span>
-              <span class="pv3-link-sub">Mekan ve rezervasyon yönetimi</span>
-            </span>
-            <span class="pv3-link-arrow">›</span>
-          </a>
+    <!-- Business -->
+    <button type="button" class="pv3-tab profile-tab" role="tab" aria-selected="false" data-profile-tab="business">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <path d="M16 10a4 4 0 01-8 0"/>
+      </svg>
+    </button>
 
-          <a href="./settings.html" class="pv3-link-item">
-            <span class="pv3-link-icon" style="background:rgba(255,255,255,0.06);">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
-              </svg>
-            </span>
-            <span class="pv3-link-body">
-              <span class="pv3-link-label">Ayarlar</span>
-              <span class="pv3-link-sub">Hesap ve gizlilik</span>
-            </span>
-            <span class="pv3-link-arrow">›</span>
-          </a>
+  </nav>
 
-          <a id="profileAdminLinkCard" href="./admin.html" class="pv3-link-item profile-admin-link" hidden>
-            <span class="pv3-link-icon" style="background:rgba(255,200,80,0.1);">🛡</span>
-            <span class="pv3-link-body">
-              <span class="pv3-link-label">Admin Panel</span>
-            </span>
-            <span class="pv3-link-arrow">›</span>
-          </a>
-        </div>
+  <!-- ══════════════════════════════════════════════════
+       TAB PANELS
+  ══════════════════════════════════════════════════ -->
+  <div class="profile-tab-panels pv3-panels">
 
-        <!-- Logout -->
-        <div class="pv3-logout" style="margin-top:8px;">
-          <button type="button" id="logoutBtn" class="pv3-btn-logout">Çıkış Yap</button>
-        </div>
+    <!-- ─────────────────────────────────────────────
+         GENERAL — Photo grid + links + logout
+    ───────────────────────────────────────────── -->
+    <section class="profile-tab-panel profile-mobile-panel is-open pv3-panel-anim"
+             data-panel="general"
+             data-profile-panel="general">
 
-        <div style="height:24px;"></div>
+      <!-- Photo grid (favorites as Instagram-style posts) -->
+      <div id="profileFavoritesGrid" class="pv3-photo-grid profile-favorites-grid venue-grid"></div>
 
-        <!-- ── Hidden profile edit form (JS keeps using IDs) ── -->
-        <div class="pv3-edit-hidden profile-info-panel dashboard-section profile-identity-panel">
-          <h2 class="profile-panel-title">Profil Bilgileri</h2>
-          <form id="profileIdentityForm" class="profile-identity-form">
-            <label for="profileEditFullName">Ad Soyad</label>
-            <input type="text" id="profileEditFullName" maxlength="80" required />
-            <label for="profileEditUsername">Kullanıcı adı</label>
-            <input type="text" id="profileEditUsername" maxlength="20" autocapitalize="off" spellcheck="false" required />
-            <p class="profile-identity-hint">3–20 karakter: a-z, 0-9, _</p>
-            <p id="profileEditUsernameStatus" class="profile-username-status" role="status"></p>
-            <label for="profileEditBio">Bio (opsiyonel)</label>
-            <textarea id="profileEditBio" rows="3" maxlength="280" placeholder="Kısa bio"></textarea>
-            <label for="profileEditAvatarUrl">Avatar URL (opsiyonel)</label>
-            <input type="url" id="profileEditAvatarUrl" placeholder="https://..." />
-            <input type="file" id="profileEditAvatarFile" accept="image/*" class="admin-file-input" />
-            <button type="submit" class="btn profile-btn-primary">Kaydet</button>
-          </form>
-          <!-- Preserved overview counts (used by JS) -->
-          <div style="display:none;">
-            <strong id="profileFavoritesCountOverview">0</strong>
-            <strong id="profileReservationsCountOverview">0</strong>
-          </div>
-        </div>
+      <!-- Quick links -->
+      <span class="pv3-group-label">Hızlı Erişim</span>
+      <div class="pv3-link-row">
 
-      </section>
+        <a href="./my-reservations.html" class="pv3-link-item">
+          <span class="pv3-link-icon pv3-link-icon--gold">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f8d36b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+          </span>
+          <span class="pv3-link-body">
+            <span class="pv3-link-label">Tüm Rezervasyonlar</span>
+            <span class="pv3-link-sub">Yaklaşan ve geçmiş</span>
+          </span>
+          <span class="pv3-link-arrow">›</span>
+        </a>
 
-      <!-- ──────────────────────────────────────
-           ORDERS (tab view — links to full page)
-      ────────────────────────────────────── -->
-      <section class="profile-tab-panel profile-mobile-panel pv3-panel-anim"
-               data-panel="orders"
-               data-profile-panel="orders"
-               hidden>
-        <div class="pv3-section-hdr">
-          <span class="pv3-section-title">Siparişlerim</span>
-          <a href="./orders.html" class="pv3-section-link">Tüm Siparişler</a>
-        </div>
-        <div style="padding:40px 20px;text-align:center;color:rgba(255,255,255,0.38);">
-          <div style="font-size:2.5rem;margin-bottom:12px;">🍽</div>
-          <p style="font-size:0.88rem;margin:0 0 20px;">Tüm sipariş geçmişini Siparişler sayfasında görebilirsin.</p>
-          <a href="./orders.html" class="ds-btn ds-btn--gold">Siparişlere Git</a>
-        </div>
-      </section>
+        <a href="./orders.html" class="pv3-link-item">
+          <span class="pv3-link-icon pv3-link-icon--gold">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f8d36b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 11l19-9-9 19-2-8-8-2z"/>
+            </svg>
+          </span>
+          <span class="pv3-link-body">
+            <span class="pv3-link-label">Siparişlerim</span>
+            <span class="pv3-link-sub">Sipariş geçmişi</span>
+          </span>
+          <span class="pv3-link-arrow">›</span>
+        </a>
 
-      <!-- ──────────────────────────────────────
-           FAVORITES
-      ────────────────────────────────────── -->
-      <section class="profile-tab-panel profile-mobile-panel profile-favorites-section dashboard-section pv3-panel-anim"
-               data-panel="favorites"
-               data-profile-panel="favorites"
-               hidden>
-        <div class="pv3-section-hdr">
-          <span class="pv3-section-title">Favorilerim</span>
-          <a href="./favorites.html" class="pv3-section-link">Tümünü Gör</a>
-        </div>
-        <div id="profileFavoritesGrid" class="profile-favorites-grid venue-grid" style="padding:0 16px 16px;"></div>
-      </section>
+        <a href="./messages.html" class="pv3-link-item">
+          <span class="pv3-link-icon pv3-link-icon--blue">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#88aaff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+            </svg>
+          </span>
+          <span class="pv3-link-body">
+            <span class="pv3-link-label">Mesajlar</span>
+            <span class="pv3-link-sub">Direkt mesajlar</span>
+          </span>
+          <span class="pv3-link-arrow">›</span>
+        </a>
 
-      <!-- ──────────────────────────────────────
-           RESERVATIONS
-      ────────────────────────────────────── -->
-      <section class="profile-tab-panel profile-mobile-panel profile-reservations-section dashboard-section pv3-panel-anim"
-               data-panel="reservations"
-               data-profile-panel="reservations"
-               hidden>
-        <div class="pv3-section-hdr">
-          <span class="pv3-section-title">Rezervasyonlarım</span>
-          <a href="./my-reservations.html" class="pv3-section-link">Tümünü Gör</a>
-        </div>
-        <div class="pv3-card">
-          <div id="profileReservationsList" class="reservation-list profile-reservation-preview"></div>
-        </div>
-      </section>
+        <a href="./business.html" class="pv3-link-item profile-business-link">
+          <span class="pv3-link-icon pv3-link-icon--green">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4fffb0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/>
+            </svg>
+          </span>
+          <span class="pv3-link-body">
+            <span class="pv3-link-label">İşletme Paneli</span>
+            <span class="pv3-link-sub">Mekan ve rezervasyon yönetimi</span>
+          </span>
+          <span class="pv3-link-arrow">›</span>
+        </a>
 
-      <!-- ──────────────────────────────────────
-           REVIEWS
-      ────────────────────────────────────── -->
-      <section class="profile-tab-panel profile-mobile-panel profile-reviews-section dashboard-section pv3-panel-anim"
-               data-panel="reviews"
-               data-profile-panel="reviews"
-               hidden>
-        <div class="pv3-section-hdr">
-          <span class="pv3-section-title">Yorumlarım</span>
-          <a href="./my-reviews.html" class="pv3-section-link">Tümünü Gör</a>
-        </div>
-        <div class="pv3-card">
-          <div id="profileReviewsList" class="profile-reviews-list"></div>
-        </div>
-      </section>
+        <a href="./settings.html" class="pv3-link-item">
+          <span class="pv3-link-icon pv3-link-icon--muted">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+            </svg>
+          </span>
+          <span class="pv3-link-body">
+            <span class="pv3-link-label">Ayarlar</span>
+            <span class="pv3-link-sub">Hesap ve gizlilik</span>
+          </span>
+          <span class="pv3-link-arrow">›</span>
+        </a>
 
-      <!-- ──────────────────────────────────────
-           BUSINESS
-      ────────────────────────────────────── -->
-      <section class="profile-tab-panel profile-mobile-panel profile-business-section dashboard-section dashboard-section--approvals dashboard-section--forms pv3-panel-anim"
-               data-panel="business"
-               data-profile-panel="business"
-               hidden>
-        <div class="pv3-section-hdr">
-          <span class="pv3-section-title">İşletmem</span>
-        </div>
+        <a id="profileAdminLinkCard" href="./admin.html" class="pv3-link-item profile-admin-link" hidden>
+          <span class="pv3-link-icon" style="background:rgba(255,200,80,0.1);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffcc40" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </span>
+          <span class="pv3-link-body">
+            <span class="pv3-link-label">Admin Panel</span>
+          </span>
+          <span class="pv3-link-arrow">›</span>
+        </a>
 
-        <div id="profileBusinessHero" style="padding:0 16px 16px;">
-          <p style="font-weight:700;color:#fff;margin:0 0 6px;font-size:0.95rem;">İşletmeni TANIDIK'a ekle</p>
-          <p style="font-size:0.82rem;color:rgba(255,255,255,0.5);margin:0 0 16px;line-height:1.55;">Onaylı işletme hesabıyla rezervasyon ve sipariş yönetimine eriş.</p>
-          <a id="profileBusinessCtaLink" href="./business.html" class="ds-btn ds-btn--gold ds-btn--full" hidden>İşletme Paneline Git</a>
-        </div>
+      </div>
 
-        <div id="profileBusinessApplications" class="business-list" style="padding:0 16px;"></div>
+      <!-- Logout -->
+      <div class="pv3-logout" style="margin-top:8px;">
+        <button type="button" id="logoutBtn" class="pv3-btn-logout">Çıkış Yap</button>
+      </div>
 
-        <form id="businessApplicationForm" class="admin-form profile-business-form" style="padding:0 16px;">
-          <input type="text" id="businessApplicationName" placeholder="İşletme Adı" required />
-          <input type="tel" id="businessApplicationPhone" placeholder="Telefon" />
-          <input type="text" id="businessApplicationAddress" placeholder="Adres" />
-          <textarea id="businessApplicationDescription" placeholder="İşletmenizi tanıtın" required></textarea>
-          <div class="admin-form-actions">
-            <button type="submit" class="ds-btn ds-btn--gold ds-btn--full">Başvuru Yap</button>
-          </div>
+      <div style="height:24px;"></div>
+
+      <!-- ── Hidden form elements (preserved for JS) ── -->
+      <div class="pv3-edit-hidden profile-info-panel dashboard-section profile-identity-panel">
+        <form id="profileIdentityForm" class="profile-identity-form">
+          <label for="profileEditFullName">Ad Soyad</label>
+          <input type="text" id="profileEditFullName" maxlength="80" required />
+          <label for="profileEditUsername">Kullanıcı adı</label>
+          <input type="text" id="profileEditUsername" maxlength="20" autocapitalize="off" spellcheck="false" required />
+          <p class="profile-identity-hint">3–20 karakter: a-z, 0-9, _</p>
+          <p id="profileEditUsernameStatus" class="profile-username-status" role="status"></p>
+          <label for="profileEditBio">Bio</label>
+          <textarea id="profileEditBio" rows="3" maxlength="280"></textarea>
+          <label for="profileEditAvatarUrl">Avatar URL</label>
+          <input type="url" id="profileEditAvatarUrl" />
+          <input type="file" id="profileEditAvatarFile" accept="image/*" class="admin-file-input" />
+          <button type="submit" class="btn profile-btn-primary">Kaydet</button>
         </form>
-      </section>
+        <div style="display:none;">
+          <strong id="profileFavoritesCountOverview">0</strong>
+          <strong id="profileReservationsCountOverview">0</strong>
+        </div>
+      </div>
 
-    </div><!-- /profile-tab-panels -->
-  </div><!-- /pv3-scroll -->
+      <!-- Son Siparişlerim (hidden element for JS — data only) -->
+      <div style="display:none;">
+        <div id="profileOrdersList" class="profile-orders-list"></div>
+      </div>
 
-  <!-- ════════════════════════════════════════
-       HIDDEN (legacy compatibility)
-  ════════════════════════════════════════ -->
-  <nav style="display:none;" role="tablist" class="profile-tabs">
-    <button type="button" class="profile-tab is-active" role="tab" aria-selected="true" data-profile-tab="general">Genel</button>
-    <button type="button" class="profile-tab" role="tab" aria-selected="false" data-profile-tab="reservations">Rezervasyon</button>
-    <button type="button" class="profile-tab" role="tab" aria-selected="false" data-profile-tab="favorites">Favoriler</button>
-    <button type="button" class="profile-tab" role="tab" aria-selected="false" data-profile-tab="orders">Siparişler</button>
-    <button type="button" class="profile-tab" role="tab" aria-selected="false" data-profile-tab="reviews">Yorumlar</button>
-    <button type="button" class="profile-tab" role="tab" aria-selected="false" data-profile-tab="business">İşletme</button>
-  </nav>
+    </section>
 
-  <!-- ════════════════════════════════════════
-       BOTTOM NAV
-  ════════════════════════════════════════ -->
-  <nav class="pv3-bottom-nav mobile-bottom-nav" aria-label="Ana navigasyon">
-    <a href="./index.html" data-nav-page="index.html">
-      <span aria-hidden="true">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1z"/><path d="M9 21V12h6v9"/>
-        </svg>
-      </span>
-      <span>Ana Sayfa</span>
-    </a>
-    <a href="./discover.html" data-nav-page="discover.html">
-      <span aria-hidden="true">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-      </span>
-      <span>Keşfet</span>
-    </a>
-    <a href="./store.html" data-nav-page="store.html">
-      <span aria-hidden="true">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/>
-        </svg>
-      </span>
-      <span>Mağaza</span>
-    </a>
-    <a href="./messages.html" data-nav-page="messages.html">
-      <span aria-hidden="true">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-        </svg>
-      </span>
-      <span>Mesajlar</span>
-    </a>
-    <a href="./profile.html" data-nav-page="profile.html" class="active">
-      <span aria-hidden="true">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
-        </svg>
-      </span>
-      <span>Profil</span>
-    </a>
-  </nav>
+    <!-- ─────────────────────────────────────────────
+         ORDERS
+    ───────────────────────────────────────────── -->
+    <section class="profile-tab-panel profile-mobile-panel pv3-panel-anim"
+             data-panel="orders" data-profile-panel="orders" hidden>
+      <div class="pv3-section-hdr">
+        <span class="pv3-section-title">Siparişlerim</span>
+        <a href="./orders.html" class="pv3-section-link">Tümü →</a>
+      </div>
+      <div style="padding:32px 20px;text-align:center;color:rgba(255,255,255,0.35);">
+        <div style="font-size:3rem;margin-bottom:12px;line-height:1;">🍽</div>
+        <p style="font-size:0.86rem;margin:0 0 20px;line-height:1.6;">Tüm sipariş geçmişini Siparişler sayfasında görebilirsin.</p>
+        <a href="./orders.html" class="ds-btn ds-btn--gold">Siparişlere Git</a>
+      </div>
+    </section>
 
-  <!-- ════════════════════════════════════════
-       JS — update header title from display name
-  ════════════════════════════════════════ -->
-  <script>
-    (function () {
-      var observer = new MutationObserver(function () {
-        var name = document.getElementById("profileDisplayName");
-        var title = document.getElementById("pv3HeaderTitle");
-        if (name && title && name.textContent && name.textContent !== "Profilim") {
-          var uname = document.getElementById("profileUsernameLine");
-          title.textContent = (uname && uname.textContent.trim())
-            ? uname.textContent.trim()
-            : name.textContent.trim().toLowerCase();
-          observer.disconnect();
-        }
-      });
-      var nameEl = document.getElementById("profileDisplayName");
-      if (nameEl) observer.observe(nameEl, { childList: true, characterData: true, subtree: true });
-    })();
-  </script>
+    <!-- ─────────────────────────────────────────────
+         FAVORITES (tab — grid is in general panel)
+    ───────────────────────────────────────────── -->
+    <section class="profile-tab-panel profile-mobile-panel pv3-panel-anim"
+             data-panel="favorites" data-profile-panel="favorites" hidden>
+      <div class="pv3-section-hdr">
+        <span class="pv3-section-title">Favorilerim</span>
+        <a href="./favorites.html" class="pv3-section-link">Tümü →</a>
+      </div>
+      <div style="padding:32px 20px;text-align:center;color:rgba(255,255,255,0.35);">
+        <div style="font-size:3rem;margin-bottom:12px;line-height:1;">❤️</div>
+        <p style="font-size:0.86rem;margin:0 0 20px;line-height:1.6;">Tüm favori mekanlarını görüntülemek için Favoriler sayfasına git.</p>
+        <a href="./favorites.html" class="ds-btn ds-btn--gold">Favorilere Git</a>
+      </div>
+    </section>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <script src="./js/app.js"></script>
-  <div id="toast" class="toast"></div>
+    <!-- ─────────────────────────────────────────────
+         RESERVATIONS
+    ───────────────────────────────────────────── -->
+    <section class="profile-tab-panel profile-mobile-panel pv3-panel-anim"
+             data-panel="reservations" data-profile-panel="reservations" hidden>
+      <div class="pv3-section-hdr">
+        <span class="pv3-section-title">Rezervasyonlarım</span>
+        <a href="./my-reservations.html" class="pv3-section-link">Tümü →</a>
+      </div>
+      <div class="pv3-card">
+        <div id="profileReservationsList" class="reservation-list profile-reservation-preview"></div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────
+         REVIEWS
+    ───────────────────────────────────────────── -->
+    <section class="profile-tab-panel profile-mobile-panel pv3-panel-anim"
+             data-panel="reviews" data-profile-panel="reviews" hidden>
+      <div class="pv3-section-hdr">
+        <span class="pv3-section-title">Yorumlarım</span>
+        <a href="./my-reviews.html" class="pv3-section-link">Tümü →</a>
+      </div>
+      <div class="pv3-card">
+        <div id="profileReviewsList" class="profile-reviews-list"></div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────
+         BUSINESS
+    ───────────────────────────────────────────── -->
+    <section class="profile-tab-panel profile-mobile-panel pv3-panel-anim"
+             data-panel="business" data-profile-panel="business" hidden>
+      <div class="pv3-section-hdr">
+        <span class="pv3-section-title">İşletmem</span>
+      </div>
+      <div id="profileBusinessHero" style="padding:0 16px 16px;">
+        <p style="font-weight:700;color:#fff;margin:0 0 6px;font-size:0.95rem;">İşletmeni TANIDIK'a ekle</p>
+        <p style="font-size:0.82rem;color:rgba(255,255,255,0.45);margin:0 0 16px;line-height:1.6;">Onaylı işletme hesabıyla rezervasyon ve sipariş yönetimine eriş.</p>
+        <a id="profileBusinessCtaLink" href="./business.html" class="ds-btn ds-btn--gold ds-btn--full" hidden>İşletme Paneline Git</a>
+      </div>
+      <div id="profileBusinessApplications" class="business-list" style="padding:0 16px;"></div>
+      <form id="businessApplicationForm" class="admin-form profile-business-form" style="padding:0 16px;">
+        <input type="text" id="businessApplicationName" placeholder="İşletme Adı" required />
+        <input type="tel" id="businessApplicationPhone" placeholder="Telefon" />
+        <input type="text" id="businessApplicationAddress" placeholder="Adres" />
+        <textarea id="businessApplicationDescription" placeholder="İşletmenizi tanıtın" required></textarea>
+        <div class="admin-form-actions">
+          <button type="submit" class="ds-btn ds-btn--gold ds-btn--full">Başvuru Yap</button>
+        </div>
+      </form>
+    </section>
+
+  </div><!-- /profile-tab-panels -->
+</div><!-- /pv3-scroll -->
+
+<!-- ══════════════════════════════════════════════════
+     HIDDEN LEGACY NAV (JS compatibility)
+══════════════════════════════════════════════════ -->
+<nav style="display:none;" role="tablist" class="profile-tabs">
+  <button type="button" class="profile-tab is-active" role="tab" aria-selected="true" data-profile-tab="general">Genel</button>
+  <button type="button" class="profile-tab" role="tab" aria-selected="false" data-profile-tab="reservations">Rezervasyon</button>
+  <button type="button" class="profile-tab" role="tab" aria-selected="false" data-profile-tab="favorites">Favoriler</button>
+  <button type="button" class="profile-tab" role="tab" aria-selected="false" data-profile-tab="orders">Siparişler</button>
+  <button type="button" class="profile-tab" role="tab" aria-selected="false" data-profile-tab="reviews">Yorumlar</button>
+  <button type="button" class="profile-tab" role="tab" aria-selected="false" data-profile-tab="business">İşletme</button>
+</nav>
+
+<!-- ══════════════════════════════════════════════════
+     BOTTOM NAV
+══════════════════════════════════════════════════ -->
+<nav class="bnav mobile-bottom-nav" aria-label="Ana navigasyon">
+  <a href="./index.html" class="bnav-item" data-nav-page="index.html">
+    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1z"/><path d="M9 21V12h6v9"/></svg></span>
+    <span class="bnav-label">Ana Sayfa</span>
+  </a>
+  <a href="./discover.html" class="bnav-item" data-nav-page="discover.html">
+    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+    <span class="bnav-label">Keşfet</span>
+  </a>
+  <a href="./store.html" class="bnav-item" data-nav-page="store.html">
+    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></span>
+    <span class="bnav-label">Mağaza</span>
+  </a>
+  <a href="./food.html" class="bnav-item" data-nav-page="food.html">
+    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></span>
+    <span class="bnav-label">Yemek</span>
+  </a>
+  <a href="./messages.html" class="bnav-item" data-nav-page="messages.html">
+    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></span>
+    <span class="bnav-label">Mesajlar</span>
+  </a>
+  <a href="./profile.html" class="bnav-item" data-nav-page="profile.html">
+    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+    <span class="bnav-label">Profil</span>
+  </a>
+</nav>
+
+<!-- ══════════════════════════════════════════════════
+     INLINE SCRIPTS
+══════════════════════════════════════════════════ -->
+<script>
+/* ── Header title syncs with username ── */
+(function () {
+  var obs = new MutationObserver(function () {
+    var name   = document.getElementById("profileDisplayName");
+    var uname  = document.getElementById("profileUsernameLine");
+    var title  = document.getElementById("pv3HeaderTitle");
+    if (!title) return;
+    var handle = uname && uname.textContent.trim();
+    var full   = name && name.textContent.trim();
+    if (handle && handle !== "@") {
+      title.textContent = handle.replace(/^@/, "");
+      obs.disconnect();
+    } else if (full && full !== "Profilim") {
+      title.textContent = full.toLowerCase();
+      obs.disconnect();
+    }
+  });
+  var el = document.getElementById("profileDisplayName");
+  if (el) obs.observe(el, { childList: true, characterData: true, subtree: true });
+})();
+
+/* ── Level badge logic ── */
+(function () {
+  function setLevel() {
+    var badge = document.getElementById("pv3LevelBadge");
+    var icon  = document.getElementById("pv3LevelIcon");
+    if (!badge) return;
+    var reviews = parseInt(document.getElementById("profileReviewsCount").textContent) || 0;
+    var favs    = parseInt(document.getElementById("profileFavoritesCount").textContent) || 0;
+    var score   = reviews + favs;
+    var tier, emoji;
+    if      (score >= 100) { tier = "diamond";  emoji = "💎"; }
+    else if (score >= 40)  { tier = "platinum"; emoji = "⬡"; }
+    else if (score >= 15)  { tier = "gold";     emoji = "✦"; }
+    else if (score >= 5)   { tier = "silver";   emoji = "◈"; }
+    else                   { tier = "bronze";   emoji = "◉"; }
+    badge.dataset.level = tier;
+    if (icon) icon.textContent = emoji;
+  }
+  /* Run after app.js fills counts */
+  window.addEventListener("load", function () { setTimeout(setLevel, 1200); });
+  /* Also watch for DOM changes */
+  var el = document.getElementById("profileReviewsCount");
+  if (el) {
+    new MutationObserver(function () { setLevel(); })
+      .observe(el, { childList: true, characterData: true, subtree: true });
+  }
+})();
+
+/* ── "More" button popover ── */
+document.getElementById("pv3MoreBtn")?.addEventListener("click", function (e) {
+  e.stopPropagation();
+  var el = document.getElementById("pv3MoreMenu");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "pv3MoreMenu";
+    el.style.cssText = [
+      "position:fixed","top:104px","right:16px","z-index:500",
+      "background:rgba(12,10,18,0.97)","border:1px solid rgba(255,255,255,0.1)",
+      "border-radius:16px","padding:8px 0","min-width:180px",
+      "box-shadow:0 24px 60px rgba(0,0,0,0.75)",
+      "animation:pv3-dropdown-in 200ms cubic-bezier(.16,1,.3,1)"
+    ].join(";");
+    var items = [
+      ["./settings.html", "Ayarlar"],
+      ["./my-reviews.html", "Yorumlarım"],
+      ["./favorites.html", "Favorilerim"],
+    ];
+    items.forEach(function(i) {
+      var a = document.createElement("a");
+      a.href = i[0];
+      a.textContent = i[1];
+      a.style.cssText = "display:block;padding:13px 18px;font-size:.86rem;font-weight:600;color:#fff;text-decoration:none;font-family:Syne,sans-serif;";
+      el.appendChild(a);
+    });
+    document.body.appendChild(el);
+    document.addEventListener("click", function close() {
+      el.remove(); document.removeEventListener("click", close);
+    });
+  } else { el.remove(); }
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<script src="./js/app.js"></script>
+<div id="toast" class="toast"></div>
 </body>
-
 </html>

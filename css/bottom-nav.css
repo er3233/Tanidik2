@@ -1,0 +1,260 @@
+/* ═══════════════════════════════════════════════
+   TANIDIK · Bottom Navigation
+   ═══════════════════════════════════════════════ */
+
+/* Tüm ekranlarda gizle */
+.mobile-bottom-nav { display: none !important; }
+
+@media (max-width: 700px) {
+
+/* ── Container ─────────────────────────────────
+   Kullanıcı spec birebir uygulandı.
+   Hiçbir şey içeriği etkileyemez.
+   ─────────────────────────────────────────────── */
+.bnav.mobile-bottom-nav {
+  display:    grid !important;
+  position:   fixed !important;
+  bottom:     12px !important;
+
+  /* transform kullanma — active item width değişiminden bağımsız merkez */
+  left:       12px !important;
+  right:      12px !important;
+  max-width:  430px !important;
+  margin:     0 auto !important;
+  transform:  none !important;
+
+  height:     78px !important;
+
+  grid-template-columns: repeat(6, 1fr) !important;
+  align-items: center !important;
+
+  border-radius: 28px !important;
+  overflow:   hidden !important;
+  z-index:    700 !important;
+
+  /* Görsel */
+  background: linear-gradient(
+    175deg,
+    rgba(18,14,28,0.97) 0%,
+    rgba(6,4,12,0.98) 100%
+  ) !important;
+  border-top:    1px solid rgba(255,255,255,0.13) !important;
+  border-left:   1px solid rgba(255,255,255,0.07) !important;
+  border-right:  1px solid rgba(0,0,0,0.18) !important;
+  border-bottom: 1px solid rgba(0,0,0,0.35) !important;
+  box-shadow:
+    0  1px 0 rgba(255,255,255,0.09) inset,
+    0 -1px 0 rgba(0,0,0,0.25) inset,
+    0 20px 48px rgba(0,0,0,0.70),
+    0  8px 18px rgba(0,0,0,0.50),
+    0  0  36px rgba(240,192,96,0.05) !important;
+  backdrop-filter: blur(28px) saturate(1.4) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(1.4) !important;
+
+  /* Eski stilleri sıfırla */
+  padding:   0 !important;
+  gap:       0 !important;
+  flex-wrap: unset !important;
+  flex:      unset !important;
+}
+
+/* ── Her Item ──────────────────────────────────
+   Boyut ASLA değişmez.
+   ─────────────────────────────────────────────── */
+.bnav.mobile-bottom-nav .bnav-item {
+  /* Boyut — sabittir */
+  width:           100% !important;
+  height:          78px !important;
+  min-width:       0 !important;
+  max-width:       100% !important;
+  padding:         0 !important;
+  margin:          0 !important;
+  flex:            none !important;
+  flex-shrink:     0 !important;
+  box-sizing:      border-box !important;
+  overflow:        hidden !important;
+
+  /* Layout */
+  display:         flex !important;
+  flex-direction:  column !important;
+  align-items:     center !important;
+  justify-content: center !important;
+  gap:             4px !important;
+
+  /* Görsel */
+  color:           rgba(255,255,255,0.32) !important;
+  text-decoration: none !important;
+  cursor:          pointer !important;
+  border:          none !important;
+  background:      transparent !important;
+  font-family:     "Syne", system-ui, sans-serif !important;
+  position:        relative !important;
+  -webkit-tap-highlight-color: transparent !important;
+
+  /* Sadece renk geçişi */
+  transition: color 160ms ease !important;
+
+  /* Eski transform / scale yok */
+  transform: none !important;
+}
+
+/* Basma geri bildirimi — sadece opacity, boyut değişmez */
+.bnav.mobile-bottom-nav .bnav-item:active {
+  opacity: 0.65 !important;
+  transform: none !important;
+}
+
+/* ── Icon Wrap ─────────────────────────────────
+   Boyut SABİT. border eklenmez, boyut değişmez.
+   ─────────────────────────────────────────────── */
+.bnav.mobile-bottom-nav .bnav-icon-wrap {
+  width:           28px !important;
+  height:          28px !important;
+  min-width:       28px !important;
+  max-width:       28px !important;
+  min-height:      28px !important;
+  max-height:      28px !important;
+  flex-shrink:     0 !important;
+  box-sizing:      border-box !important;
+  display:         flex !important;
+  align-items:     center !important;
+  justify-content: center !important;
+  border-radius:   10px !important;
+  position:        relative !important;
+  background:      transparent !important;
+  border:          none !important;
+  outline:         none !important;
+  box-shadow:      none !important;
+  /* Boyutu etkilemeyen depth */
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6)) !important;
+  transition: background 160ms, filter 160ms !important;
+  /* Asla transform verilmez */
+  transform: none !important;
+}
+
+/* ── SVG İkon ──────────────────────────────────
+   3D depth: filter ile, layout'u etkilemez.
+   ─────────────────────────────────────────────── */
+.bnav.mobile-bottom-nav .bnav-icon-wrap svg {
+  width:       20px !important;
+  height:      20px !important;
+  flex-shrink: 0 !important;
+  display:     block !important;
+  stroke:      currentColor !important;
+  fill:        none !important;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6)) !important;
+  transition:  filter 160ms !important;
+}
+
+/* ── Etiket ──────────────────────────────────── */
+.bnav.mobile-bottom-nav .bnav-label {
+  font-size:      9px !important;
+  font-weight:    700 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+  line-height:    1 !important;
+  white-space:    nowrap !important;
+  display:        block !important;
+  overflow:       hidden !important;
+  text-overflow:  ellipsis !important;
+  max-width:      100% !important;
+}
+
+/* ── Eski ::before harf ikonlarını sıfırla ────── */
+.bnav.mobile-bottom-nav .bnav-item::before {
+  content: none !important;
+  display: none !important;
+  width:   0 !important;
+  height:  0 !important;
+}
+
+/* ═══════════════════════════════════════════════
+   AKTİF DURUM
+   KURAL: Hiçbir boyut / konum / transform değişmez.
+   Sadece color + background(icon-wrap) + filter(svg).
+   ═══════════════════════════════════════════════ */
+
+/* 1. Renk değişimi */
+.bnav.mobile-bottom-nav .bnav-item.active {
+  color: #f0c060 !important;
+  /* Hiçbir şey daha yok */
+}
+
+/* 2. Üst indikatör — position:absolute, layout etkilemez */
+.bnav.mobile-bottom-nav .bnav-item.active::before {
+  content:       "" !important;
+  display:       block !important;
+  position:      absolute !important;
+  top:           0 !important;
+  left:          50% !important;
+  transform:     translateX(-50%) !important;
+  width:         20px !important;
+  height:        2px !important;
+  border-radius: 0 0 3px 3px !important;
+  background:    linear-gradient(90deg,#c99422,#f8d36b,#ffe087,#f8d36b,#c99422) !important;
+  box-shadow:    0 0 8px rgba(240,192,96,0.8), 0 0 18px rgba(240,192,96,0.3) !important;
+}
+
+/* 3. Icon wrap — SADECE background değişir, boyut DEĞİŞMEZ */
+.bnav.mobile-bottom-nav .bnav-item.active .bnav-icon-wrap {
+  /* Boyut — passive ile tamamen aynı */
+  width:      28px !important;
+  height:     28px !important;
+  min-width:  28px !important;
+  max-width:  28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  padding:    0 !important;
+  margin:     0 !important;
+  transform:  none !important;
+
+  /* Sadece görsel */
+  background: rgba(240,192,96,0.14) !important;
+  /* border yerine outline kullan — box-model etkilemez */
+  outline:    1.5px solid rgba(248,211,107,0.30) !important;
+  outline-offset: -1.5px !important;
+  box-shadow: 0 0 14px rgba(240,192,96,0.20) !important;
+  border:     none !important;
+  filter:     none !important;
+}
+
+/* 4. SVG — sadece glow, boyut değişmez */
+.bnav.mobile-bottom-nav .bnav-item.active .bnav-icon-wrap svg {
+  filter:
+    drop-shadow(0 0  5px rgba(240,192,96,0.95))
+    drop-shadow(0 0 12px rgba(240,192,96,0.40))
+    drop-shadow(0 2px 3px rgba(0,0,0,0.50)) !important;
+  /* width/height aynı */
+  width:  20px !important;
+  height: 20px !important;
+}
+
+/* ── Mesaj rozeti ──────────────────────────────── */
+.bnav.mobile-bottom-nav .message-nav-unread-badge,
+.bnav.mobile-bottom-nav .bnav-badge {
+  position:    absolute !important;
+  top:         8px !important;
+  right:       4px !important;
+  min-width:   16px !important;
+  height:      16px !important;
+  padding:     0 4px !important;
+  border-radius: 999px !important;
+  background:  linear-gradient(135deg,#f8d36b,#c99422) !important;
+  color:       #0a0700 !important;
+  font-size:   9px !important;
+  font-weight: 800 !important;
+  display:     flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  border:      1.5px solid rgba(6,4,12,0.98) !important;
+  box-shadow:  0 0 8px rgba(240,192,96,0.6) !important;
+  z-index:     1 !important;
+}
+
+} /* @media */
+
+/* İçerik nav'ın altına düşmesin */
+@media (max-width: 700px) {
+  body { padding-bottom: 102px; }
+}
