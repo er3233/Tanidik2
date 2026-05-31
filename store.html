@@ -207,6 +207,8 @@
         <span class="store-modal-cat" id="storeModalCat"></span>
         <h2 class="store-modal-name" id="storeModalName"></h2>
         <p class="store-modal-desc" id="storeModalDesc"></p>
+        <div id="storeModalOptions" class="store-modal-options" hidden></div>
+        <p id="storeModalOptionsSummary" class="store-modal-options-summary" hidden></p>
         <div class="store-modal-meta">
           <div class="store-modal-meta-row">
             <span>Fiyat</span>
@@ -221,7 +223,7 @@
             <strong id="storeModalVenue"></strong>
           </div>
         </div>
-        <button class="store-modal-cta" type="button" disabled>Yakında</button>
+        <button class="store-modal-cta" id="storeModalAddBtn" type="button">Sepete Ekle</button>
       </div>
     </div>
   </div>
@@ -317,6 +319,7 @@
   </nav>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="./js/venue-product-attributes.js"></script>
   <script src="./js/app.js"></script>
 
   <script>
@@ -349,10 +352,15 @@
     var modalStockRow = document.getElementById('storeModalStockRow');
     var modalVenue    = document.getElementById('storeModalVenue');
     var modalVenueRow = document.getElementById('storeModalVenueRow');
+    var modalOptions  = document.getElementById('storeModalOptions');
+    var modalOptionsSummary = document.getElementById('storeModalOptionsSummary');
+    var modalAddBtn   = document.getElementById('storeModalAddBtn');
 
     /* ── State ── */
     var ALL_PRODUCTS   = [];
     var cart           = {};
+    var modalProduct   = null;
+    var modalSelections = {};
     var activeCategory = 'all';
     var activeCategoryLabel = '';
 
@@ -378,6 +386,18 @@
       return product.venue_product_categories && product.venue_product_categories.name
         ? safeStr(product.venue_product_categories.name)
         : '';
+    }
+
+    function productHasOptions(product) {
+      var VPA = window.VenueProductAttributes;
+      if (!VPA || !product) return false;
+      return VPA.getProductOptionsSchema(product).length > 0;
+    }
+
+    function getCartLineKey(productId, selections) {
+      var VPA = window.VenueProductAttributes;
+      if (VPA) return VPA.cartLineKey(productId, selections || {});
+      return String(productId);
     }
 
     function setActiveStoreCategory(value, label) {
@@ -569,7 +589,12 @@
       grid.querySelectorAll('.store-add-btn').forEach(function (btn) {
         btn.addEventListener('click', function (e) {
           e.stopPropagation();
-          addToCart(btn.dataset.id);
+          var p = ALL_PRODUCTS.find(function (x) { return String(x.id) === String(btn.dataset.id); });
+          if (p && productHasOptions(p)) {
+            openModal(p);
+            return;
+          }
+          addToCart(btn.dataset.id, {});
           btn.textContent = '✓';
           btn.classList.add('store-add-btn--added');
           setTimeout(function () {
@@ -593,21 +618,30 @@
     }
 
     /* ── Cart ── */
-    function addToCart(id) {
-      cart[id] = (cart[id] || 0) + 1;
+    function addToCart(id, selections) {
+      var lineKey = getCartLineKey(id, selections);
+      if (!cart[lineKey]) {
+        cart[lineKey] = {
+          productId: id,
+          qty: 0,
+          selections: selections || {},
+        };
+      }
+      cart[lineKey].qty += 1;
       updateCartUI();
     }
 
-    function removeFromCart(id) {
-      delete cart[id];
+    function removeFromCart(lineKey) {
+      delete cart[lineKey];
       updateCartUI();
     }
 
     function updateCartUI() {
-      var total = Object.keys(cart).reduce(function (s, id) { return s + cart[id]; }, 0);
+      var total = Object.keys(cart).reduce(function (s, key) {
+        return s + (cart[key].qty || 0);
+      }, 0);
       fabCount.textContent = total;
       fab.hidden = total === 0;
-      /* sync topbar badge */
       if (topCartBadge) {
         topCartBadge.textContent = total;
         topCartBadge.hidden = total === 0;
@@ -618,25 +652,32 @@
     function renderCartDrawer() {
       cartItems.innerHTML = '';
       var sum = 0;
-      Object.keys(cart).forEach(function (id) {
-        var p = ALL_PRODUCTS.find(function (x) { return String(x.id) === String(id); });
+      var VPA = window.VenueProductAttributes;
+      Object.keys(cart).forEach(function (lineKey) {
+        var line = cart[lineKey];
+        if (!line) return;
+        var p = ALL_PRODUCTS.find(function (x) { return String(x.id) === String(line.productId); });
         if (!p) return;
-        var qty = cart[id];
-        var line = (p.price || 0) * qty;
-        sum += line;
+        var qty = line.qty || 0;
+        var lineTotal = (p.price || 0) * qty;
+        sum += lineTotal;
+        var optText = VPA
+          ? VPA.formatSelectionsForDisplay(p, line.selections)
+          : '';
         var row = document.createElement('div');
         row.className = 'store-cart-row';
         row.innerHTML =
           '<div class="store-cart-row-info">' +
             '<strong>' + safeStr(p.name) + '</strong>' +
-            '<span>×' + qty + ' &nbsp; ' + fmtPrice(line, p.currency) + '</span>' +
+            (optText ? '<span class="store-cart-row-options">' + optText + '</span>' : '') +
+            '<span>×' + qty + ' &nbsp; ' + fmtPrice(lineTotal, p.currency) + '</span>' +
           '</div>' +
-          '<button class="store-cart-remove" type="button" data-id="' + id + '" aria-label="Kaldır">✕</button>';
+          '<button class="store-cart-remove" type="button" data-line="' + lineKey + '" aria-label="Kaldır">✕</button>';
         cartItems.appendChild(row);
       });
       cartTotal.textContent = fmtPrice(sum, 'TRY');
       cartItems.querySelectorAll('.store-cart-remove').forEach(function (btn) {
-        btn.addEventListener('click', function () { removeFromCart(btn.dataset.id); });
+        btn.addEventListener('click', function () { removeFromCart(btn.dataset.line); });
       });
     }
 
@@ -663,8 +704,25 @@
     closeBtn.addEventListener('click', closeCart);
     backdrop.addEventListener('click', closeCart);
 
+    function refreshModalOptionsSummary() {
+      var VPA = window.VenueProductAttributes;
+      if (!modalOptionsSummary || !VPA || !modalProduct) {
+        if (modalOptionsSummary) modalOptionsSummary.hidden = true;
+        return;
+      }
+      var text = VPA.formatSelectionsForDisplay(modalProduct, modalSelections);
+      if (text) {
+        modalOptionsSummary.textContent = text;
+        modalOptionsSummary.hidden = false;
+      } else {
+        modalOptionsSummary.hidden = true;
+      }
+    }
+
     /* ── Product detail modal ── */
     async function openModal(p) {
+      modalProduct = p;
+      modalSelections = {};
       modalImg.innerHTML = p.image_url
         ? '<img src="' + safeStr(p.image_url) + '" alt="' + safeStr(p.name) + '" class="store-modal-main-img" />'
         : '<div class="store-modal-img-placeholder"></div>';
@@ -684,6 +742,29 @@
       var venueName = (p.venues && p.venues.name) ? safeStr(p.venues.name) : '';
       modalVenue.textContent = venueName;
       modalVenueRow.hidden   = !venueName;
+
+      if (window.VenueProductAttributes && modalOptions) {
+        modalSelections = window.VenueProductAttributes.renderCustomerOptionPicker(
+          modalOptions,
+          p,
+          function (next) {
+            modalSelections = next || {};
+            refreshModalOptionsSummary();
+          }
+        ) || {};
+        refreshModalOptionsSummary();
+      } else if (modalOptions) {
+        modalOptions.hidden = true;
+        if (modalOptionsSummary) modalOptionsSummary.hidden = true;
+      }
+
+      if (modalAddBtn) {
+        modalAddBtn.disabled = p.stock_quantity === 0;
+        modalAddBtn.textContent = productHasOptions(p)
+          ? 'Seçeneklerle Sepete Ekle'
+          : 'Sepete Ekle';
+      }
+
       modal.hidden        = false;
       modalBackdrop.hidden= false;
       requestAnimationFrame(function () {
@@ -692,6 +773,25 @@
       });
       document.body.style.overflow = 'hidden';
       loadGalleryImages(p);
+    }
+
+    if (modalAddBtn) {
+      modalAddBtn.addEventListener('click', function () {
+        if (!modalProduct) return;
+        var VPA = window.VenueProductAttributes;
+        if (VPA) {
+          var schema = VPA.getProductOptionsSchema(modalProduct);
+          var err = VPA.validateCustomerSelections(schema, modalSelections);
+          if (err) {
+            if (typeof showToast === 'function') showToast(err);
+            return;
+          }
+        }
+        addToCart(modalProduct.id, modalSelections);
+        if (typeof showToast === 'function') showToast('Sepete eklendi');
+        closeModal();
+        updateCartUI();
+      });
     }
 
     async function loadGalleryImages(p) {
