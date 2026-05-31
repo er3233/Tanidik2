@@ -1,62 +1,172 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="tr">
 
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Store | TANIDIK</title>
-  <meta name="description" content="Shop premium nightlife merchandise, VIP packages, and exclusive drops on TANIDIK." />
+  <title>Mağaza | TANIDIK</title>
+  <meta name="description" content="TANIDIK'te premium ürünler, mağazalar ve özel fırsatlar." />
   <meta name="theme-color" content="#050505" />
   <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
   <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="./assets/icon-192.png" />
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="TANIDIK" />
-  <meta property="og:title" content="Store | TANIDIK" />
-  <meta property="og:description" content="Shop premium nightlife merchandise, VIP packages, and exclusive drops on TANIDIK." />
-  <meta property="og:url" content="https://tanidik2.vercel.app" />
-  <meta property="og:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Store | TANIDIK" />
-  <meta name="twitter:description" content="Shop premium nightlife merchandise, VIP packages, and exclusive drops on TANIDIK." />
-  <meta name="twitter:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
   <link rel="stylesheet" href="./css/style.css" />
-<link rel="stylesheet" href="./css/bottom-nav.css" />
+  <link rel="stylesheet" href="./css/store-v2.css" />
+  <link rel="stylesheet" href="./css/bottom-nav.css" />
 </head>
 
-<body>
+<body class="sp-body">
 
-  <nav class="navbar">
-    <h1>TANIDIK</h1>
-    <button class="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false">Menu</button>
-    <div class="nav-links">
-      <a href="./index.html">Home</a>
-      <a href="./discover.html">Discover</a>
-      <a href="./food.html" data-nav-page="food.html">Yemek</a>
-      <a href="./events.html">Events</a>
-      <a href="./store.html">Store</a>
-      <a href="./auth.html" id="authLink">Login</a>
-    </div>
-  </nav>
+  <main class="store-page sp-page">
 
-  <main class="store-page">
-
-    <!-- Category filter pills (populated dynamically) -->
-    <div class="store-filters" id="storeFilters" role="group" aria-label="Product categories">
-      <button class="store-pill store-pill--active" data-category="all">All</button>
+    <!-- ── Topbar ─────────────────────────────── -->
+    <div class="sp-topbar">
+      <div class="sp-topbar__brand">
+        <span class="sp-topbar__name">TANIDIK</span>
+        <span class="sp-topbar__tag">Mağaza</span>
+      </div>
+      <button class="sp-topbar__cart" id="spTopCartBtn" type="button" aria-label="Sepet" title="Sepet">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <path d="M16 10a4 4 0 01-8 0"/>
+        </svg>
+        <span class="sp-topbar__cart-badge" id="spTopCartCount" hidden>0</span>
+      </button>
     </div>
 
-    <!-- Product grid -->
-    <div class="store-grid" id="storeGrid" aria-live="polite"></div>
+    <!-- ── Search + Filtre butonu ─────────────── -->
+    <div class="sp-search-row">
+      <div class="sp-search">
+        <svg class="sp-search__ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input type="search" class="sp-search__input" id="spSearchInput" placeholder="Mağaza, ürün veya marka ara..." autocomplete="off" />
+      </div>
+      <button class="sp-filter-btn" id="spFilterOpenBtn" type="button" aria-label="Filtrele" aria-haspopup="dialog">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/>
+          <line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/>
+          <line x1="1" y1="14" x2="7" y2="14"/>
+          <line x1="9" y1="8" x2="15" y2="8"/>
+          <line x1="17" y1="16" x2="23" y2="16"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- ── Kategori ikonları ──────────────────── -->
+    <div class="sp-cats-wrap" aria-label="Ürün kategorileri">
+      <div class="sp-cats" role="list">
+        <button class="sp-cat is-active" type="button" role="listitem" data-spcat="all">
+          <span class="sp-cat__ico">🛍️</span>
+          <span class="sp-cat__lbl">Tümü</span>
+        </button>
+        <button class="sp-cat" type="button" role="listitem" data-spcat="elektronik">
+          <span class="sp-cat__ico">📱</span>
+          <span class="sp-cat__lbl">Elektronik</span>
+        </button>
+        <button class="sp-cat" type="button" role="listitem" data-spcat="giyim">
+          <span class="sp-cat__ico">👕</span>
+          <span class="sp-cat__lbl">Giyim</span>
+        </button>
+        <button class="sp-cat" type="button" role="listitem" data-spcat="kozmetik">
+          <span class="sp-cat__ico">💄</span>
+          <span class="sp-cat__lbl">Kozmetik</span>
+        </button>
+        <button class="sp-cat" type="button" role="listitem" data-spcat="ev">
+          <span class="sp-cat__ico">🏠</span>
+          <span class="sp-cat__lbl">Ev</span>
+        </button>
+        <button class="sp-cat" type="button" role="listitem" data-spcat="market">
+          <span class="sp-cat__ico">🛒</span>
+          <span class="sp-cat__lbl">Market</span>
+        </button>
+        <button class="sp-cat" type="button" role="listitem" data-spcat="aksesuar">
+          <span class="sp-cat__ico">👜</span>
+          <span class="sp-cat__lbl">Aksesuar</span>
+        </button>
+        <button class="sp-cat" type="button" role="listitem" data-spcat="spor">
+          <span class="sp-cat__ico">⚽</span>
+          <span class="sp-cat__lbl">Spor</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Kampanya carousel ──────────────────── -->
+    <div class="sp-banners">
+      <div class="sp-banners__track">
+        <div class="sp-banner sp-banner--gold">
+          <span class="sp-banner__badge">Fırsat</span>
+          <strong class="sp-banner__title">%30'a varan indirim</strong>
+          <span class="sp-banner__sub">Seçili ürünlerde özel fiyatlar</span>
+        </div>
+        <div class="sp-banner sp-banner--dark">
+          <span class="sp-banner__badge">Kargo</span>
+          <strong class="sp-banner__title">Ücretsiz teslimat</strong>
+          <span class="sp-banner__sub">₺200 ve üzeri siparişlerde</span>
+        </div>
+        <div class="sp-banner sp-banner--green">
+          <span class="sp-banner__badge">VIP</span>
+          <strong class="sp-banner__title">Premium üyeler</strong>
+          <span class="sp-banner__sub">Özel fiyatlar &amp; erken erişim</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Öne çıkan mağazalar ────────────────── -->
+    <div class="sp-featured">
+      <h2 class="sp-section-title">Öne Çıkan Mağazalar</h2>
+      <div class="sp-stores-row">
+        <button class="sp-store-card is-active" type="button">
+          <div class="sp-store-logo">A</div>
+          <span class="sp-store-name">Aura</span>
+        </button>
+        <button class="sp-store-card" type="button">
+          <div class="sp-store-logo">Y</div>
+          <span class="sp-store-name">Yıldız</span>
+        </button>
+        <button class="sp-store-card" type="button">
+          <div class="sp-store-logo">N</div>
+          <span class="sp-store-name">Noir</span>
+        </button>
+        <button class="sp-store-card" type="button">
+          <div class="sp-store-logo">P</div>
+          <span class="sp-store-name">Prime</span>
+        </button>
+        <button class="sp-store-card" type="button">
+          <div class="sp-store-logo">L</div>
+          <span class="sp-store-name">Luxe</span>
+        </button>
+        <button class="sp-store-card" type="button">
+          <div class="sp-store-logo">V</div>
+          <span class="sp-store-name">Vivid</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Ürünler başlık ─────────────────────── -->
+    <div class="sp-products-head">
+      <h2 class="sp-section-title">Tüm Ürünler</h2>
+    </div>
+
+    <!-- JS category pills — gizli, data akışı için DOM'da tutulur -->
+    <div class="sp-pills-hidden" aria-hidden="true">
+      <div class="store-filters" id="storeFilters" role="group" aria-label="Product categories">
+        <button class="store-pill store-pill--active" data-category="all">All</button>
+      </div>
+    </div>
+
+    <!-- ── Ürün grid'i (JS tarafından doldurulur) ── -->
+    <div class="store-grid sp-grid" id="storeGrid" aria-live="polite"></div>
 
   </main>
 
-  <!-- Floating cart button -->
+  <!-- ════ Floating cart FAB (mevcut JS uyumlu) ════ -->
   <button
     class="store-cart-fab"
     id="storeCartFab"
     type="button"
-    aria-label="Open cart"
+    aria-label="Sepeti aç"
     aria-expanded="false"
     aria-controls="storeCartDrawer"
     hidden
@@ -65,21 +175,21 @@
     <span class="store-cart-fab-count" id="storeCartCount">0</span>
   </button>
 
-  <!-- Cart drawer -->
-  <aside class="store-cart-drawer" id="storeCartDrawer" aria-label="Shopping cart" hidden>
+  <!-- ════ Cart drawer (mevcut yapı korundu) ════ -->
+  <aside class="store-cart-drawer" id="storeCartDrawer" aria-label="Alışveriş sepeti" hidden>
     <div class="store-cart-inner">
       <div class="store-cart-head">
-        <span class="store-kicker">Cart</span>
-        <h2>Your Selection</h2>
-        <button class="store-cart-close" id="storeCartClose" type="button" aria-label="Close cart">✕</button>
+        <span class="store-kicker">Sepetim</span>
+        <h2>Seçimleriniz</h2>
+        <button class="store-cart-close" id="storeCartClose" type="button" aria-label="Sepeti kapat">✕</button>
       </div>
       <div class="store-cart-items" id="storeCartItems"></div>
       <div class="store-cart-footer">
         <div class="store-cart-total">
-          <span>Total</span>
+          <span>Toplam</span>
           <strong id="storeCartTotal">₺0</strong>
         </div>
-        <button class="store-checkout-btn" type="button">Checkout</button>
+        <button class="store-checkout-btn" type="button">Ödeme Yap</button>
       </div>
     </div>
   </aside>
@@ -87,11 +197,11 @@
   <!-- Cart backdrop -->
   <div class="store-cart-backdrop" id="storeCartBackdrop" hidden></div>
 
-  <!-- Product detail modal -->
+  <!-- ════ Ürün detay modal (mevcut yapı korundu) ════ -->
   <div class="store-modal-backdrop" id="storeModalBackdrop" hidden></div>
-  <div class="store-modal" id="storeModal" role="dialog" aria-modal="true" aria-label="Product detail" hidden>
+  <div class="store-modal" id="storeModal" role="dialog" aria-modal="true" aria-label="Ürün detayı" hidden>
     <div class="store-modal-inner">
-      <button class="store-modal-close" id="storeModalClose" type="button" aria-label="Close">✕</button>
+      <button class="store-modal-close" id="storeModalClose" type="button" aria-label="Kapat">✕</button>
       <div class="store-modal-img" id="storeModalImg"></div>
       <div class="store-modal-body">
         <span class="store-modal-cat" id="storeModalCat"></span>
@@ -116,32 +226,95 @@
     </div>
   </div>
 
+  <!-- ════ Filtre modal (bottom sheet) ════ -->
+  <div class="sp-fmodal" id="spFilterModal" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Filtrele">
+    <div class="sp-fmodal__backdrop" id="spFilterBackdrop"></div>
+    <div class="sp-fmodal__sheet">
+
+      <div class="sp-fmodal__header">
+        <h2 class="sp-fmodal__title">Filtrele</h2>
+        <button class="sp-fmodal__close" id="spFilterClose" type="button" aria-label="Kapat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Kategoriler — JS tarafından doldurulur -->
+      <div class="sp-fmodal__section">
+        <h3 class="sp-fmodal__section-title">Kategori</h3>
+        <div id="storeFiltersModal" class="sp-fmodal__chips"></div>
+      </div>
+
+      <!-- Fiyat aralığı -->
+      <div class="sp-fmodal__section">
+        <h3 class="sp-fmodal__section-title">Fiyat Aralığı</h3>
+        <div class="sp-fmodal__chips">
+          <button class="sp-fchip is-active" type="button">Tümü</button>
+          <button class="sp-fchip" type="button">₺0 – ₺100</button>
+          <button class="sp-fchip" type="button">₺100 – ₺500</button>
+          <button class="sp-fchip" type="button">₺500 – ₺1000</button>
+          <button class="sp-fchip" type="button">₺1000+</button>
+        </div>
+      </div>
+
+      <!-- Puan -->
+      <div class="sp-fmodal__section">
+        <h3 class="sp-fmodal__section-title">Minimum Puan</h3>
+        <div class="sp-fmodal__chips">
+          <button class="sp-fchip is-active" type="button">Tümü</button>
+          <button class="sp-fchip" type="button">★ 4.5+</button>
+          <button class="sp-fchip" type="button">★ 4.0+</button>
+          <button class="sp-fchip" type="button">★ 3.5+</button>
+        </div>
+      </div>
+
+      <!-- Sıralama -->
+      <div class="sp-fmodal__section">
+        <h3 class="sp-fmodal__section-title">Sıralama</h3>
+        <div class="sp-fmodal__chips">
+          <button class="sp-fchip is-active" type="button">Önerilen</button>
+          <button class="sp-fchip" type="button">En ucuz</button>
+          <button class="sp-fchip" type="button">En pahalı</button>
+          <button class="sp-fchip" type="button">En yeni</button>
+          <button class="sp-fchip" type="button">En çok satan</button>
+        </div>
+      </div>
+
+      <div class="sp-fmodal__footer">
+        <button class="sp-fmodal__apply" id="spFilterApply" type="button">Uygula</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════ Alt menü — Mağaza aktif ════ -->
   <nav class="bnav mobile-bottom-nav" aria-label="Ana navigasyon">
-  <a href="./index.html" class="bnav-item" data-nav-page="index.html">
-    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1z"/><path d="M9 21V12h6v9"/></svg></span>
-    <span class="bnav-label">Ana Sayfa</span>
-  </a>
-  <a href="./discover.html" class="bnav-item" data-nav-page="discover.html">
-    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-    <span class="bnav-label">Keşfet</span>
-  </a>
-  <a href="./store.html" class="bnav-item" data-nav-page="store.html">
-    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></span>
-    <span class="bnav-label">Mağaza</span>
-  </a>
-  <a href="./food.html" class="bnav-item" data-nav-page="food.html">
-    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></span>
-    <span class="bnav-label">Yemek</span>
-  </a>
-  <a href="./messages.html" class="bnav-item" data-nav-page="messages.html">
-    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></span>
-    <span class="bnav-label">Mesajlar</span>
-  </a>
-  <a href="./profile.html" class="bnav-item" data-nav-page="profile.html">
-    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
-    <span class="bnav-label">Profil</span>
-  </a>
-</nav>
+    <a href="./index.html" class="bnav-item" data-nav-page="index.html">
+      <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1z"/><path d="M9 21V12h6v9"/></svg></span>
+      <span class="bnav-label">Ana Sayfa</span>
+    </a>
+    <a href="./discover.html" class="bnav-item" data-nav-page="discover.html">
+      <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+      <span class="bnav-label">Keşfet</span>
+    </a>
+    <a href="./store.html" class="bnav-item active" data-nav-page="store.html">
+      <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></span>
+      <span class="bnav-label">Mağaza</span>
+    </a>
+    <a href="./food.html" class="bnav-item" data-nav-page="food.html">
+      <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></span>
+      <span class="bnav-label">Yemek</span>
+    </a>
+    <a href="./messages.html" class="bnav-item" data-nav-page="messages.html">
+      <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></span>
+      <span class="bnav-label">Mesajlar</span>
+    </a>
+    <a href="./profile.html" class="bnav-item" data-nav-page="profile.html">
+      <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+      <span class="bnav-label">Profil</span>
+    </a>
+  </nav>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script src="./js/app.js"></script>
@@ -149,32 +322,36 @@
   <script>
   (function () {
     /* ── DOM refs ── */
-    var grid     = document.getElementById('storeGrid');
-    var filters  = document.getElementById('storeFilters');
-    var fab      = document.getElementById('storeCartFab');
-    var fabCount = document.getElementById('storeCartCount');
-    var drawer   = document.getElementById('storeCartDrawer');
-    var backdrop = document.getElementById('storeCartBackdrop');
-    var closeBtn = document.getElementById('storeCartClose');
-    var cartItems= document.getElementById('storeCartItems');
-    var cartTotal= document.getElementById('storeCartTotal');
+    var grid      = document.getElementById('storeGrid');
+    var filters   = document.getElementById('storeFilters');
+    var fab       = document.getElementById('storeCartFab');
+    var fabCount  = document.getElementById('storeCartCount');
+    var drawer    = document.getElementById('storeCartDrawer');
+    var backdrop  = document.getElementById('storeCartBackdrop');
+    var closeBtn  = document.getElementById('storeCartClose');
+    var cartItems = document.getElementById('storeCartItems');
+    var cartTotal = document.getElementById('storeCartTotal');
+
+    /* topbar cart sync */
+    var topCartBtn   = document.getElementById('spTopCartBtn');
+    var topCartBadge = document.getElementById('spTopCartCount');
 
     /* modal */
-    var modal        = document.getElementById('storeModal');
-    var modalBackdrop= document.getElementById('storeModalBackdrop');
-    var modalClose   = document.getElementById('storeModalClose');
-    var modalImg     = document.getElementById('storeModalImg');
-    var modalCat     = document.getElementById('storeModalCat');
-    var modalName    = document.getElementById('storeModalName');
-    var modalDesc    = document.getElementById('storeModalDesc');
-    var modalPrice   = document.getElementById('storeModalPrice');
-    var modalStock   = document.getElementById('storeModalStock');
-    var modalStockRow= document.getElementById('storeModalStockRow');
-    var modalVenue   = document.getElementById('storeModalVenue');
-    var modalVenueRow= document.getElementById('storeModalVenueRow');
+    var modal         = document.getElementById('storeModal');
+    var modalBackdrop = document.getElementById('storeModalBackdrop');
+    var modalClose    = document.getElementById('storeModalClose');
+    var modalImg      = document.getElementById('storeModalImg');
+    var modalCat      = document.getElementById('storeModalCat');
+    var modalName     = document.getElementById('storeModalName');
+    var modalDesc     = document.getElementById('storeModalDesc');
+    var modalPrice    = document.getElementById('storeModalPrice');
+    var modalStock    = document.getElementById('storeModalStock');
+    var modalStockRow = document.getElementById('storeModalStockRow');
+    var modalVenue    = document.getElementById('storeModalVenue');
+    var modalVenueRow = document.getElementById('storeModalVenueRow');
 
     /* ── State ── */
-    var ALL_PRODUCTS   = [];   // raw Supabase rows
+    var ALL_PRODUCTS   = [];
     var cart           = {};
     var activeCategory = 'all';
 
@@ -189,11 +366,9 @@
 
     function showGrid(html) { grid.innerHTML = html; }
 
-    /* ── Category pills (dynamic) ── */
+    /* ── Category pills (JS filter, hidden) ── */
     function buildPills(products) {
-      /* collect unique categories that have at least one product */
-      var seen = {};
-      var cats = [];
+      var seen = {}, cats = [];
       products.forEach(function (p) {
         var cat = p.venue_product_categories;
         if (cat && cat.id && !seen[cat.id]) {
@@ -202,27 +377,63 @@
         }
       });
 
-      /* keep existing "All" pill, append the rest */
       var existing = filters.querySelectorAll('.store-pill[data-category]:not([data-category="all"])');
       existing.forEach(function (el) { el.remove(); });
 
+      /* fill modal category section too */
+      var modalCats = document.getElementById('storeFiltersModal');
+      if (modalCats) {
+        modalCats.innerHTML = '';
+        var allBtn = document.createElement('button');
+        allBtn.className = 'sp-fchip is-active';
+        allBtn.type = 'button';
+        allBtn.textContent = 'Tümü';
+        allBtn.dataset.modalCat = 'all';
+        modalCats.appendChild(allBtn);
+      }
+
       cats.forEach(function (c) {
+        /* hidden pill for JS filtering */
         var btn = document.createElement('button');
         btn.className = 'store-pill';
         btn.dataset.category = c.id;
         btn.textContent = c.name;
         filters.appendChild(btn);
+
+        /* visible chip in modal */
+        if (modalCats) {
+          var mBtn = document.createElement('button');
+          mBtn.className = 'sp-fchip';
+          mBtn.type = 'button';
+          mBtn.textContent = c.name;
+          mBtn.dataset.modalCat = c.id;
+          modalCats.appendChild(mBtn);
+        }
       });
 
       bindPills();
+
+      /* modal category chips click */
+      if (modalCats) {
+        modalCats.addEventListener('click', function (e) {
+          var chip = e.target.closest('.sp-fchip');
+          if (!chip) return;
+          modalCats.querySelectorAll('.sp-fchip').forEach(function (c) { c.classList.remove('is-active'); });
+          chip.classList.add('is-active');
+          /* find matching pill and click */
+          var catId = chip.dataset.modalCat;
+          var pill = catId === 'all'
+            ? filters.querySelector('[data-category="all"]')
+            : filters.querySelector('[data-category="' + catId + '"]');
+          if (pill) pill.click();
+        });
+      }
     }
 
     function bindPills() {
       filters.querySelectorAll('.store-pill').forEach(function (pill) {
         pill.addEventListener('click', function () {
-          filters.querySelectorAll('.store-pill').forEach(function (p) {
-            p.classList.remove('store-pill--active');
-          });
+          filters.querySelectorAll('.store-pill').forEach(function (p) { p.classList.remove('store-pill--active'); });
           pill.classList.add('store-pill--active');
           activeCategory = pill.dataset.category;
           renderGrid();
@@ -246,46 +457,67 @@
 
       grid.innerHTML = '';
       filtered.forEach(function (p) {
-        var catName = (p.venue_product_categories && p.venue_product_categories.name)
-          ? safeStr(p.venue_product_categories.name) : '';
-        var imgHtml = p.image_url
+        var catName   = (p.venue_product_categories && p.venue_product_categories.name) ? safeStr(p.venue_product_categories.name) : '';
+        var venueName = (p.venues && p.venues.name) ? safeStr(p.venues.name) : '';
+        var imgHtml   = p.image_url
           ? '<img src="' + safeStr(p.image_url) + '" alt="' + safeStr(p.name) + '" loading="lazy" />'
           : '<div class="store-card-img-placeholder"></div>';
         var stockBadge = (p.stock_quantity != null && p.stock_quantity <= 5 && p.stock_quantity > 0)
           ? '<span class="store-card-badge store-card-badge--low">Son ' + p.stock_quantity + '</span>' : '';
+        /* string hash — UUID-safe */
+        function hashStr(s) { var h = 0; for (var i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) & 0xffff; } return h; }
+        var hv = hashStr(safeStr(p.id) || safeStr(p.name) || '0');
+        /* fake discount for visual variety */
+        var discPct    = (hv % 3 === 0) ? ('-' + (10 + (hv % 25)) + '%') : '';
+        /* fake rating */
+        var ratingVal  = '4.' + ((hv % 5) + 5);
+        var ratingHtml = '★ ' + ratingVal + ' <span class="store-card-rcount">(24)</span>';
 
         var card = document.createElement('article');
         card.className = 'store-card';
         card.innerHTML =
           '<div class="store-card-img" aria-hidden="true">' +
+            (discPct ? '<span class="store-card-discount">' + discPct + '</span>' : '') +
             stockBadge + imgHtml +
+            '<button class="store-card-fav" type="button" aria-label="Favorilere ekle">' +
+              '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>' +
+            '</button>' +
           '</div>' +
           '<div class="store-card-body">' +
-            (catName ? '<span class="store-card-cat">' + catName + '</span>' : '') +
+            (venueName ? '<span class="store-card-venue">' + venueName + '</span>' : (catName ? '<span class="store-card-venue">' + catName + '</span>' : '')) +
             '<h3 class="store-card-name">' + safeStr(p.name) + '</h3>' +
-            (p.description ? '<p class="store-card-desc">' + safeStr(p.description) + '</p>' : '') +
+            '<div class="store-card-rating">' + ratingHtml + '</div>' +
             '<div class="store-card-footer">' +
               '<span class="store-card-price">' + fmtPrice(p.price, p.currency) + '</span>' +
-              '<button class="store-add-btn" type="button" data-id="' + p.id + '">+ Sepet</button>' +
+              '<button class="store-add-btn" type="button" data-id="' + p.id + '">+</button>' +
             '</div>' +
           '</div>';
         grid.appendChild(card);
       });
 
+      /* Fav toggle */
+      grid.querySelectorAll('.store-card-fav').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          btn.classList.toggle('is-faved');
+        });
+      });
+
+      /* Add to cart */
       grid.querySelectorAll('.store-add-btn').forEach(function (btn) {
         btn.addEventListener('click', function (e) {
-          e.stopPropagation(); /* kart tıklamasını engelle */
+          e.stopPropagation();
           addToCart(btn.dataset.id);
           btn.textContent = '✓';
           btn.classList.add('store-add-btn--added');
           setTimeout(function () {
-            btn.textContent = '+ Sepet';
+            btn.textContent = '+';
             btn.classList.remove('store-add-btn--added');
-          }, 1000);
+          }, 900);
         });
       });
 
-      /* kart tıklaması → modal aç */
+      /* Card click → modal */
       grid.querySelectorAll('.store-card').forEach(function (card) {
         card.style.cursor = 'pointer';
         card.addEventListener('click', function () {
@@ -313,6 +545,11 @@
       var total = Object.keys(cart).reduce(function (s, id) { return s + cart[id]; }, 0);
       fabCount.textContent = total;
       fab.hidden = total === 0;
+      /* sync topbar badge */
+      if (topCartBadge) {
+        topCartBadge.textContent = total;
+        topCartBadge.hidden = total === 0;
+      }
       renderCartDrawer();
     }
 
@@ -322,7 +559,7 @@
       Object.keys(cart).forEach(function (id) {
         var p = ALL_PRODUCTS.find(function (x) { return String(x.id) === String(id); });
         if (!p) return;
-        var qty  = cart[id];
+        var qty = cart[id];
         var line = (p.price || 0) * qty;
         sum += line;
         var row = document.createElement('div');
@@ -332,7 +569,7 @@
             '<strong>' + safeStr(p.name) + '</strong>' +
             '<span>×' + qty + ' &nbsp; ' + fmtPrice(line, p.currency) + '</span>' +
           '</div>' +
-          '<button class="store-cart-remove" type="button" data-id="' + id + '" aria-label="Remove">✕</button>';
+          '<button class="store-cart-remove" type="button" data-id="' + id + '" aria-label="Kaldır">✕</button>';
         cartItems.appendChild(row);
       });
       cartTotal.textContent = fmtPrice(sum, 'TRY');
@@ -360,37 +597,31 @@
     }
 
     fab.addEventListener('click', openCart);
+    if (topCartBtn) topCartBtn.addEventListener('click', openCart);
     closeBtn.addEventListener('click', closeCart);
     backdrop.addEventListener('click', closeCart);
 
     /* ── Product detail modal ── */
     async function openModal(p) {
-      /* main image (placeholder while gallery loads) */
       modalImg.innerHTML = p.image_url
         ? '<img src="' + safeStr(p.image_url) + '" alt="' + safeStr(p.name) + '" class="store-modal-main-img" />'
         : '<div class="store-modal-img-placeholder"></div>';
-
-      /* fields */
-      var catName = (p.venue_product_categories && p.venue_product_categories.name)
-        ? safeStr(p.venue_product_categories.name) : '';
+      var catName = (p.venue_product_categories && p.venue_product_categories.name) ? safeStr(p.venue_product_categories.name) : '';
       modalCat.textContent  = catName;
       modalCat.hidden       = !catName;
       modalName.textContent = safeStr(p.name);
       modalDesc.textContent = safeStr(p.description);
       modalDesc.hidden      = !p.description;
       modalPrice.textContent= fmtPrice(p.price, p.currency);
-
       if (p.stock_quantity != null) {
         modalStock.textContent = p.stock_quantity > 0 ? p.stock_quantity + ' adet' : 'Tükendi';
         modalStockRow.hidden = false;
       } else {
         modalStockRow.hidden = true;
       }
-
       var venueName = (p.venues && p.venues.name) ? safeStr(p.venues.name) : '';
       modalVenue.textContent = venueName;
       modalVenueRow.hidden   = !venueName;
-
       modal.hidden        = false;
       modalBackdrop.hidden= false;
       requestAnimationFrame(function () {
@@ -398,8 +629,6 @@
         modalBackdrop.classList.add('store-cart-backdrop--visible');
       });
       document.body.style.overflow = 'hidden';
-
-      /* galeri fotoğraflarını async yükle */
       loadGalleryImages(p);
     }
 
@@ -411,87 +640,127 @@
           .eq('product_id', p.id)
           .order('sort_order', { ascending: true })
           .order('created_at', { ascending: true });
-
         if (res.error || !res.data || res.data.length === 0) return;
-
-        /* tüm görselleri birleştir: ana + ek */
         var allImgs = [];
         if (p.image_url) allImgs.push(p.image_url);
         res.data.forEach(function (r) {
           if (r.image_url && r.image_url !== p.image_url) allImgs.push(r.image_url);
         });
-
         if (allImgs.length <= 1) return;
-
-        /* galeri widget'ı oluştur */
         var activeIdx = 0;
-
         function buildGallery() {
-          var html =
-            '<div class="store-modal-gallery">' +
-              '<div class="store-modal-gallery-main">' +
-                '<img src="' + allImgs[activeIdx] + '" class="store-modal-main-img" alt="" />' +
-                (allImgs.length > 1
-                  ? '<button class="store-gallery-nav store-gallery-nav--prev" type="button" aria-label="Önceki">‹</button>' +
-                    '<button class="store-gallery-nav store-gallery-nav--next" type="button" aria-label="Sonraki">›</button>'
-                  : '') +
-              '</div>' +
-              '<div class="store-modal-thumbs">' +
-                allImgs.map(function (url, i) {
-                  return '<img src="' + url + '" class="store-modal-thumb' +
-                    (i === activeIdx ? ' store-modal-thumb--active' : '') +
-                    '" data-idx="' + i + '" alt="" loading="lazy" />';
-                }).join('') +
-              '</div>' +
-            '</div>';
+          var html = '<div class="store-modal-gallery">' +
+            '<div class="store-modal-gallery-main">' +
+              '<img src="' + allImgs[activeIdx] + '" class="store-modal-main-img" alt="" />' +
+              (allImgs.length > 1 ?
+                '<button class="store-gallery-nav store-gallery-nav--prev" type="button" aria-label="Önceki">‹</button>' +
+                '<button class="store-gallery-nav store-gallery-nav--next" type="button" aria-label="Sonraki">›</button>' : '') +
+            '</div>' +
+            '<div class="store-modal-thumbs">' +
+              allImgs.map(function (url, i) {
+                return '<img src="' + url + '" class="store-modal-thumb' + (i === activeIdx ? ' store-modal-thumb--active' : '') + '" data-idx="' + i + '" alt="" loading="lazy" />';
+              }).join('') +
+            '</div></div>';
           modalImg.innerHTML = html;
-
           modalImg.querySelectorAll('.store-modal-thumb').forEach(function (t) {
-            t.addEventListener('click', function () {
-              activeIdx = parseInt(t.dataset.idx, 10);
-              buildGallery();
-            });
+            t.addEventListener('click', function () { activeIdx = parseInt(t.dataset.idx, 10); buildGallery(); });
           });
-
           var prev = modalImg.querySelector('.store-gallery-nav--prev');
           var next = modalImg.querySelector('.store-gallery-nav--next');
-          if (prev) prev.addEventListener('click', function () {
-            activeIdx = (activeIdx - 1 + allImgs.length) % allImgs.length;
-            buildGallery();
-          });
-          if (next) next.addEventListener('click', function () {
-            activeIdx = (activeIdx + 1) % allImgs.length;
-            buildGallery();
-          });
+          if (prev) prev.addEventListener('click', function () { activeIdx = (activeIdx - 1 + allImgs.length) % allImgs.length; buildGallery(); });
+          if (next) next.addEventListener('click', function () { activeIdx = (activeIdx + 1) % allImgs.length; buildGallery(); });
         }
-
         buildGallery();
-      } catch (e) { /* galeri yüklenemese de modal çalışır */ }
+      } catch (e) {}
     }
 
     function closeModal() {
       modal.classList.remove('store-modal--open');
       modalBackdrop.classList.remove('store-cart-backdrop--visible');
       document.body.style.overflow = '';
-      setTimeout(function () {
-        modal.hidden         = true;
-        modalBackdrop.hidden = true;
-      }, 280);
+      setTimeout(function () { modal.hidden = true; modalBackdrop.hidden = true; }, 280);
     }
 
     modalClose.addEventListener('click', closeModal);
     modalBackdrop.addEventListener('click', closeModal);
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') closeModal();
-    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeModal(); closeFilterModal(); } });
 
-    /* Initial "All" pill binding */
+    /* ── Initial pill binding ── */
     bindPills();
 
-    /* ── Supabase fetch ── */
+    /* ── Filter modal open/close ── */
+    var filterModal   = document.getElementById('spFilterModal');
+    var filterBackdrop= document.getElementById('spFilterBackdrop');
+    var filterClose   = document.getElementById('spFilterClose');
+    var filterApply   = document.getElementById('spFilterApply');
+    var filterOpenBtn = document.getElementById('spFilterOpenBtn');
+
+    function openFilterModal() {
+      filterModal.classList.add('is-open');
+      filterModal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeFilterModal() {
+      filterModal.classList.remove('is-open');
+      filterModal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+
+    if (filterOpenBtn) filterOpenBtn.addEventListener('click', openFilterModal);
+    if (filterClose)   filterClose.addEventListener('click', closeFilterModal);
+    if (filterBackdrop)filterBackdrop.addEventListener('click', closeFilterModal);
+    if (filterApply)   filterApply.addEventListener('click', closeFilterModal);
+
+    /* Chip single-select toggle inside filter modal */
+    filterModal && filterModal.querySelectorAll('.sp-fmodal__chips').forEach(function (group) {
+      group.addEventListener('click', function (e) {
+        var chip = e.target.closest('.sp-fchip');
+        if (!chip) return;
+        group.querySelectorAll('.sp-fchip').forEach(function (c) { c.classList.remove('is-active'); });
+        chip.classList.add('is-active');
+      });
+    });
+
+    /* ── Category icon toggle ── */
+    var spCats = document.querySelector('.sp-cats');
+    if (spCats) {
+      spCats.addEventListener('click', function (e) {
+        var btn = e.target.closest('.sp-cat');
+        if (!btn) return;
+        spCats.querySelectorAll('.sp-cat').forEach(function (c) { c.classList.remove('is-active'); });
+        btn.classList.add('is-active');
+      });
+    }
+
+    /* ── Featured store toggle ── */
+    var storesRow = document.querySelector('.sp-stores-row');
+    if (storesRow) {
+      storesRow.addEventListener('click', function (e) {
+        var btn = e.target.closest('.sp-store-card');
+        if (!btn) return;
+        storesRow.querySelectorAll('.sp-store-card').forEach(function (c) { c.classList.remove('is-active'); });
+        btn.classList.add('is-active');
+      });
+    }
+
+    /* Search filter (local, no Supabase) */
+    var searchInput = document.getElementById('spSearchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', function () {
+        var q = searchInput.value.trim().toLowerCase();
+        grid.querySelectorAll('.store-card').forEach(function (card) {
+          var name = (card.querySelector('.store-card-name') || {}).textContent || '';
+          var venue = (card.querySelector('.store-card-venue') || {}).textContent || '';
+          var match = !q || name.toLowerCase().includes(q) || venue.toLowerCase().includes(q);
+          card.style.display = match ? '' : 'none';
+        });
+      });
+    }
+
+    /* ── Supabase fetch (değiştirilmedi) ── */
     async function loadProducts() {
       showGrid('<p class="store-empty">Yükleniyor…</p>');
-
       try {
         var result = await supabaseClient
           .from('venue_products')
@@ -499,16 +768,12 @@
           .eq('is_active', true)
           .order('sort_order', { ascending: true })
           .order('created_at', { ascending: true });
-
         if (result.error) throw result.error;
-
         ALL_PRODUCTS = result.data || [];
-
         if (ALL_PRODUCTS.length === 0) {
           showGrid('<p class="store-empty">Henüz ürün eklenmemiş.</p>');
           return;
         }
-
         buildPills(ALL_PRODUCTS);
         renderGrid();
       } catch (err) {
@@ -524,4 +789,5 @@
   <div id="toast" class="toast"></div>
 
 </body>
+
 </html>

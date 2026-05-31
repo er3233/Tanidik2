@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="tr">
 
 <head>
@@ -10,98 +10,260 @@
   <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="./css/style.css" />
   <link rel="stylesheet" href="./css/food-order.css" />
-<link rel="stylesheet" href="./css/bottom-nav.css" />
+  <link rel="stylesheet" href="./css/bottom-nav.css" />
 </head>
 
 <body class="food-page-body">
-  <nav class="navbar">
-    <h1>TANIDIK</h1>
-    <button class="nav-toggle" type="button" aria-label="Menü" aria-expanded="false">Menü</button>
-    <div class="nav-links">
-      <a href="./index.html">Ana Sayfa</a>
-      <a href="./discover.html">Keşfet</a>
-      <a href="./food.html" data-nav-page="food.html">Yemek</a>
-      <a href="./events.html">Etkinlikler</a>
-      <a href="./orders.html">Siparişlerim</a>
-      <a href="./auth.html" id="authLink">Giriş</a>
-    </div>
-  </nav>
 
   <main id="foodPage" class="food-page">
-    <header class="food-hero">
-      <span class="food-hero__kicker">TANIDIK Yemek</span>
-      <h1 class="food-hero__title">Restoranlardan sipariş ver</h1>
-      <p class="food-hero__subtitle">Teslimat veya gel-al — premium mekanlardan menü siparişi.</p>
+
+    <!-- ── Top bar ─────────────────────────────── -->
+    <div class="food-topbar">
+      <div class="food-topbar__brand">
+        <span class="food-topbar__name">TANIDIK</span>
+        <span class="food-topbar__tag">Yemek</span>
+      </div>
+      <a href="./orders.html" class="food-topbar__btn" aria-label="Siparişlerim">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <path d="M16 10a4 4 0 01-8 0"/>
+        </svg>
+      </a>
+    </div>
+
+    <!-- ── Search + Filter button ──────────────── -->
+    <div class="food-search-wrap">
       <div class="food-search">
-        <input type="search" id="foodSearchInput" class="food-search__input" placeholder="Restoran veya mutfak ara…" autocomplete="off" />
+        <svg class="food-search__ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input type="search" id="foodSearchInput" class="food-search__input" placeholder="Restoran, mutfak veya yemek ara…" autocomplete="off" />
       </div>
-    </header>
+      <button class="food-filter-btn" id="foodFilterOpenBtn" type="button" aria-label="Filtrele" aria-haspopup="dialog">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/>
+          <line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/>
+          <line x1="1" y1="14" x2="7" y2="14"/>
+          <line x1="9" y1="8" x2="15" y2="8"/>
+          <line x1="17" y1="16" x2="23" y2="16"/>
+        </svg>
+      </button>
+    </div>
 
-    <section class="food-filters dashboard-section" aria-label="Filtreler">
-      <div class="food-filter-row">
-        <span class="food-filter-label">Sipariş tipi</span>
-        <div class="food-chip-group" id="foodOrderTypeFilters" role="group"></div>
+    <!-- ── Category icons (yemek kategorileri) ─── -->
+    <div class="food-cats-wrap" aria-label="Yemek kategorileri">
+      <div class="food-cats" role="list">
+        <button class="food-cat is-active" type="button" role="listitem" data-cat="">
+          <span class="food-cat__ico">🍽️</span>
+          <span class="food-cat__lbl">Tümü</span>
+        </button>
+        <button class="food-cat" type="button" role="listitem" data-cat="döner">
+          <span class="food-cat__ico">🥙</span>
+          <span class="food-cat__lbl">Döner</span>
+        </button>
+        <button class="food-cat" type="button" role="listitem" data-cat="pizza">
+          <span class="food-cat__ico">🍕</span>
+          <span class="food-cat__lbl">Pizza</span>
+        </button>
+        <button class="food-cat" type="button" role="listitem" data-cat="burger">
+          <span class="food-cat__ico">🍔</span>
+          <span class="food-cat__lbl">Burger</span>
+        </button>
+        <button class="food-cat" type="button" role="listitem" data-cat="kebap">
+          <span class="food-cat__ico">🍢</span>
+          <span class="food-cat__lbl">Kebap</span>
+        </button>
+        <button class="food-cat" type="button" role="listitem" data-cat="tavuk">
+          <span class="food-cat__ico">🍗</span>
+          <span class="food-cat__lbl">Tavuk</span>
+        </button>
+        <button class="food-cat" type="button" role="listitem" data-cat="tatlı">
+          <span class="food-cat__ico">🍰</span>
+          <span class="food-cat__lbl">Tatlı</span>
+        </button>
+        <button class="food-cat" type="button" role="listitem" data-cat="kahve">
+          <span class="food-cat__ico">☕</span>
+          <span class="food-cat__lbl">Kahve</span>
+        </button>
       </div>
-      <div class="food-filter-row">
-        <span class="food-filter-label">Mutfak</span>
-        <div class="food-chip-group food-chip-group--scroll" id="foodCuisineFilters" role="group"></div>
-      </div>
-      <div class="food-filter-row">
-        <span class="food-filter-label">Durum</span>
-        <div class="food-chip-group" id="foodStatusFilters" role="group"></div>
-      </div>
+    </div>
+
+    <!-- #foodCuisineFilters gizli (JS uyumluluğu için DOM'da tutulur) -->
+    <div class="food-chips-hidden" aria-hidden="true">
+      <div class="food-chip-group food-chip-group--scroll" id="foodCuisineFilters" role="group"></div>
+    </div>
+
+    <!-- ── Campaign carousel ─────────────────────── -->
+    <section class="food-campaign" id="foodCampaignSection" hidden>
+      <h2 class="food-section__title">Kampanyalar</h2>
+      <div id="foodCampaignList" class="food-restaurant-row"></div>
     </section>
 
-    <section class="food-section dashboard-section" id="foodPopularSection" hidden>
-      <h2 class="food-section__title">Popüler restoranlar</h2>
-      <div id="foodPopularList" class="food-restaurant-grid"></div>
+    <!-- ── Popular ───────────────────────────────── -->
+    <section class="food-section" id="foodPopularSection" hidden>
+      <h2 class="food-section__title">Popüler Restoranlar</h2>
+      <div id="foodPopularList" class="food-restaurant-row"></div>
     </section>
 
-    <section class="food-section dashboard-section" id="foodCampaignSection" hidden>
-      <h2 class="food-section__title">Öne çıkanlar</h2>
-      <div id="foodCampaignList" class="food-restaurant-grid"></div>
-    </section>
-
-    <section class="food-section dashboard-section" id="foodOpenSection" hidden>
+    <!-- ── Open now ──────────────────────────────── -->
+    <section class="food-section" id="foodOpenSection" hidden>
       <h2 class="food-section__title">Şu an açık</h2>
-      <div id="foodOpenList" class="food-restaurant-grid"></div>
+      <div id="foodOpenList" class="food-restaurant-row"></div>
     </section>
 
-    <section class="food-section dashboard-section">
-      <h2 class="food-section__title">Tüm restoranlar</h2>
-      <div id="foodRestaurantList" class="food-restaurant-grid" aria-live="polite"></div>
+    <!-- ── All restaurants ───────────────────────── -->
+    <section class="food-section">
+      <h2 class="food-section__title">Tüm Restoranlar</h2>
+      <div id="foodRestaurantList" class="food-restaurant-row" aria-live="polite"></div>
     </section>
+
   </main>
+
+  <!-- ════ Filter Modal (bottom sheet) ════ -->
+  <div class="food-fmodal" id="foodFilterModal" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Filtrele">
+    <div class="food-fmodal__backdrop" id="foodFilterBackdrop"></div>
+    <div class="food-fmodal__sheet">
+
+      <!-- Header -->
+      <div class="food-fmodal__header">
+        <h2 class="food-fmodal__title">Filtrele</h2>
+        <button class="food-fmodal__close" id="foodFilterClose" type="button" aria-label="Kapat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Kategoriler -->
+      <div class="food-fmodal__section">
+        <h3 class="food-fmodal__section-title">Kategoriler</h3>
+        <div class="food-fmodal__chips">
+          <button class="food-fchip is-active" type="button">Tümü</button>
+          <button class="food-fchip" type="button">Pizza</button>
+          <button class="food-fchip" type="button">Burger</button>
+          <button class="food-fchip" type="button">Döner</button>
+          <button class="food-fchip" type="button">Sushi</button>
+          <button class="food-fchip" type="button">Kebap</button>
+          <button class="food-fchip" type="button">Tavuk</button>
+          <button class="food-fchip" type="button">Tatlı</button>
+          <button class="food-fchip" type="button">Kahve</button>
+          <button class="food-fchip" type="button">Diğer</button>
+        </div>
+      </div>
+
+      <!-- Sipariş Tipi — JS tarafından doldurulur -->
+      <div class="food-fmodal__section">
+        <h3 class="food-fmodal__section-title">Sipariş Tipi</h3>
+        <div class="food-fmodal__chip-group food-chip-group" id="foodOrderTypeFilters" role="group"></div>
+      </div>
+
+      <!-- Durum — JS tarafından doldurulur -->
+      <div class="food-fmodal__section">
+        <h3 class="food-fmodal__section-title">Durum</h3>
+        <div class="food-fmodal__chip-group food-chip-group" id="foodStatusFilters" role="group"></div>
+      </div>
+
+      <!-- Sıralama — statik -->
+      <div class="food-fmodal__section">
+        <h3 class="food-fmodal__section-title">Sıralama</h3>
+        <div class="food-fmodal__chips">
+          <button class="food-fchip is-active" type="button">Önerilen</button>
+          <button class="food-fchip" type="button">En yakın</button>
+          <button class="food-fchip" type="button">En hızlı</button>
+          <button class="food-fchip" type="button">En yüksek puan</button>
+        </div>
+      </div>
+
+      <!-- Uygula -->
+      <div class="food-fmodal__footer">
+        <button class="food-fmodal__apply" id="foodFilterApply" type="button">Uygula</button>
+      </div>
+
+    </div>
+  </div>
+  <!-- ════════════════════════════════════════ -->
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script src="./js/app.js"></script>
   <div id="toast" class="toast"></div>
-<nav class="bnav mobile-bottom-nav" aria-label="Ana navigasyon">
-  <a href="./index.html" class="bnav-item" data-nav-page="index.html">
-    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1z"/><path d="M9 21V12h6v9"/></svg></span>
-    <span class="bnav-label">Ana Sayfa</span>
-  </a>
-  <a href="./discover.html" class="bnav-item" data-nav-page="discover.html">
-    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-    <span class="bnav-label">Keşfet</span>
-  </a>
-  <a href="./store.html" class="bnav-item" data-nav-page="store.html">
-    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></span>
-    <span class="bnav-label">Mağaza</span>
-  </a>
-  <a href="./food.html" class="bnav-item" data-nav-page="food.html">
-    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></span>
-    <span class="bnav-label">Yemek</span>
-  </a>
-  <a href="./messages.html" class="bnav-item" data-nav-page="messages.html">
-    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></span>
-    <span class="bnav-label">Mesajlar</span>
-  </a>
-  <a href="./profile.html" class="bnav-item" data-nav-page="profile.html">
-    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
-    <span class="bnav-label">Profil</span>
-  </a>
-</nav>
+
+  <!-- Modal aç/kapat — sadece UI -->
+  <script>
+  (function () {
+    var modal = document.getElementById('foodFilterModal');
+    var openBtn = document.getElementById('foodFilterOpenBtn');
+    var closeBtn = document.getElementById('foodFilterClose');
+    var backdrop = document.getElementById('foodFilterBackdrop');
+    var applyBtn = document.getElementById('foodFilterApply');
+
+    function open() {
+      modal.classList.add('is-open');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+    }
+    function close() {
+      modal.classList.remove('is-open');
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+
+    if (openBtn) openBtn.addEventListener('click', open);
+    if (closeBtn) closeBtn.addEventListener('click', close);
+    if (backdrop) backdrop.addEventListener('click', close);
+    if (applyBtn) applyBtn.addEventListener('click', close);
+
+    /* Chip toggle — kategoriler + sıralama bölümleri */
+    modal.querySelectorAll('.food-fmodal__chips').forEach(function (group) {
+      group.addEventListener('click', function (e) {
+        var chip = e.target.closest('.food-fchip');
+        if (!chip) return;
+        group.querySelectorAll('.food-fchip').forEach(function (c) { c.classList.remove('is-active'); });
+        chip.classList.add('is-active');
+      });
+    });
+
+    /* Kategori ikonu toggle — ana ekran */
+    var catWrap = document.querySelector('.food-cats');
+    if (catWrap) {
+      catWrap.addEventListener('click', function (e) {
+        var btn = e.target.closest('.food-cat');
+        if (!btn) return;
+        catWrap.querySelectorAll('.food-cat').forEach(function (c) { c.classList.remove('is-active'); });
+        btn.classList.add('is-active');
+      });
+    }
+  })();
+  </script>
+
+  <nav class="bnav mobile-bottom-nav" aria-label="Ana navigasyon">
+    <a href="./index.html" class="bnav-item" data-nav-page="index.html">
+      <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1z"/><path d="M9 21V12h6v9"/></svg></span>
+      <span class="bnav-label">Ana Sayfa</span>
+    </a>
+    <a href="./discover.html" class="bnav-item" data-nav-page="discover.html">
+      <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+      <span class="bnav-label">Keşfet</span>
+    </a>
+    <a href="./store.html" class="bnav-item" data-nav-page="store.html">
+      <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></span>
+      <span class="bnav-label">Mağaza</span>
+    </a>
+    <a href="./food.html" class="bnav-item active" data-nav-page="food.html">
+      <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></span>
+      <span class="bnav-label">Yemek</span>
+    </a>
+    <a href="./messages.html" class="bnav-item" data-nav-page="messages.html">
+      <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></span>
+      <span class="bnav-label">Mesajlar</span>
+    </a>
+    <a href="./profile.html" class="bnav-item" data-nav-page="profile.html">
+      <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+      <span class="bnav-label">Profil</span>
+    </a>
+  </nav>
+
 </body>
 
 </html>

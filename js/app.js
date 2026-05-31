@@ -17310,6 +17310,17 @@ function createFoodRestaurantCard(entry) {
     coverWrap.appendChild(promo);
   }
 
+  const favBtn = document.createElement("button");
+  favBtn.className = "food-restaurant-card__fav";
+  favBtn.type = "button";
+  favBtn.setAttribute("aria-label", "Favorilere ekle");
+  favBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`;
+  favBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    favBtn.classList.toggle("is-faved");
+  });
+  coverWrap.appendChild(favBtn);
+
   card.appendChild(coverWrap);
 
   const body = document.createElement("div");
@@ -17338,6 +17349,9 @@ function createFoodRestaurantCard(entry) {
     .forEach((text) => {
       const span = document.createElement("span");
       span.textContent = text;
+      if (text === FOOD_DEFAULT_DELIVERY_FEE_LABEL) {
+        span.className = "food-rc-meta__free";
+      }
       meta.appendChild(span);
     });
   body.appendChild(meta);

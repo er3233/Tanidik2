@@ -2,6 +2,60 @@
    TANIDIK · Bottom Navigation
    ═══════════════════════════════════════════════ */
 
+/* ─────────────────────────────────────────────
+   GLOBAL KILL: style.css satır 11987-12106
+   Bu kurallar media query dışında, tüm ekranlarda
+   geçerli. Bizim (0,3,x) > eski (0,1,x).
+   ─────────────────────────────────────────────── */
+
+/* Container global reset */
+.bnav.mobile-bottom-nav {
+  /* style.css L11998: padding: 0 4px max(...) !important */
+  padding:      0 !important;
+  /* style.css L11993: border-top: none !important */
+  border-top:   1px solid rgba(255,255,255,0.13) !important;
+}
+
+/* Item global reset */
+.bnav.mobile-bottom-nav .bnav-item {
+  /* style.css L12002: margin: 3px 1px !important */
+  margin:   0 !important;
+  /* style.css L12002: padding: 13px 4px 11px !important */
+  padding:  0 !important;
+  /* style.css L12002: color: transparent !important */
+  color:    rgba(255,255,255,0.32) !important;
+  /* style.css L12010: transition değişimi */
+  transition: color 160ms ease !important;
+}
+
+/* Kill ALL ::before on items globally (static+size kills flow) */
+.bnav.mobile-bottom-nav .bnav-item::before {
+  /* style.css L12019: position: static; width: 24px; height: 24px */
+  content:  none !important;
+  display:  none !important;
+  position: absolute !important;
+  width:    0 !important;
+  height:   0 !important;
+}
+
+/* Kill ::after globally */
+.bnav.mobile-bottom-nav .bnav-item::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* Kill active ::before transform globally */
+.bnav.mobile-bottom-nav .bnav-item.active::before {
+  /* style.css L12065: transform: scale(1.07) translateY(-1px) !important */
+  transform: none !important;
+}
+
+/* Kill active ::after (gold dot) globally */
+.bnav.mobile-bottom-nav .bnav-item.active::after {
+  content: none !important;
+  display: none !important;
+}
+
 /* Tüm ekranlarda gizle */
 .mobile-bottom-nav { display: none !important; }
 
@@ -16,12 +70,12 @@
   position:   fixed !important;
   bottom:     12px !important;
 
-  /* transform kullanma — active item width değişiminden bağımsız merkez */
-  left:       12px !important;
-  right:      12px !important;
-  max-width:  430px !important;
-  margin:     0 auto !important;
-  transform:  none !important;
+  /* Tüm tarayıcılarda güvenli merkez — transform veya margin:auto yok */
+  left:      max(12px, calc(50vw - 215px)) !important;
+  right:     max(12px, calc(50vw - 215px)) !important;
+  max-width: 430px !important;
+  margin:    0 !important;
+  transform: none !important;
 
   height:     78px !important;
 

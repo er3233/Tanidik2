@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Syne:wght@400;500;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap");
+﻿@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Syne:wght@400;500;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap");
 
 * {
   margin: 0;
@@ -8280,6 +8280,7 @@ p.reservation-note {
   color: #fecaca !important;
 }
 
+
 /* ── BOTTOM NAV V2 ── */
 .mobile-bottom-nav {
   position: fixed;
@@ -11979,6 +11980,7 @@ p.reservation-note {
   }
 }
 
+
 /* ═══════════════════════════════════════════════════════════════
    MOBILE BOTTOM NAV — PREMIUM ICON-ONLY REDESIGN
    ═══════════════════════════════════════════════════════════════ */
@@ -12029,7 +12031,6 @@ p.reservation-note {
   mask-repeat: no-repeat !important;
   -webkit-mask-position: center !important;
   mask-position: center !important;
-  /* reset old active-indicator positioning */
   position: static !important;
   top: auto !important;
   left: auto !important;

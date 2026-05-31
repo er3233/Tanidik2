@@ -1,0 +1,473 @@
+/* ════════════════════════════════════════════
+   TANIDIK Keşfet v2 — noir / gold premium
+   ════════════════════════════════════════════ */
+
+/* ── Page base ─────────────────────────────── */
+.dp2-body { background: #020205; }
+
+.dp2-page {
+  padding-top: 0 !important;
+  padding-bottom: 2rem;
+  background: transparent !important;
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Topbar ────────────────────────────────── */
+.dp2-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(0.85rem + env(safe-area-inset-top, 0px)) 1rem 0.45rem;
+  position: relative;
+  z-index: 10;
+}
+
+.dp2-brand { display: flex; align-items: baseline; gap: 0.4rem; }
+
+.dp2-brand-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #fff;
+}
+
+.dp2-brand-tag {
+  font-size: 0.66rem;
+  color: #c9a227;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+}
+
+.dp2-topbar-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(201, 162, 39, 0.08);
+  border: 1px solid rgba(201, 162, 39, 0.22);
+  color: #c9a227;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+/* ── Search + filter row ───────────────────── */
+.dp2-search-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0 0.75rem 0.6rem;
+  position: relative;
+  z-index: 10;
+}
+
+.dp2-search {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.dp2-search-ico {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.35);
+  pointer-events: none;
+}
+
+/* Override discover-premium search pill styles */
+.dp2-search-input.search-input,
+#venueSearchInput.dp2-search-input {
+  all: unset !important;
+  display: block !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 0.78rem 1rem 0.78rem 2.75rem !important;
+  border-radius: 12px !important;
+  border: 1.5px solid rgba(201, 162, 39, 0.22) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #fff !important;
+  font-size: 0.9rem !important;
+  font-family: inherit !important;
+  transition: border-color 0.18s, background 0.18s, box-shadow 0.18s !important;
+}
+
+.dp2-search-input.search-input::placeholder,
+#venueSearchInput.dp2-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.dp2-search-input.search-input:focus,
+#venueSearchInput.dp2-search-input:focus {
+  outline: none !important;
+  border-color: #c9a227 !important;
+  background: rgba(255, 255, 255, 0.07) !important;
+  box-shadow: 0 0 0 3px rgba(201, 162, 39, 0.1) !important;
+}
+
+/* Filter button — gold */
+#dpFilterBtn.dp2-filter-btn {
+  all: unset !important;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  border-radius: 12px !important;
+  background: rgba(201, 162, 39, 0.06) !important;
+  border: 1.5px solid rgba(201, 162, 39, 0.4) !important;
+  color: #c9a227 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  transition: background 0.15s !important;
+  flex-shrink: 0 !important;
+  position: relative !important;
+  box-sizing: border-box !important;
+}
+
+#dpFilterBtn.dp2-filter-btn:hover,
+#dpFilterBtn.dp2-filter-btn.dp-filter-btn--active {
+  background: rgba(201, 162, 39, 0.16) !important;
+  border-color: #c9a227 !important;
+}
+
+#dpFilterBtn .dp-filter-label-text { display: none !important; }
+
+/* Filter count badge — only when not hidden */
+#dpFilterBtn .dp-filter-count:not([hidden]) {
+  position: absolute !important;
+  top: -5px !important;
+  right: -5px !important;
+  min-width: 16px !important;
+  height: 16px !important;
+  padding: 0 4px !important;
+  border-radius: 999px !important;
+  background: linear-gradient(135deg, #f8d36b, #c99422) !important;
+  color: #0a0700 !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1.5px solid #020205 !important;
+  line-height: 1 !important;
+}
+
+/* ── Category chips ────────────────────────── */
+.dp2-chips-wrap {
+  overflow: hidden;
+  position: relative;
+  z-index: 10;
+}
+
+.dp2-chips {
+  display: flex;
+  overflow-x: auto;
+  padding: 0.1rem 0.75rem 0.65rem;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  gap: 0.45rem;
+}
+
+.dp2-chips::-webkit-scrollbar { display: none; }
+
+.dp2-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.7);
+  border-radius: 999px;
+  padding: 0.38rem 0.85rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  flex-shrink: 0;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dp2-chip:hover { border-color: rgba(201, 162, 39, 0.3); }
+
+.dp2-chip.is-active {
+  border-color: #c9a227;
+  background: rgba(201, 162, 39, 0.12);
+  color: #f5e6b8;
+}
+
+/* ── Filter panel — gold theme override ───── */
+.dp-filter-panel {
+  background: rgba(12, 10, 20, 0.97) !important;
+  border: 1px solid rgba(201, 162, 39, 0.15) !important;
+  border-radius: 0 0 16px 16px !important;
+  backdrop-filter: blur(20px) !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  max-height: 0 !important;
+  transition: max-height 0.3s ease !important;
+  margin: 0 0.75rem !important;
+  position: relative !important;
+  z-index: 9 !important;
+}
+
+.dp-filter-panel.dp-filter-panel--open {
+  max-height: 400px !important;
+  padding: 0.75rem 0 0.5rem !important;
+}
+
+.dp-filter-section { padding: 0 1rem 0.65rem !important; }
+
+.dp-filter-section-label {
+  font-size: 0.68rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
+  color: rgba(255, 255, 255, 0.4) !important;
+  font-weight: 700 !important;
+  margin: 0 0 0.5rem !important;
+}
+
+/* City / category filter chips — gold */
+.dp-filter-chips { display: flex !important; flex-wrap: wrap !important; gap: 0.38rem !important; }
+
+.city-filter-btn,
+.category-filter-btn {
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: rgba(255, 255, 255, 0.68) !important;
+  border-radius: 999px !important;
+  padding: 0.3rem 0.75rem !important;
+  font-size: 0.75rem !important;
+  cursor: pointer !important;
+  font-family: inherit !important;
+  transition: border-color 0.15s, background 0.15s !important;
+}
+
+.city-filter-btn.active-filter,
+.category-filter-btn.active-filter {
+  border-color: #c9a227 !important;
+  background: rgba(201, 162, 39, 0.12) !important;
+  color: #f5e6b8 !important;
+}
+
+/* ── Venues container ──────────────────────── */
+.dp2-venues.venues-grid,
+#venuesContainer.dp2-venues {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+  padding: 0 !important;
+}
+
+/* ── Section rows ──────────────────────────── */
+.venue-row {
+  padding: 0.65rem 0 0.5rem !important;
+  overflow: hidden !important;
+  width: 100% !important;
+}
+
+.venue-row-heading {
+  font-size: 0.8rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+  margin: 0 0 0.55rem !important;
+  padding: 0 0.75rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  background: none !important;
+  border: none !important;
+}
+
+/* Tümünü gör arrow */
+.venue-row-heading::after {
+  content: "›" !important;
+  font-size: 1.1rem !important;
+  color: rgba(201, 162, 39, 0.6) !important;
+  font-weight: 400 !important;
+  display: block !important;
+}
+
+/* ── Horizontal scroll strip ───────────────── */
+.venue-row-scroll {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  gap: 0.65rem !important;
+  padding: 0.1rem 0.75rem 0.55rem !important;
+  scrollbar-width: none !important;
+  -webkit-overflow-scrolling: touch !important;
+  scroll-snap-type: x mandatory !important;
+}
+
+.venue-row-scroll::-webkit-scrollbar { display: none !important; }
+
+/* ── Venue card — premium Airbnb / Instagram style ── */
+.venue-row-scroll .venue-card {
+  position: relative !important;
+  flex: 0 0 auto !important;
+  width: 200px !important;
+  height: 280px !important;
+  border-radius: 18px !important;
+  overflow: hidden !important;
+  background: #0d0d10 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  cursor: pointer !important;
+  scroll-snap-align: start !important;
+  transition: transform 0.22s ease, border-color 0.22s, box-shadow 0.22s !important;
+  transform: none !important; /* reset existing 3D hover */
+}
+
+.venue-row-scroll .venue-card:hover {
+  transform: translateY(-4px) scale(1.02) !important;
+  border-color: rgba(201, 162, 39, 0.3) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6) !important;
+}
+
+.venue-row-scroll .venue-card:active {
+  transform: scale(0.97) !important;
+}
+
+/* Full-bleed image */
+.venue-row-scroll .venue-card > img:first-child,
+.venue-row-scroll .venue-card > img:first-of-type {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+  aspect-ratio: unset !important;
+  border-radius: 0 !important;
+  filter: none !important;
+  transition: transform 0.35s ease !important;
+}
+
+.venue-row-scroll .venue-card:hover > img:first-child {
+  transform: scale(1.06) !important;
+  filter: none !important;
+}
+
+/* Gradient overlay */
+.venue-row-scroll .venue-card::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.88) 0%,
+    rgba(0, 0, 0, 0.2) 50%,
+    transparent 100%
+  ) !important;
+  pointer-events: none !important;
+  z-index: 1 !important;
+  border-radius: 0 !important;
+}
+
+/* Content overlay at bottom */
+.venue-row-scroll .venue-content {
+  position: absolute !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  padding: 0.65rem 0.75rem !important;
+  background: transparent !important;
+  z-index: 2 !important;
+  border: none !important;
+}
+
+/* Venue name */
+.venue-row-scroll .venue-content h2 {
+  font-size: 0.88rem !important;
+  font-weight: 700 !important;
+  color: rgba(255, 255, 255, 0.96) !important;
+  margin: 0 0 0.18rem !important;
+  line-height: 1.3 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Show meta (city / category) */
+.venue-row-scroll .venue-meta {
+  display: block !important;
+  font-size: 0.65rem !important;
+  color: rgba(255, 255, 255, 0.52) !important;
+  margin: 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  line-height: 1.3 !important;
+}
+
+/* Hide other card content */
+.venue-row-scroll .venue-content > p,
+.venue-row-scroll .venue-content .btn,
+.venue-row-scroll .venue-content .secondary-btn,
+.venue-row-scroll .venue-content .venue-stats {
+  display: none !important;
+}
+
+/* ── Heart / Fav button ─────────────────────── */
+.venue-row-scroll .dp-heart {
+  position: absolute !important;
+  top: 0.55rem !important;
+  right: 0.55rem !important;
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  border-radius: 50% !important;
+  background: rgba(0, 0, 0, 0.52) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  backdrop-filter: blur(10px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  z-index: 3 !important;
+  padding: 0 !important;
+  transition: background 0.15s, border-color 0.15s !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+.venue-row-scroll .dp-heart:hover,
+.venue-row-scroll .dp-heart.dp-heart--on {
+  background: rgba(255, 56, 92, 0.22) !important;
+  border-color: rgba(255, 56, 92, 0.45) !important;
+}
+
+.venue-row-scroll .dp-heart.dp-heart--pop {
+  animation: dp2HeartPop 0.35s ease !important;
+}
+
+@keyframes dp2HeartPop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+
+/* Ensure hidden attribute is respected */
+[hidden] { display: none !important; }
+
+/* ── Night sky z-index fix ─────────────────── */
+.dp-sky {
+  z-index: 0 !important;
+}
+
+/* ── Flat venues-grid (before row grouper runs) */
+.dp2-venues:not(:has(.venue-row)) {
+  padding: 0.75rem !important;
+}

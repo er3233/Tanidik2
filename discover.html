@@ -1,29 +1,19 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="tr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Discover Venues | TANIDIK</title>
-  <meta name="description" content="Browse TANIDIK nightlife venues, compare ratings, and save your favorites." />
-  <meta name="theme-color" content="#050505" />
+  <title>Keşfet | TANIDIK</title>
+  <meta name="description" content="TANIDIK'te premium mekanları, etkinlikleri ve şehrin en iyilerini keşfet." />
+  <meta name="theme-color" content="#020205" />
   <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
   <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="./assets/icon-192.png" />
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="TANIDIK" />
-  <meta property="og:title" content="Discover Venues | TANIDIK" />
-  <meta property="og:description" content="Browse TANIDIK nightlife venues, compare ratings, and save your favorites." />
-  <meta property="og:url" content="https://tanidik2.vercel.app" />
-  <meta property="og:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Discover Venues | TANIDIK" />
-  <meta name="twitter:description" content="Browse TANIDIK nightlife venues, compare ratings, and save your favorites." />
-  <meta name="twitter:image" content="https://tanidik2.vercel.app/assets/social-preview.png" />
   <link rel="stylesheet" href="./css/style.css" />
   <link rel="stylesheet" href="./css/discover-premium.css" />
-<link rel="stylesheet" href="./css/bottom-nav.css" />
+  <link rel="stylesheet" href="./css/discover-v2.css" />
+  <link rel="stylesheet" href="./css/bottom-nav.css" />
 </head>
-<body>
+<body class="dp2-body">
 
   <!-- Night sky — fixed, behind everything -->
   <div class="dp-sky" aria-hidden="true">
@@ -35,100 +25,113 @@
     <div class="dp-shoot dp-shoot--2"></div>
   </div>
 
-  <nav class="navbar">
-    <h1>TANIDIK</h1>
-    <button class="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false">Menu</button>
-    <div class="nav-links">
-      <a href="./index.html">Home</a>
-      <a href="./discover.html">Discover</a>
-      <a href="./food.html" data-nav-page="food.html">Yemek</a>
-      <a href="./events.html">Events</a>
-      <a href="./favorites.html">Favorites</a>
-      <a href="./auth.html" id="authLink">Login</a>
-    </div>
-  </nav>
+  <main class="discover-page public-detail dp2-page">
 
-  <main class="discover-page public-detail">
-
-    <div class="discover-controls public-section dp-controls">
-
-      <!-- Search + Filter row -->
-      <div class="dp-search-row">
-        <div class="dp-search-pill">
-          <svg class="dp-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <circle cx="11" cy="11" r="7.5" stroke="currentColor" stroke-width="2"/>
-            <path d="M20.5 20.5l-4.8-4.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-          <input
-            type="text"
-            id="venueSearchInput"
-            class="search-input dp-search-input"
-            placeholder="Mekan, şehir veya kategori ara…"
-            autocomplete="off"
-          />
-        </div>
-        <button type="button" id="dpFilterBtn" class="dp-filter-btn"
-                aria-expanded="false" aria-controls="dpFilterPanel">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <line x1="4" y1="6" x2="20" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <line x1="7" y1="12" x2="17" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <line x1="10" y1="18" x2="14" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-          <span class="dp-filter-label-text">Filtrele</span>
-          <span class="dp-filter-count" id="dpFilterCount" hidden>0</span>
-        </button>
+    <!-- ── Topbar ───────────────────────────── -->
+    <div class="dp2-topbar">
+      <div class="dp2-brand">
+        <span class="dp2-brand-name">TANIDIK</span>
+        <span class="dp2-brand-tag">Keşfet</span>
       </div>
-
-      <!-- Filter panel: cities + categories, toggled -->
-      <div class="dp-filter-panel" id="dpFilterPanel" aria-hidden="true">
-        <div class="dp-filter-section">
-          <p class="dp-filter-section-label">Şehirler</p>
-          <div id="cityFilters" class="city-filters dp-filter-chips"></div>
-        </div>
-        <div class="dp-filter-section">
-          <p class="dp-filter-section-label">Kategoriler</p>
-          <div id="categoryFilters" class="category-filters dp-filter-chips"></div>
-        </div>
-      </div>
-
+      <a href="./favorites.html" class="dp2-topbar-btn" aria-label="Favorilerim">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+        </svg>
+      </a>
     </div>
 
-    <div id="venuesContainer" class="venues-grid"></div>
+    <!-- ── Search + Filtre butonu ────────────── -->
+    <div class="dp2-search-row">
+      <div class="dp2-search">
+        <svg class="dp2-search-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input
+          type="text"
+          id="venueSearchInput"
+          class="dp2-search-input search-input"
+          placeholder="Mekan, şehir veya kategori ara…"
+          autocomplete="off"
+        />
+      </div>
+      <button type="button" id="dpFilterBtn" class="dp2-filter-btn"
+              aria-expanded="false" aria-controls="dpFilterPanel" aria-label="Filtrele">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/>
+          <line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/>
+          <line x1="1" y1="14" x2="7" y2="14"/>
+          <line x1="9" y1="8" x2="15" y2="8"/>
+          <line x1="17" y1="16" x2="23" y2="16"/>
+        </svg>
+        <span class="dp-filter-label-text">Filtrele</span>
+        <span class="dp-filter-count" id="dpFilterCount" hidden>0</span>
+      </button>
+    </div>
+
+    <!-- ── Kategori chipleri ──────────────────── -->
+    <div class="dp2-chips-wrap" aria-label="Kategori filtresi">
+      <div class="dp2-chips">
+        <button class="dp2-chip is-active" type="button" data-dp2cat="all">🏠 Tümü</button>
+        <button class="dp2-chip" type="button" data-dp2cat="plaj">🏖️ Plajlar</button>
+        <button class="dp2-chip" type="button" data-dp2cat="restoran">🍽️ Restoranlar</button>
+        <button class="dp2-chip" type="button" data-dp2cat="kafe">☕ Cafeler</button>
+        <button class="dp2-chip" type="button" data-dp2cat="gece">🎵 Gece Hayatı</button>
+        <button class="dp2-chip" type="button" data-dp2cat="etkinlik">🎉 Etkinlikler</button>
+        <button class="dp2-chip" type="button" data-dp2cat="magaza">🛍️ Mağazalar</button>
+      </div>
+    </div>
+
+    <!-- Şehir + Kategori filtre paneli (toggle ile açılır) -->
+    <div class="dp-filter-panel dp-controls" id="dpFilterPanel" aria-hidden="true">
+      <div class="dp-filter-section">
+        <p class="dp-filter-section-label">Şehirler</p>
+        <div id="cityFilters" class="city-filters dp-filter-chips"></div>
+      </div>
+      <div class="dp-filter-section">
+        <p class="dp-filter-section-label">Kategoriler</p>
+        <div id="categoryFilters" class="category-filters dp-filter-chips"></div>
+      </div>
+    </div>
+
+    <!-- ── Venues container (JS + row grouper) ── -->
+    <div id="venuesContainer" class="venues-grid dp2-venues"></div>
 
   </main>
 
+  <!-- Alt menü — Keşfet aktif -->
   <nav class="bnav mobile-bottom-nav" aria-label="Ana navigasyon">
-  <a href="./index.html" class="bnav-item" data-nav-page="index.html">
-    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1z"/><path d="M9 21V12h6v9"/></svg></span>
-    <span class="bnav-label">Ana Sayfa</span>
-  </a>
-  <a href="./discover.html" class="bnav-item" data-nav-page="discover.html">
-    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-    <span class="bnav-label">Keşfet</span>
-  </a>
-  <a href="./store.html" class="bnav-item" data-nav-page="store.html">
-    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></span>
-    <span class="bnav-label">Mağaza</span>
-  </a>
-  <a href="./food.html" class="bnav-item" data-nav-page="food.html">
-    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></span>
-    <span class="bnav-label">Yemek</span>
-  </a>
-  <a href="./messages.html" class="bnav-item" data-nav-page="messages.html">
-    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></span>
-    <span class="bnav-label">Mesajlar</span>
-  </a>
-  <a href="./profile.html" class="bnav-item" data-nav-page="profile.html">
-    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
-    <span class="bnav-label">Profil</span>
-  </a>
-</nav>
+    <a href="./index.html" class="bnav-item" data-nav-page="index.html">
+      <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1z"/><path d="M9 21V12h6v9"/></svg></span>
+      <span class="bnav-label">Ana Sayfa</span>
+    </a>
+    <a href="./discover.html" class="bnav-item active" data-nav-page="discover.html">
+      <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+      <span class="bnav-label">Keşfet</span>
+    </a>
+    <a href="./store.html" class="bnav-item" data-nav-page="store.html">
+      <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></span>
+      <span class="bnav-label">Mağaza</span>
+    </a>
+    <a href="./food.html" class="bnav-item" data-nav-page="food.html">
+      <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></span>
+      <span class="bnav-label">Yemek</span>
+    </a>
+    <a href="./messages.html" class="bnav-item" data-nav-page="messages.html">
+      <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></span>
+      <span class="bnav-label">Mesajlar</span>
+    </a>
+    <a href="./profile.html" class="bnav-item" data-nav-page="profile.html">
+      <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+      <span class="bnav-label">Profil</span>
+    </a>
+  </nav>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script src="./js/app.js"></script>
   <div id="toast" class="toast"></div>
 
-  <!-- 1. Star generator -->
+  <!-- 1. Star generator (değiştirilmedi) -->
   <script>
   (function(){
     function makeStars(n,W,H){
@@ -147,7 +150,7 @@
   })();
   </script>
 
-  <!-- 2. Filter panel toggle -->
+  <!-- 2. Filter panel toggle (değiştirilmedi) -->
   <script>
   (function(){
     var btn=document.getElementById('dpFilterBtn');
@@ -187,7 +190,7 @@
   })();
   </script>
 
-  <!-- 3. Category row grouper (horizontal scroll) -->
+  <!-- 3. Category row grouper (değiştirilmedi) -->
   <script>
   (function(){
     var container=document.getElementById('venuesContainer');
@@ -227,7 +230,7 @@
   })();
   </script>
 
-  <!-- 4. Heart / favorite injector -->
+  <!-- 4. Heart / favorite injector (değiştirilmedi) -->
   <script>
   (function(){
     var STORE='tndk_favs';
@@ -276,6 +279,20 @@
         });
       });
     }).observe(c,{childList:true,subtree:true});
+  })();
+  </script>
+
+  <!-- 5. Kategori chip toggle (küçük UI) -->
+  <script>
+  (function(){
+    var chipsRow = document.querySelector('.dp2-chips');
+    if(!chipsRow) return;
+    chipsRow.addEventListener('click', function(e){
+      var chip = e.target.closest('.dp2-chip');
+      if(!chip) return;
+      chipsRow.querySelectorAll('.dp2-chip').forEach(function(c){ c.classList.remove('is-active'); });
+      chip.classList.add('is-active');
+    });
   })();
   </script>
 

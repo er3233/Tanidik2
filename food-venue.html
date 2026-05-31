@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="tr">
 
 <head>
@@ -9,88 +9,144 @@
   <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="./css/style.css" />
   <link rel="stylesheet" href="./css/food-order.css" />
-<link rel="stylesheet" href="./css/bottom-nav.css" />
+  <link rel="stylesheet" href="./css/bottom-nav.css" />
 </head>
 
 <body class="food-page-body">
-  <nav class="navbar">
-    <h1>TANIDIK</h1>
-    <button class="nav-toggle" type="button" aria-label="Menü" aria-expanded="false">Menü</button>
-    <div class="nav-links">
-      <a href="./food.html" data-nav-page="food.html">← Yemek</a>
-      <a href="./discover.html">Keşfet</a>
-      <a href="./orders.html">Siparişlerim</a>
-      <a href="./auth.html" id="authLink">Giriş</a>
+
+  <main id="foodVenuePage" class="fvp">
+
+    <!-- ── Hero ─────────────────────────────────── -->
+    <div id="foodVenueHero" class="fvh" hidden>
+
+      <!-- Cover image -->
+      <div class="fvh__media">
+        <img id="foodVenueCover" class="fvh__img" alt="" />
+        <div class="fvh__img-overlay"></div>
+
+        <!-- Back + Fav buttons (over cover) -->
+        <div class="fvh__media-actions">
+          <a href="./food.html" class="fvh__action-btn" aria-label="Geri">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 12H5M12 5l-7 7 7 7"/>
+            </svg>
+          </a>
+          <button class="fvh__action-btn fvh__action-btn--fav" type="button" id="fvhFavBtn" aria-label="Favorilere ekle">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Restoran bilgileri -->
+      <div class="fvh__info">
+        <span id="foodVenueOpenBadge" class="food-venue-hero__status"></span>
+        <h1 id="foodVenueName" class="fvh__name"></h1>
+        <p id="foodVenueMeta" class="fvh__meta"></p>
+        <div id="foodVenueChips" class="food-venue-chips fvh__chips"></div>
+      </div>
+
     </div>
-  </nav>
 
-  <main id="foodVenuePage" class="food-venue-page order-page">
-    <div id="foodVenueHero" class="food-venue-hero" hidden>
-      <div class="food-venue-hero__media">
-        <img id="foodVenueCover" class="food-venue-hero__cover" alt="" />
-        <div class="food-venue-hero__overlay"></div>
-      </div>
-      <div class="food-venue-hero__content">
-        <span class="food-venue-hero__status" id="foodVenueOpenBadge"></span>
-        <h1 id="foodVenueName" class="food-venue-hero__title"></h1>
-        <p id="foodVenueMeta" class="food-venue-hero__meta"></p>
-        <div id="foodVenueChips" class="food-venue-chips"></div>
-      </div>
+    <!-- ── Sticky kategori tabları ───────────────── -->
+    <div class="fvh__tabs-sticky">
+      <div id="foodMenuCategoryTabs" class="fvh__tabs food-menu-tabs" role="tablist"></div>
     </div>
 
-    <section class="food-venue-layout dashboard-section">
-      <div class="food-venue-menu-col">
-        <div id="foodMenuCategoryTabs" class="food-menu-tabs" role="tablist"></div>
-        <div id="restaurantMenuItemsList" class="food-menu-grid"></div>
+    <!-- ── Menü ürünleri ─────────────────────────── -->
+    <div class="fvh__menu-wrap">
+      <div id="restaurantMenuItemsList" class="fvh__menu food-menu-grid"></div>
+    </div>
+
+    <!-- ── Sepet bar (mobile: sticky bottom) ─────── -->
+    <aside class="fvh__cart food-cart-panel order-cart-panel" id="restaurantOrderCart">
+
+      <!-- Özet bar — her zaman görünür -->
+      <div class="fvh__cart-summary">
+        <div class="fvh__cart-summary-left">
+          <span class="fvh__cart-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <path d="M16 10a4 4 0 01-8 0"/>
+            </svg>
+          </span>
+          <span class="fvh__cart-total-lbl">Toplam: <strong id="restaurantOrderCartTotal">₺0</strong></span>
+        </div>
+        <button type="button" class="fvh__cart-chevron" id="fvhCartToggle" aria-label="Sepet detayı">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"/>
+          </svg>
+        </button>
       </div>
 
-      <aside class="order-cart-panel food-cart-panel" id="restaurantOrderCart">
-        <h2>Sepet</h2>
-        <div id="restaurantOrderCartItems" class="order-cart-items"></div>
-        <p class="order-cart-total">Toplam: <strong id="restaurantOrderCartTotal">₺0</strong></p>
+      <!-- Detay — genişleyince görünür -->
+      <div class="fvh__cart-detail" id="fvhCartDetail">
+        <div id="restaurantOrderCartItems" class="order-cart-items fvh__cart-items"></div>
 
-        <fieldset class="order-type-fieldset">
+        <fieldset class="order-type-fieldset fvh__order-type">
           <legend>Sipariş tipi</legend>
           <label><input type="radio" name="orderType" value="pickup" checked /> Gel-al</label>
           <label><input type="radio" name="orderType" value="delivery" /> Teslimat</label>
         </fieldset>
 
-        <textarea id="restaurantOrderDeliveryAddress" class="order-address-input" placeholder="Teslimat adresi" hidden></textarea>
-        <textarea id="restaurantOrderNote" placeholder="Sipariş notu (opsiyonel)"></textarea>
-        <button type="button" id="restaurantOrderSubmitBtn" class="btn">Sipariş Ver</button>
-      </aside>
-    </section>
+        <textarea id="restaurantOrderDeliveryAddress" class="order-address-input fvh__textarea" placeholder="Teslimat adresi" hidden></textarea>
+        <textarea id="restaurantOrderNote" class="fvh__textarea" placeholder="Sipariş notu (opsiyonel)"></textarea>
+      </div>
+
+      <button type="button" id="restaurantOrderSubmitBtn" class="fvh__order-btn">Sipariş Ver</button>
+
+    </aside>
+
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script src="./js/app.js"></script>
   <div id="toast" class="toast"></div>
-<nav class="bnav mobile-bottom-nav" aria-label="Ana navigasyon">
-  <a href="./index.html" class="bnav-item" data-nav-page="index.html">
-    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1z"/><path d="M9 21V12h6v9"/></svg></span>
-    <span class="bnav-label">Ana Sayfa</span>
-  </a>
-  <a href="./discover.html" class="bnav-item" data-nav-page="discover.html">
-    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-    <span class="bnav-label">Keşfet</span>
-  </a>
-  <a href="./store.html" class="bnav-item" data-nav-page="store.html">
-    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></span>
-    <span class="bnav-label">Mağaza</span>
-  </a>
-  <a href="./food.html" class="bnav-item" data-nav-page="food.html">
-    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></span>
-    <span class="bnav-label">Yemek</span>
-  </a>
-  <a href="./messages.html" class="bnav-item" data-nav-page="messages.html">
-    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></span>
-    <span class="bnav-label">Mesajlar</span>
-  </a>
-  <a href="./profile.html" class="bnav-item" data-nav-page="profile.html">
-    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
-    <span class="bnav-label">Profil</span>
-  </a>
-</nav>
+
+  <!-- Küçük UI script — sadece aç/kapat ve fav toggle -->
+  <script>
+  (function () {
+    /* Fav butonu */
+    var favBtn = document.getElementById('fvhFavBtn');
+    if (favBtn) {
+      favBtn.addEventListener('click', function () {
+        favBtn.classList.toggle('is-faved');
+      });
+    }
+
+    /* Sepet genişlet/daralt */
+    var cart      = document.getElementById('restaurantOrderCart');
+    var toggle    = document.getElementById('fvhCartToggle');
+    var detail    = document.getElementById('fvhCartDetail');
+    var summary   = cart && cart.querySelector('.fvh__cart-summary');
+
+    if (toggle && cart) {
+      toggle.addEventListener('click', function () {
+        cart.classList.toggle('is-expanded');
+      });
+      if (summary) {
+        summary.addEventListener('click', function (e) {
+          if (e.target.closest('.fvh__cart-chevron')) return; /* zaten toggle ediyor */
+          cart.classList.toggle('is-expanded');
+        });
+      }
+    }
+
+    /* Ürün eklenince cart'ı has-items yap (MutationObserver) */
+    var cartItems = document.getElementById('restaurantOrderCartItems');
+    if (cartItems && cart) {
+      var obs = new MutationObserver(function () {
+        var hasItems = !!cartItems.querySelector('.order-cart-lines');
+        cart.classList.toggle('has-items', hasItems);
+        if (!hasItems) cart.classList.remove('is-expanded');
+      });
+      obs.observe(cartItems, { childList: true, subtree: true });
+    }
+  })();
+  </script>
+
 </body>
 
 </html>

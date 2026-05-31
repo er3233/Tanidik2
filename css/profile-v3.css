@@ -160,7 +160,7 @@ body.profile-page::before {
 /* ── Scroll Wrapper ───────────────────────────────────────────── */
 .pv3-scroll {
   padding-top: 54px;
-  padding-bottom: 88px;
+  padding-bottom: 102px; /* nav 78px + 12px bottom + 12px buffer */
   position: relative;
   z-index: 1;
 }
