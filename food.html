@@ -224,7 +224,7 @@
       });
     });
 
-    /* Kategori ikonu toggle — ana ekran */
+    /* Kategori ikonu toggle + cuisine chip bağlantısı */
     var catWrap = document.querySelector('.food-cats');
     if (catWrap) {
       catWrap.addEventListener('click', function (e) {
@@ -232,6 +232,19 @@
         if (!btn) return;
         catWrap.querySelectorAll('.food-cat').forEach(function (c) { c.classList.remove('is-active'); });
         btn.classList.add('is-active');
+        var lbl = btn.querySelector('.food-cat__lbl');
+        var catText = lbl ? lbl.textContent.trim().toLowerCase() : '';
+        var chips = document.querySelectorAll('#foodCuisineFilters .food-chip');
+        if (!catText || catText === 'tümü') {
+          var allChip = Array.from(chips).find(function(c){ return c.textContent.trim().toLowerCase() === 'tümü'; });
+          if (allChip) allChip.click();
+          return;
+        }
+        var match = Array.from(chips).find(function(c){
+          var t = c.textContent.trim().toLowerCase();
+          return t === catText || t.includes(catText) || catText.includes(t);
+        });
+        if (match) match.click();
       });
     }
   })();

@@ -230,23 +230,29 @@
   })();
   </script>
 
-  <!-- 4. Heart / favorite injector (değiştirilmedi) -->
+  <!-- 4. Heart / favorite injector (venue-id fix eklendi) -->
   <script>
   (function(){
     var STORE='tndk_favs';
     function getFavs(){ try{ return new Set(JSON.parse(localStorage.getItem(STORE)||'[]')); }catch(_){ return new Set(); } }
     function saveFavs(s){ try{ localStorage.setItem(STORE,JSON.stringify([...s])); }catch(_){} }
+
     function getId(card){
+      // data-venue-id set by script 5 (populator)
+      if(card.dataset&&card.dataset.venueId) return card.dataset.venueId;
+      // legacy anchor fallback
       var a=card.querySelector('a[href*="venue.html"]');
       if(!a) return null;
       var m=(a.getAttribute('href')||'').match(/[?&]id=([^&]+)/);
       return m?decodeURIComponent(m[1]):null;
     }
+
     function svg(filled){
       return filled
         ? '<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#ff385c"/></svg>'
         : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" stroke="rgba(255,255,255,0.9)" stroke-width="2" stroke-linejoin="round"/></svg>';
     }
+
     function inject(card){
       if(card.querySelector('.dp-heart')) return;
       var id=getId(card);
@@ -258,15 +264,18 @@
       btn.innerHTML=svg(on);
       btn.addEventListener('click',function(e){
         e.preventDefault(); e.stopPropagation();
+        // re-read id (may have been set by populator after inject)
+        var currentId=getId(card)||id;
         var favs=getFavs();
         var isOn=btn.classList.toggle('dp-heart--on');
         btn.innerHTML=svg(isOn);
         btn.classList.add('dp-heart--pop');
         setTimeout(function(){ btn.classList.remove('dp-heart--pop'); },350);
-        if(id){ if(isOn) favs.add(id); else favs.delete(id); saveFavs(favs); }
+        if(currentId){ if(isOn) favs.add(currentId); else favs.delete(currentId); saveFavs(favs); }
       });
       card.appendChild(btn);
     }
+
     var c=document.getElementById('venuesContainer');
     if(!c) return;
     c.querySelectorAll('.venue-card').forEach(inject);
@@ -279,6 +288,37 @@
         });
       });
     }).observe(c,{childList:true,subtree:true});
+  })();
+  </script>
+
+  <!-- 5. Venue ID populator — openVenue intercept ile data-venue-id atar -->
+  <script>
+  (function(){
+    var container=document.getElementById('venuesContainer');
+    if(!container) return;
+
+    function populateIds(cards){
+      if(!cards.length||!window.openVenue) return;
+      var ids=[];
+      var orig=window.openVenue;
+      window.openVenue=function(id){ ids.push(id); };
+      cards.forEach(function(c){
+        try{ c.click(); }catch(e){}
+      });
+      window.openVenue=orig;
+      cards.forEach(function(c,i){
+        if(ids[i]!=null) c.dataset.venueId=String(ids[i]);
+      });
+    }
+
+    var timer;
+    new MutationObserver(function(){
+      clearTimeout(timer);
+      timer=setTimeout(function(){
+        var cards=Array.from(container.querySelectorAll('.venue-card:not([data-venue-id])'));
+        if(cards.length) populateIds(cards);
+      },200);
+    }).observe(container,{childList:true,subtree:true});
   })();
   </script>
 

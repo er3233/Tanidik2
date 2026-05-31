@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="./css/social-profile-media.css" />
   <link rel="stylesheet" href="./css/design-system.css" />
   <link rel="stylesheet" href="./css/profile-v3.css" />
+  <link rel="stylesheet" href="./css/profile-premium.css" />
 <link rel="stylesheet" href="./css/bottom-nav.css" />
 </head>
 
@@ -112,13 +113,15 @@
   <!-- ── ACTION BUTTONS ───────────────────────────── -->
   <div class="pv3-actions">
     <button type="button" class="pv3-btn pv3-btn-primary profile-quick-action" data-profile-tab="general">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
       Profili Düzenle
     </button>
     <a href="./messages.html" class="pv3-btn pv3-btn-secondary">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
       Mesajlar
     </a>
     <button type="button" class="pv3-btn pv3-btn-icon" id="pv3MoreBtn" aria-label="Daha fazla">
-      •••
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg>
     </button>
   </div>
 
@@ -126,37 +129,49 @@
   <div class="pv3-highlights" aria-label="Hızlı erişim">
     <button type="button" class="pv3-highlight profile-quick-action" data-profile-tab="orders">
       <div class="pv3-highlight__ring">
-        <div class="pv3-highlight__inner">🍽</div>
+        <div class="pv3-highlight__inner">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(201,162,39,0.9)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
+        </div>
       </div>
       <span class="pv3-highlight__label">Siparişler</span>
     </button>
     <button type="button" class="pv3-highlight profile-quick-action" data-profile-tab="reservations">
       <div class="pv3-highlight__ring">
-        <div class="pv3-highlight__inner">📅</div>
+        <div class="pv3-highlight__inner">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(201,162,39,0.9)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
       </div>
       <span class="pv3-highlight__label">Rezervasyon</span>
     </button>
     <button type="button" class="pv3-highlight profile-quick-action" data-profile-tab="favorites">
       <div class="pv3-highlight__ring">
-        <div class="pv3-highlight__inner">❤️</div>
+        <div class="pv3-highlight__inner">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,80,100,0.9)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+        </div>
       </div>
       <span class="pv3-highlight__label">Favoriler</span>
     </button>
     <button type="button" class="pv3-highlight profile-quick-action" data-profile-tab="reviews">
       <div class="pv3-highlight__ring">
-        <div class="pv3-highlight__inner">⭐</div>
+        <div class="pv3-highlight__inner">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,200,60,0.9)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
       </div>
       <span class="pv3-highlight__label">Yorumlar</span>
     </button>
     <button type="button" class="pv3-highlight profile-quick-action" data-profile-tab="business">
       <div class="pv3-highlight__ring">
-        <div class="pv3-highlight__inner">🏢</div>
+        <div class="pv3-highlight__inner">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(79,255,176,0.9)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+        </div>
       </div>
       <span class="pv3-highlight__label">İşletme</span>
     </button>
     <a href="./business.html" id="businessDashboardLink" class="pv3-highlight profile-business-link">
       <div class="pv3-highlight__ring">
-        <div class="pv3-highlight__inner">🔑</div>
+        <div class="pv3-highlight__inner">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(160,120,255,0.9)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        </div>
       </div>
       <span class="pv3-highlight__label">Panel</span>
     </a>

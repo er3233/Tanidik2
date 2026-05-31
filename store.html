@@ -722,7 +722,7 @@
       });
     });
 
-    /* ── Category icon toggle ── */
+    /* ── Category icon toggle + store pill bağlantısı ── */
     var spCats = document.querySelector('.sp-cats');
     if (spCats) {
       spCats.addEventListener('click', function (e) {
@@ -730,6 +730,19 @@
         if (!btn) return;
         spCats.querySelectorAll('.sp-cat').forEach(function (c) { c.classList.remove('is-active'); });
         btn.classList.add('is-active');
+        var lbl = btn.querySelector('.sp-cat__lbl');
+        var catText = lbl ? lbl.textContent.trim().toLowerCase() : '';
+        var pills = document.querySelectorAll('#storeFilters .store-pill');
+        if (!catText || catText === 'tümü') {
+          var allPill = document.querySelector('#storeFilters .store-pill[data-category="all"]');
+          if (allPill) allPill.click();
+          return;
+        }
+        var match = Array.from(pills).find(function(p){
+          var t = p.textContent.trim().toLowerCase();
+          return t === catText || t.includes(catText) || catText.includes(t);
+        });
+        if (match) match.click();
       });
     }
 
