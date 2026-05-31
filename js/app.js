@@ -1060,6 +1060,25 @@ function createVenueProductCard(product) {
     content.appendChild(description);
   }
 
+  if (window.VenueProductAttributes) {
+    const attrs = window.VenueProductAttributes.parseProductAttributes(
+      product.attributes
+    );
+    const schema = window.VenueProductAttributes.getProductOptionsSchema(
+      product
+    );
+    const summary = window.VenueProductAttributes.summarizeAttributeValues(
+      schema,
+      attrs.values
+    );
+    if (summary) {
+      const optionsLine = document.createElement("p");
+      optionsLine.className = "venue-product-options-summary";
+      optionsLine.textContent = summary;
+      content.appendChild(optionsLine);
+    }
+  }
+
   if (
     product.stock_quantity !== null &&
     product.stock_quantity !== undefined &&
@@ -5997,6 +6016,30 @@ async function loadEventDetails() {
   }
 }
 
+function renderAdminAccessDenied(shell) {
+  if (!shell || shell.dataset.adminDenied === "true") return;
+
+  shell.dataset.adminDenied = "true";
+  const sections = shell.querySelectorAll(
+    ".admin-section, .dashboard-section, .admin-delivery-tab-panel, .admin-delivery-tabs"
+  );
+  sections.forEach((section) => {
+    section.hidden = true;
+  });
+
+  let banner = shell.querySelector(".admin-access-denied");
+  if (!banner) {
+    banner = document.createElement("section");
+    banner.className = "admin-access-denied dashboard-section";
+    banner.innerHTML =
+      "<h2>Admin yetkisi gerekli</h2>" +
+      "<p class=\"page-message\">Bu sayfaya yalnızca <code>admin_users</code> tablosunda kayıtlı hesaplar erişebilir.</p>" +
+      "<p class=\"page-message\"><a href=\"./index.html\" class=\"secondary-btn\">Ana sayfaya dön</a></p>";
+    shell.prepend(banner);
+  }
+  banner.hidden = false;
+}
+
 async function checkAdminAccess() {
   const isAdminShell =
     document.getElementById("adminPage") ||
@@ -6008,7 +6051,8 @@ async function checkAdminAccess() {
   const session = await getSafeSession();
 
   if (!session) {
-    window.location.href = "./auth.html";
+    const redirect = `${window.location.pathname}${window.location.search}`;
+    window.location.href = `./auth.html?redirect=${encodeURIComponent(redirect)}`;
     return null;
   }
 
@@ -6021,14 +6065,15 @@ async function checkAdminAccess() {
 
   if (error || !data) {
     if (error) {
-      console.log(error);
+      console.log("[admin access]", error);
     }
 
-    showToast("Admin access required");
+    renderAdminAccessDenied(isAdminShell);
+    showToast("Admin yetkisi gerekli. admin_users kaydı yok.");
 
     setTimeout(() => {
       window.location.href = "./index.html";
-    }, 800);
+    }, 2200);
 
     return null;
   }
@@ -7640,7 +7685,7 @@ function populateBusinessMenuCategorySelect(categories) {
   }
 }
 
-function createBusinessMenuRow(title, meta, onDelete) {
+function createBusinessMenuRow(title, meta, onDelete, onEdit) {
   const item = document.createElement("div");
   item.className = "business-menu-row";
 
@@ -7658,13 +7703,29 @@ function createBusinessMenuRow(title, meta, onDelete) {
 
   item.appendChild(content);
 
+  const actions = document.createElement("div");
+  actions.className = "business-menu-row-actions";
+
+  if (onEdit) {
+    const editButton = document.createElement("button");
+    editButton.type = "button";
+    editButton.className = "secondary-btn";
+    editButton.textContent = "Düzenle";
+    editButton.addEventListener("click", onEdit);
+    actions.appendChild(editButton);
+  }
+
   if (onDelete) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "admin-delete-btn";
     button.textContent = "Sil";
     button.addEventListener("click", onDelete);
-    item.appendChild(button);
+    actions.appendChild(button);
+  }
+
+  if (actions.childElementCount) {
+    item.appendChild(actions);
   }
 
   return item;
@@ -7937,6 +7998,15 @@ function resetBusinessStoreForms() {
   setAdminValue("businessProductStock", "");
   setAdminValue("businessProductSort", "0");
 
+  if (window.VenueProductAttributes) {
+    window.VenueProductAttributes.resetBusinessProductEditState();
+  }
+
+  const cancelEditBtn = document.getElementById(
+    "businessProductFormCancelEdit"
+  );
+  if (cancelEditBtn) cancelEditBtn.hidden = true;
+
   const categoryActive =
     document.getElementById("businessProductCategoryActive");
   const productActive =
@@ -8013,6 +8083,19 @@ function populateBusinessProductCategorySelect(categories) {
   ) {
     select.value = currentValue;
   }
+
+  if (select.dataset.attrBound !== "true") {
+    select.dataset.attrBound = "true";
+    select.addEventListener("change", () => {
+      if (window.VenueProductAttributes) {
+        window.VenueProductAttributes.onBusinessCategoryChange();
+      }
+    });
+  }
+
+  if (select.value && window.VenueProductAttributes) {
+    window.VenueProductAttributes.onBusinessCategoryChange();
+  }
 }
 
 function renderBusinessVenueProducts(productData) {
@@ -8070,13 +8153,41 @@ function renderBusinessVenueProducts(productData) {
         ? ""
         : `${product.stock_quantity} stok`;
     const availability = product.is_active ? "Aktif" : "Gizli";
+    let attrSummary = "";
+    if (window.VenueProductAttributes) {
+      const attrs = window.VenueProductAttributes.parseProductAttributes(
+        product.attributes
+      );
+      const schema = window.VenueProductAttributes.getProductOptionsSchema(
+        product
+      );
+      attrSummary = window.VenueProductAttributes.summarizeAttributeValues(
+        schema,
+        attrs.values
+      );
+    }
     productsGroup.appendChild(
       createBusinessMenuRow(
         product.name,
-        [price, stock, availability, `Sıra ${product.sort_order || 0}`]
+        [price, stock, availability, attrSummary, `Sıra ${product.sort_order || 0}`]
           .filter(Boolean)
           .join(" · "),
-        () => deleteVenueProduct(product.id)
+        () => deleteVenueProduct(product.id),
+        () => {
+          if (window.VenueProductAttributes) {
+            window.VenueProductAttributes.fillBusinessProductFormForEdit(
+              product,
+              productData.categories || []
+            );
+            const cancelBtn = document.getElementById(
+              "businessProductFormCancelEdit"
+            );
+            if (cancelBtn) cancelBtn.hidden = false;
+            document
+              .getElementById("businessProductForm")
+              ?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        }
       )
     );
   });
@@ -8165,6 +8276,7 @@ async function createVenueProduct(event) {
   const priceValue = getAdminValue("businessProductPrice");
   const stockValue = getAdminValue("businessProductStock");
   const categoryId = getAdminValue("businessProductCategory");
+  const editId = getAdminValue("businessProductEditId");
   const activeInput =
     document.getElementById("businessProductActive");
   const imageFile = getAdminFile("businessProductImageFile");
@@ -8174,35 +8286,94 @@ async function createVenueProduct(event) {
 
   if (imageFile && !uploadedImage) return;
 
-  const { error } = await supabaseClient
-    .from("venue_products")
-    .insert([{
-      venue_id: venueId,
-      category_id: categoryId || null,
-      name,
-      description: getAdminValue("businessProductDescription"),
-      price: priceValue ? Number(priceValue) : null,
-      currency: getAdminValue("businessProductCurrency") || "TRY",
-      image_url:
-        uploadedImage || getAdminValue("businessProductImage"),
-      stock_quantity: stockValue ? Number(stockValue) : null,
-      is_active: activeInput ? activeInput.checked : true,
-      sort_order: Number(getAdminValue("businessProductSort")) || 0,
-    }]);
+  const payload = {
+    venue_id: venueId,
+    category_id: categoryId || null,
+    name,
+    description: getAdminValue("businessProductDescription"),
+    price: priceValue ? Number(priceValue) : null,
+    currency: getAdminValue("businessProductCurrency") || "TRY",
+    image_url: uploadedImage || getAdminValue("businessProductImage"),
+    stock_quantity: stockValue ? Number(stockValue) : null,
+    is_active: activeInput ? activeInput.checked : true,
+    sort_order: Number(getAdminValue("businessProductSort")) || 0,
+  };
+
+  if (window.VenueProductAttributes && categoryId) {
+    const attrPayload =
+      window.VenueProductAttributes.collectBusinessAttributePayload();
+    const extras =
+      window.VenueProductAttributes.buildVenueProductExtras(attrPayload);
+    payload.attributes = extras.attributes;
+    payload.options = extras.options;
+    const jsonInput = document.getElementById(
+      "businessProductAttributesJson"
+    );
+    if (jsonInput) {
+      jsonInput.value = JSON.stringify(extras.attributes);
+    }
+  }
+
+  let error = null;
+  let savedWithoutAttributes = false;
+
+  if (editId) {
+    let result = await supabaseClient
+      .from("venue_products")
+      .update(payload)
+      .eq("id", editId);
+    error = result.error;
+    if (
+      error &&
+      window.VenueProductAttributes &&
+      window.VenueProductAttributes.isMissingAttributesColumnError(error)
+    ) {
+      delete payload.attributes;
+      delete payload.options;
+      result = await supabaseClient
+        .from("venue_products")
+        .update(payload)
+        .eq("id", editId);
+      error = result.error;
+    }
+  } else {
+    let result = await supabaseClient.from("venue_products").insert([payload]);
+    error = result.error;
+    if (
+      error &&
+      window.VenueProductAttributes &&
+      window.VenueProductAttributes.isMissingAttributesColumnError(error)
+    ) {
+      delete payload.attributes;
+      delete payload.options;
+      result = await supabaseClient.from("venue_products").insert([payload]);
+      error = result.error;
+      if (!error) savedWithoutAttributes = true;
+    }
+  }
 
   if (error) {
+    if (
+      window.VenueProductAttributes &&
+      window.VenueProductAttributes.isMissingAttributesColumnError(error)
+    ) {
+      showToast(
+        "Özellik kolonları yok. Supabase'de venue_product_options_mvp.sql çalıştırın."
+      );
+      return;
+    }
     showSafeError(error, "Ürün kaydedilemedi.");
     return;
   }
 
-  setAdminValue("businessProductName", "");
-  setAdminValue("businessProductDescription", "");
-  setAdminValue("businessProductPrice", "");
-  setAdminValue("businessProductImage", "");
-  clearAdminFile("businessProductImageFile");
-  setAdminValue("businessProductStock", "");
-  setAdminValue("businessProductSort", "0");
-  showToast("Ürün kaydedildi");
+  resetBusinessStoreForms();
+  if (savedWithoutAttributes) {
+    showToast(
+      "Ürün kaydedildi. Özellikler için sql/venue_product_options_mvp.sql çalıştırın."
+    );
+  } else {
+    showToast(editId ? "Ürün güncellendi" : "Ürün kaydedildi");
+  }
   await refreshBusinessVenueProducts();
 }
 
@@ -13295,6 +13466,16 @@ function setupBusinessStoreManager() {
       runGuardedFormSubmit(event, createVenueProduct);
     });
   }
+
+  const cancelEditBtn = document.getElementById(
+    "businessProductFormCancelEdit"
+  );
+  if (cancelEditBtn && cancelEditBtn.dataset.bound !== "true") {
+    cancelEditBtn.dataset.bound = "true";
+    cancelEditBtn.addEventListener("click", () => {
+      resetBusinessStoreForms();
+    });
+  }
 }
 
 function setupBusinessMobilePanels() {
@@ -14807,7 +14988,11 @@ function appendBusinessOrderActions(container, order) {
     button.textContent = label;
     button.addEventListener("click", async () => {
       await updateOrderStatus(order.id, nextStatus);
-      await refreshRestaurantOrdersPage();
+      if (!isRestaurantPendingOrderStatus(nextStatus)) {
+        clearRestaurantOrderHighlight(order.id);
+        restaurantOrdersPageState.alertedOrderIds.add(String(order.id));
+      }
+      await refreshRestaurantOrdersPage({ silent: true });
     });
     container.appendChild(button);
   });
@@ -14859,6 +15044,18 @@ async function refreshRestaurantOrdersPage(options = {}) {
 
   const orders = loadResult.orders || [];
 
+  processRestaurantOrdersAfterLoad(orders);
+
+  const countEl = document.getElementById("restaurantOrdersCount");
+  if (countEl) {
+    const pendingCount = orders.filter((order) =>
+      isRestaurantPendingOrderStatus(order.status)
+    ).length;
+    countEl.textContent = pendingCount
+      ? `${pendingCount} bekleyen`
+      : `${orders.length} sipariş`;
+  }
+
   if (!orders.length) {
     renderEmptyState(list, "Henüz sipariş yok", "Yeni siparişler burada görünecek.");
     return;
@@ -14867,9 +15064,16 @@ async function refreshRestaurantOrdersPage(options = {}) {
   const fragment = document.createDocumentFragment();
   orders.forEach((order) => {
     try {
-      fragment.appendChild(
-        renderOrderListCard(order, { showBusinessActions: true })
-      );
+      const card = renderOrderListCard(order, { showBusinessActions: true });
+      const orderId = String(order.id);
+      if (
+        restaurantOrdersPageState.highlightedOrderIds.has(orderId) &&
+        isRestaurantPendingOrderStatus(order.status)
+      ) {
+        card.classList.add("order-card--highlight", "order-card--pending-alert");
+        card.dataset.orderId = orderId;
+      }
+      fragment.appendChild(card);
     } catch (renderError) {
       console.log("[refreshRestaurantOrdersPage] render failed", order, renderError);
     }
@@ -15142,6 +15346,17 @@ const fulfillmentRealtimeState = {
 const FULFILLMENT_REALTIME_DEBOUNCE_MS = 400;
 const COURIER_POLL_LIVE_MS = 120000;
 const COURIER_POLL_FALLBACK_MS = 25000;
+const RESTAURANT_ORDERS_POLL_LIVE_MS = 60000;
+const RESTAURANT_ORDERS_POLL_FALLBACK_MS = 18000;
+
+const restaurantOrdersPageState = {
+  refreshTimerId: null,
+  realtimeStatus: "connecting",
+  seeded: false,
+  knownOrderIds: new Set(),
+  alertedOrderIds: new Set(),
+  highlightedOrderIds: new Set(),
+};
 
 function scheduleFulfillmentDebounced(key, fn, delay = FULFILLMENT_REALTIME_DEBOUNCE_MS) {
   const existing = fulfillmentRealtimeState.debounceTimers.get(key);
@@ -15175,12 +15390,133 @@ function setFulfillmentLiveBadge(badgeId, mode) {
   }
 }
 
+function isRestaurantPendingOrderStatus(status) {
+  const value = getRestaurantOrderStatusValue(status);
+  return value === "pending" || value === "new";
+}
+
+function notifyRestaurantNewPendingOrder(order) {
+  if (!order || !order.id) return;
+
+  const orderId = String(order.id);
+  if (restaurantOrdersPageState.alertedOrderIds.has(orderId)) return;
+
+  restaurantOrdersPageState.alertedOrderIds.add(orderId);
+  restaurantOrdersPageState.highlightedOrderIds.add(orderId);
+
+  playFulfillmentAlertTone();
+  const amount = formatRestaurantOrderAmount(order.total_amount);
+  const venueName = safeText(order.venues && order.venues.name);
+  showToast(
+    venueName
+      ? `Yeni sipariş · ${venueName} · ${amount}`
+      : `Yeni sipariş · ${amount}`
+  );
+}
+
+function clearRestaurantOrderHighlight(orderId) {
+  if (!orderId) return;
+  restaurantOrdersPageState.highlightedOrderIds.delete(String(orderId));
+}
+
+function processRestaurantOrdersAfterLoad(orders) {
+  const list = orders || [];
+  const state = restaurantOrdersPageState;
+
+  if (!state.seeded) {
+    state.seeded = true;
+    list.forEach((order) => {
+      const id = String(order.id);
+      state.knownOrderIds.add(id);
+      if (isRestaurantPendingOrderStatus(order.status)) {
+        state.alertedOrderIds.add(id);
+      }
+    });
+    return;
+  }
+
+  list.forEach((order) => {
+    const id = String(order.id);
+    if (!isRestaurantPendingOrderStatus(order.status)) {
+      clearRestaurantOrderHighlight(id);
+      state.knownOrderIds.add(id);
+      return;
+    }
+
+    if (!state.knownOrderIds.has(id)) {
+      state.knownOrderIds.add(id);
+      notifyRestaurantNewPendingOrder(order);
+    }
+  });
+}
+
+function setupRestaurantOrdersAutoRefresh() {
+  if (restaurantOrdersPageState.refreshTimerId) {
+    clearInterval(restaurantOrdersPageState.refreshTimerId);
+    restaurantOrdersPageState.refreshTimerId = null;
+  }
+
+  if (!document.getElementById("restaurantOrdersPage")) return;
+
+  const intervalMs =
+    restaurantOrdersPageState.realtimeStatus === "live"
+      ? RESTAURANT_ORDERS_POLL_LIVE_MS
+      : RESTAURANT_ORDERS_POLL_FALLBACK_MS;
+
+  restaurantOrdersPageState.refreshTimerId = window.setInterval(() => {
+    refreshRestaurantOrdersPage({ silent: true });
+  }, intervalMs);
+}
+
+function teardownRestaurantOrdersPage() {
+  if (restaurantOrdersPageState.refreshTimerId) {
+    clearInterval(restaurantOrdersPageState.refreshTimerId);
+    restaurantOrdersPageState.refreshTimerId = null;
+  }
+  restaurantOrdersPageState.seeded = false;
+  restaurantOrdersPageState.knownOrderIds.clear();
+  restaurantOrdersPageState.alertedOrderIds.clear();
+  restaurantOrdersPageState.highlightedOrderIds.clear();
+}
+
+function setupRestaurantOrdersSoundUnlock() {
+  const button = document.getElementById("restaurantOrdersSoundUnlock");
+  if (button) button.hidden = false;
+
+  const unlock = () => {
+    unlockFulfillmentAlertAudio();
+    if (button) button.hidden = true;
+  };
+
+  if (!window.__restaurantSoundUnlockBound) {
+    window.__restaurantSoundUnlockBound = true;
+    ["click", "touchstart"].forEach((eventName) => {
+      document.addEventListener(eventName, unlock, {
+        capture: true,
+        passive: true,
+      });
+    });
+  }
+
+  if (button && button.dataset.bound !== "true") {
+    button.dataset.bound = "true";
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      unlock();
+      playFulfillmentAlertTone();
+    });
+  }
+}
+
 function setFulfillmentRealtimePageStatus(pageKey, status, badgeId) {
   fulfillmentRealtimeState.pageStatus.set(pageKey, status);
   if (pageKey === "courier") {
     courierPageState.realtimeStatus = status;
     updateCourierRefreshMeta();
     setupCourierAutoRefresh();
+  } else if (pageKey === "restaurant-orders") {
+    restaurantOrdersPageState.realtimeStatus = status;
+    setupRestaurantOrdersAutoRefresh();
   } else if (badgeId) {
     if (status === "live") setFulfillmentLiveBadge(badgeId, "live");
     else if (status === "fallback") setFulfillmentLiveBadge(badgeId, "fallback");
@@ -15196,6 +15532,9 @@ function teardownFulfillmentRealtimePage(pageKey) {
     fulfillmentRealtimeState.channels.delete(pageKey);
   }
   fulfillmentRealtimeState.pageStatus.delete(pageKey);
+  if (pageKey === "restaurant-orders") {
+    teardownRestaurantOrdersPage();
+  }
 }
 
 function unlockFulfillmentAlertAudio() {
@@ -15291,18 +15630,12 @@ function subscribeFulfillmentRealtime({
 
 function handleRestaurantOrdersRealtimePayload(payload) {
   const row = payload.new || payload.old;
-  if (!row) return;
 
-  scheduleFulfillmentDebounced("restaurant-orders-refresh", () => {
-    refreshRestaurantOrdersPage({ silent: true });
-  });
-
-  if (payload.eventType === "INSERT") {
-    const status = getRestaurantOrderStatusValue(row.status);
-    if (status === "pending") {
-      playFulfillmentAlertTone();
-      const amount = formatRestaurantOrderAmount(row.total_amount);
-      showToast(`Yeni sipariş · ${amount}`);
+  if (payload.eventType === "INSERT" && payload.new) {
+    const status = getRestaurantOrderStatusValue(payload.new.status);
+    if (isRestaurantPendingOrderStatus(status)) {
+      restaurantOrdersPageState.knownOrderIds.add(String(payload.new.id));
+      notifyRestaurantNewPendingOrder(payload.new);
     }
   }
 
@@ -15311,9 +15644,25 @@ function handleRestaurantOrdersRealtimePayload(payload) {
     const oldStatus = payload.old
       ? getRestaurantOrderStatusValue(payload.old.status)
       : "";
+
+    if (!isRestaurantPendingOrderStatus(newStatus)) {
+      clearRestaurantOrderHighlight(payload.new.id);
+    } else if (
+      isRestaurantPendingOrderStatus(newStatus) &&
+      !isRestaurantPendingOrderStatus(oldStatus)
+    ) {
+      notifyRestaurantNewPendingOrder(payload.new);
+    }
+
     if (newStatus === "courier_assigned" && oldStatus !== "courier_assigned") {
       showToast("Kurye siparişi kabul etti");
     }
+  }
+
+  if (row) {
+    scheduleFulfillmentDebounced("restaurant-orders-refresh", () => {
+      refreshRestaurantOrdersPage({ silent: true });
+    });
   }
 }
 
@@ -15328,6 +15677,9 @@ function setupRestaurantOrdersRealtime(session) {
     onChange: handleRestaurantOrdersRealtimePayload,
   });
 
+  setupRestaurantOrdersSoundUnlock();
+  setupRestaurantOrdersAutoRefresh();
+
   if (!window.__fulfillmentRealtimeUnloadBound) {
     window.__fulfillmentRealtimeUnloadBound = true;
     window.addEventListener("beforeunload", () => {
@@ -15338,7 +15690,6 @@ function setupRestaurantOrdersRealtime(session) {
       teardownFulfillmentRealtimePage("order-detail-orders");
       teardownFulfillmentRealtimePage("order-detail-deliveries");
     });
-    document.addEventListener("click", unlockFulfillmentAlertAudio, { once: true });
   }
 }
 
@@ -15515,16 +15866,39 @@ async function loadCourierHistoryByPeriod(period) {
 async function loadAdminCourierOpsBoard() {
   const { data, error } = await supabaseClient.rpc("get_admin_courier_ops_board");
   if (error) {
-    if (isAdminAccessRequiredError(error) || isMissingRpcError(error)) {
-      return { couriers: [], active_shifts: [], performance_ranking: [] };
+    if (isAdminAccessRequiredError(error)) {
+      return {
+        couriers: [],
+        active_shifts: [],
+        performance_ranking: [],
+        rpcMissing: false,
+        accessDenied: true,
+      };
+    }
+    if (isMissingRpcError(error)) {
+      console.warn("[admin courier ops] RPC missing", error);
+      return {
+        couriers: [],
+        active_shifts: [],
+        performance_ranking: [],
+        rpcMissing: true,
+        hint: "sql/courier_operations_pack_v1.sql (get_admin_courier_ops_board)",
+      };
     }
     console.log("[admin courier ops]", error);
-    return { couriers: [], active_shifts: [], performance_ranking: [] };
+    return {
+      couriers: [],
+      active_shifts: [],
+      performance_ranking: [],
+      rpcMissing: false,
+      loadError: safeText(error.message),
+    };
   }
   return {
     couriers: (data && data.couriers) || [],
     active_shifts: (data && data.active_shifts) || [],
     performance_ranking: (data && data.performance_ranking) || [],
+    rpcMissing: false,
   };
 }
 
@@ -15887,12 +16261,40 @@ function setupAdminDeliveryTabs() {
   });
 }
 
+function fillAdminCourierForm(courier) {
+  if (!courier) return;
+  const emailEl = document.getElementById("adminCourierEmail");
+  const nameEl = document.getElementById("adminCourierFullName");
+  const phoneEl = document.getElementById("adminCourierPhone");
+  const vehicleEl = document.getElementById("adminCourierVehicle");
+  const statusEl = document.getElementById("adminCourierStatus");
+  if (emailEl) emailEl.value = courier.email || "";
+  if (nameEl) nameEl.value = courier.full_name || "";
+  if (phoneEl) phoneEl.value = courier.phone || "";
+  if (vehicleEl) vehicleEl.value = courier.vehicle_type || "";
+  if (statusEl) statusEl.value = courier.status || "active";
+  document.getElementById("adminCourierForm")?.scrollIntoView({
+    behavior: "smooth",
+    block: "start",
+  });
+}
+
 function renderAdminCourierOpsBoard(board) {
   const container = document.getElementById("adminCourierOpsBoard");
   const rankingList = document.getElementById("adminCourierRankingList");
   const shiftsList = document.getElementById("adminCourierActiveShifts");
 
-  if (container) {
+  if (board && board.rpcMissing && container) {
+    container.innerHTML = "";
+    renderEmptyState(
+      container,
+      "Kurye operasyon paneli yüklenemedi",
+      board.hint ||
+        "Supabase'de sql/courier_operations_pack_v1.sql çalıştırın. Kurye listesi ve kayıt formu yine çalışır."
+    );
+  }
+
+  if (container && !board?.rpcMissing) {
     container.innerHTML = "";
     const couriers = board.couriers || [];
     if (!couriers.length) {
@@ -16200,7 +16602,14 @@ async function initRestaurantOrdersPage() {
     return;
   }
 
-  filter.addEventListener("change", refreshRestaurantOrdersPage);
+  filter.addEventListener("change", () => {
+    restaurantOrdersPageState.seeded = false;
+    restaurantOrdersPageState.knownOrderIds.clear();
+    restaurantOrdersPageState.alertedOrderIds.clear();
+    restaurantOrdersPageState.highlightedOrderIds.clear();
+    refreshRestaurantOrdersPage();
+  });
+  setupRestaurantOrdersSoundUnlock();
   await refreshRestaurantOrdersPage();
   setupRestaurantOrdersRealtime(session);
 }
@@ -16899,6 +17308,16 @@ function renderAdminCouriersList(couriers) {
     meta.textContent = `${courier.email || "—"} · ${courier.phone || "—"} · ${courier.vehicle_type || "—"} · ${linkLabel}`;
     card.appendChild(meta);
 
+    const actions = document.createElement("div");
+    actions.className = "order-card-actions";
+    const editBtn = document.createElement("button");
+    editBtn.type = "button";
+    editBtn.className = "secondary-btn";
+    editBtn.textContent = "Düzenle";
+    editBtn.addEventListener("click", () => fillAdminCourierForm(courier));
+    actions.appendChild(editBtn);
+    card.appendChild(actions);
+
     fragment.appendChild(card);
   });
 
@@ -16920,17 +17339,26 @@ async function loadAdminDeliveryDispatchBoard() {
         message: safeText(error.message),
         code: error.code,
       });
-      return { pool: [], active: [], completed: [] };
+      showToast(
+        "Teslimat panosu RPC eksik. sql/tanidik_fulfillment_golden.sql çalıştırın."
+      );
+      return {
+        pool: [],
+        active: [],
+        completed: [],
+        rpcMissing: true,
+      };
     }
     console.log("[admin deliveries] board error", error);
     showSafeError(error, "Teslimat listesi yüklenemedi.");
-    return { pool: [], active: [], completed: [] };
+    return { pool: [], active: [], completed: [], loadError: true };
   }
 
   return {
     pool: (data && data.pool) || [],
     active: (data && data.active) || [],
     completed: (data && data.completed) || [],
+    rpcMissing: false,
   };
 }
 
@@ -16945,6 +17373,16 @@ async function adminAssignCourierToDelivery(deliveryId, courierId) {
   );
 
   if (error || !data) {
+    if (isMissingRpcError(error)) {
+      showToast(
+        "admin_assign_courier_delivery RPC eksik. sql/tanidik_fulfillment_golden.sql çalıştırın."
+      );
+      return null;
+    }
+    if (isAdminAccessRequiredError(error)) {
+      showToast("Admin yetkisi gerekli.");
+      return null;
+    }
     showSafeError(error, "Kurye ataması yapılamadı.");
     return null;
   }
@@ -17065,10 +17503,15 @@ async function refreshAdminDeliveriesPage(_options = {}) {
 
   const refresh = async () => {
     const next = await loadAdminDeliveryDispatchBoard();
+    const poolHint = next.rpcMissing
+      ? "get_admin_delivery_dispatch_board RPC bulunamadı. Supabase SQL Editor'da sql/tanidik_fulfillment_golden.sql çalıştırın."
+      : "İşletme onayladığında delivery görevleri burada görünür.";
     renderAdminDeliverySection(poolList, next.pool, {
-      emptyTitle: "Havuzda teslimat yok",
-      emptyHint: "İşletme onayladığında delivery görevleri burada görünür.",
-      showAssign: true,
+      emptyTitle: next.rpcMissing
+        ? "Teslimat panosu yapılandırılmamış"
+        : "Havuzda teslimat yok",
+      emptyHint: poolHint,
+      showAssign: !next.rpcMissing,
       couriers,
       onAssigned: refresh,
     });
