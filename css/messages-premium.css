@@ -778,3 +778,127 @@
   object-fit: cover !important;
   border: 1px solid rgba(255,255,255,0.08) !important;
 }
+
+/* Mobile stabilization: keep chat/input usable above the app chrome. */
+@media (max-width: 768px) {
+  .msg-body {
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  .msg-page,
+  .msg-layout {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: 100svh !important;
+    height: 100dvh !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .msg-layout {
+    display: flex !important;
+  }
+
+  .msg-inbox,
+  .msg-chat {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .msg-inbox {
+    height: 100% !important;
+  }
+
+  .msg-threads {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .message-thread,
+  .message-thread-body,
+  .message-thread-top,
+  .message-thread-title,
+  .message-thread-preview,
+  .message-thread-meta {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .msg-chat {
+    position: fixed !important;
+    inset: 0 !important;
+    height: 100svh !important;
+    height: 100dvh !important;
+    z-index: 900 !important;
+    transform: translateX(100%) !important;
+  }
+
+  .msg-layout.chat-active .msg-chat {
+    transform: translateX(0) !important;
+  }
+
+  .msg-chat-header,
+  .msg-chat-info {
+    min-width: 0;
+  }
+
+  .msg-messages {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .message-bubble-with-avatar {
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .message-bubble {
+    max-width: min(82vw, 320px) !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+
+  .msg-ai-prompts {
+    flex-shrink: 0;
+    max-height: 96px;
+    overflow: hidden;
+  }
+
+  .msg-compose {
+    flex-shrink: 0;
+    position: relative;
+    z-index: 2;
+    padding-bottom: calc(0.55rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .msg-compose-row {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .msg-textarea {
+    min-width: 0;
+    font-size: 16px;
+  }
+
+  .msg-send-btn,
+  .msg-attach-btn {
+    flex-shrink: 0;
+  }
+}

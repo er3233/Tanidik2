@@ -354,9 +354,17 @@
     var ALL_PRODUCTS   = [];
     var cart           = {};
     var activeCategory = 'all';
+    var activeCategoryLabel = '';
 
     /* ── Helpers ── */
     function safeStr(v) { return v ? String(v) : ''; }
+    function norm(v) {
+      return safeStr(v)
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+    }
 
     function fmtPrice(price, currency) {
       if (price == null) return '';
@@ -365,6 +373,37 @@
     }
 
     function showGrid(html) { grid.innerHTML = html; }
+
+    function getProductCategoryName(product) {
+      return product.venue_product_categories && product.venue_product_categories.name
+        ? safeStr(product.venue_product_categories.name)
+        : '';
+    }
+
+    function setActiveStoreCategory(value, label) {
+      activeCategory = value || 'all';
+      activeCategoryLabel = activeCategory === 'all' ? '' : norm(label || value);
+
+      filters.querySelectorAll('.store-pill').forEach(function (pill) {
+        pill.classList.toggle('store-pill--active', pill.dataset.category === activeCategory);
+      });
+
+      document.querySelectorAll('.sp-cat').forEach(function (cat) {
+        var catValue = cat.dataset.spcat || '';
+        var catLabel = cat.querySelector('.sp-cat__lbl');
+        var labelText = catLabel ? catLabel.textContent : '';
+        var isActive = activeCategory === 'all'
+          ? catValue === 'all'
+          : norm(catValue) === activeCategoryLabel || norm(labelText) === activeCategoryLabel;
+        cat.classList.toggle('is-active', isActive);
+      });
+
+      document.querySelectorAll('#storeFiltersModal .sp-fchip').forEach(function (chip) {
+        chip.classList.toggle('is-active', chip.dataset.modalCat === activeCategory);
+      });
+
+      renderGrid();
+    }
 
     /* ── Category pills (JS filter, hidden) ── */
     function buildPills(products) {
@@ -432,23 +471,46 @@
 
     function bindPills() {
       filters.querySelectorAll('.store-pill').forEach(function (pill) {
+        if (pill.dataset.bound === 'true') return;
+        pill.dataset.bound = 'true';
         pill.addEventListener('click', function () {
-          filters.querySelectorAll('.store-pill').forEach(function (p) { p.classList.remove('store-pill--active'); });
-          pill.classList.add('store-pill--active');
-          activeCategory = pill.dataset.category;
-          renderGrid();
+          setActiveStoreCategory(pill.dataset.category, pill.textContent);
         });
       });
     }
 
     /* ── Product grid ── */
     function renderGrid() {
-      var filtered = activeCategory === 'all'
-        ? ALL_PRODUCTS
-        : ALL_PRODUCTS.filter(function (p) {
-            return p.venue_product_categories &&
-                   String(p.venue_product_categories.id) === activeCategory;
-          });
+      var q = searchInput ? norm(searchInput.value) : '';
+      var filtered = ALL_PRODUCTS.filter(function (p) {
+        var cat = p.venue_product_categories;
+        var catId = cat && cat.id ? String(cat.id) : '';
+        var catName = getProductCategoryName(p);
+        var venueName = (p.venues && p.venues.name) ? safeStr(p.venues.name) : '';
+
+        if (activeCategory !== 'all') {
+          var catNameNorm = norm(catName);
+          var categoryMatches =
+            catId === activeCategory ||
+            (activeCategoryLabel &&
+              (catNameNorm === activeCategoryLabel ||
+               catNameNorm.includes(activeCategoryLabel) ||
+               activeCategoryLabel.includes(catNameNorm)));
+          if (!categoryMatches) return false;
+        }
+
+        if (q) {
+          var haystack = [
+            p.name,
+            p.description,
+            catName,
+            venueName,
+          ].join(' ').toLowerCase();
+          if (!haystack.includes(q)) return false;
+        }
+
+        return true;
+      });
 
       if (filtered.length === 0) {
         showGrid('<p class="store-empty">Bu kategoride henüz ürün yok.</p>');
@@ -728,6 +790,25 @@
       spCats.addEventListener('click', function (e) {
         var btn = e.target.closest('.sp-cat');
         if (!btn) return;
+        var nextLabelEl = btn.querySelector('.sp-cat__lbl');
+        var nextLabel = nextLabelEl ? nextLabelEl.textContent.trim() : '';
+        var nextKey = btn.dataset.spcat || '';
+        if (!nextKey || nextKey === 'all' || norm(nextLabel) === 'tÃ¼mÃ¼') {
+          setActiveStoreCategory('all', '');
+          return;
+        }
+        var nextMatch = Array.from(document.querySelectorAll('#storeFilters .store-pill')).find(function(p){
+          var t = norm(p.textContent);
+          var key = norm(nextKey);
+          var label = norm(nextLabel);
+          return t === key || t === label || t.includes(key) || t.includes(label) || key.includes(t) || label.includes(t);
+        });
+        if (nextMatch) {
+          setActiveStoreCategory(nextMatch.dataset.category, nextMatch.textContent);
+        } else {
+          setActiveStoreCategory(nextKey, nextLabel);
+        }
+        return;
         spCats.querySelectorAll('.sp-cat').forEach(function (c) { c.classList.remove('is-active'); });
         btn.classList.add('is-active');
         var lbl = btn.querySelector('.sp-cat__lbl');
@@ -761,6 +842,8 @@
     var searchInput = document.getElementById('spSearchInput');
     if (searchInput) {
       searchInput.addEventListener('input', function () {
+        renderGrid();
+        return;
         var q = searchInput.value.trim().toLowerCase();
         grid.querySelectorAll('.store-card').forEach(function (card) {
           var name = (card.querySelector('.store-card-name') || {}).textContent || '';

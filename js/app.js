@@ -9032,17 +9032,66 @@ function logBusinessStatusFields(records) {
   );
 }
 
+const BUSINESS_SAFE_SELECT_COLUMNS = "id, owner_id, status";
+
+function normalizeBusinessRecord(record, venueByBusinessId = new Map()) {
+  if (!record) return record;
+  const venue = venueByBusinessId.get(String(record.id));
+
+  return {
+    ...record,
+    name:
+      safeText(record.name) ||
+      safeText(record.business_name) ||
+      safeText(venue && venue.name) ||
+      `Business #${safeText(record.id)}`,
+  };
+}
+
+async function queryBusinessSafeRecords(field, userId) {
+  let query = supabaseClient
+    .from("businesses")
+    .select(BUSINESS_SAFE_SELECT_COLUMNS)
+    .eq(field, userId);
+
+  if (field === "owner_id") {
+    query = query.order("id", { ascending: false });
+  }
+
+  return query;
+}
+
+async function loadBusinessVenueNameMap(records) {
+  const ids = (records || [])
+    .map((record) => record && record.id)
+    .filter(Boolean);
+
+  if (ids.length === 0) return new Map();
+
+  const { data, error } = await supabaseClient
+    .from("venues")
+    .select("id, business_id, name")
+    .in("business_id", ids);
+
+  if (error) {
+    console.log("[business-debug] venue name lookup skipped", error);
+    return new Map();
+  }
+
+  return new Map(
+    (data || [])
+      .filter((venue) => venue && venue.business_id)
+      .map((venue) => [String(venue.business_id), venue])
+  );
+}
+
 async function queryBusinessRecordsByOwnerField(
   field,
   userId,
   options = {}
 ) {
   const { data, error } =
-    await supabaseClient
-      .from("businesses")
-      .select("*")
-      .eq(field, userId)
-      .order("created_at", { ascending: false });
+    await queryBusinessSafeRecords(field, userId);
 
   if (error) {
     console.log("[business-debug] applications query error", {
@@ -9055,12 +9104,17 @@ async function queryBusinessRecordsByOwnerField(
     return [];
   }
 
+  const venueByBusinessId = await loadBusinessVenueNameMap(data || []);
+  const records = (data || []).map((record) =>
+    normalizeBusinessRecord(record, venueByBusinessId)
+  );
+
   console.log("[business-debug] applications", {
     field,
-    data,
+    data: records,
   });
 
-  return data || [];
+  return records;
 }
 
 async function loadBusinessBusinesses(session) {
@@ -13409,6 +13463,46 @@ const courierPageState = {
   isOnDuty: false,
 };
 
+const COURIER_ACCOUNT_REQUIRED_MESSAGE =
+  "Aktif kurye hesabı bulunamadı. Admin panelinden kurye hesabınız bağlanmalı.";
+
+function isMissingRpcError(error) {
+  const message = safeText(error && error.message).toLowerCase();
+  return Boolean(
+    error &&
+      (
+        error.code === "PGRST202" ||
+        error.code === "42883" ||
+        message.includes("could not find the function") ||
+        message.includes("function") && message.includes("does not exist") ||
+        message.includes("not found")
+      )
+  );
+}
+
+function isCourierAccountRequiredError(error) {
+  return safeText(error && error.message)
+    .toLowerCase()
+    .includes("active courier");
+}
+
+function isAdminAccessRequiredError(error) {
+  return safeText(error && error.message)
+    .toLowerCase()
+    .includes("admin access");
+}
+
+function getEmptyCourierOpsSummary() {
+  return {
+    is_on_duty: false,
+    ops_status: "offline",
+    shift: null,
+    performance: {},
+    earnings: {},
+    fallback: true,
+  };
+}
+
 const restaurantOrderCartState = {
   venueId: null,
   items: {},
@@ -14141,7 +14235,7 @@ async function resolveActiveCourierForSession(session) {
     "resolve_my_active_courier"
   );
 
-  if (!rpcError && rpcCourier) {
+  if (!rpcError && rpcCourier && rpcCourier.id) {
     if (
       rpcCourier.user_id &&
       String(rpcCourier.user_id) !== String(userId)
@@ -14157,7 +14251,35 @@ async function resolveActiveCourierForSession(session) {
   }
 
   if (rpcError) {
-    console.log("[courier] resolve_my_active_courier", rpcError);
+    if (!isMissingRpcError(rpcError)) {
+      console.log("[courier] resolve_my_active_courier", rpcError);
+    }
+  }
+
+  if (
+    (rpcError && isMissingRpcError(rpcError)) ||
+    (!rpcError && rpcCourier && !rpcCourier.id)
+  ) {
+    const { data: courierId, error: courierIdError } =
+      await supabaseClient.rpc("get_my_courier_id");
+
+    if (!courierIdError && courierId && safeText(courierId) !== "null") {
+      const { data: courierById, error: courierByIdError } =
+        await supabaseClient
+          .from("couriers")
+          .select(
+            "id, user_id, email, full_name, phone, vehicle_type, status, created_at"
+          )
+          .eq("id", courierId)
+          .eq("status", "active")
+          .maybeSingle();
+
+      if (!courierByIdError && courierById) {
+        return courierById;
+      }
+    } else if (courierIdError && !isMissingRpcError(courierIdError)) {
+      console.log("[courier] get_my_courier_id", courierIdError);
+    }
   }
 
   const byEmail = await getActiveCourierProfileByEmail(email);
@@ -14282,7 +14404,10 @@ async function loadCourierAvailableDeliveries() {
   if (!session) return { available: [], assigned: [], courier: null };
 
   const courier = await resolveActiveCourierForSession(session);
-  if (!courier) return { available: [], assigned: [], courier: null };
+  if (!courier) {
+    showToast(COURIER_ACCOUNT_REQUIRED_MESSAGE);
+    return { available: [], assigned: [], courier: null };
+  }
 
   console.log("[courier load] courier id/email", courier.id, courier.email || session.user.email);
 
@@ -14290,12 +14415,57 @@ async function loadCourierAvailableDeliveries() {
   let assigned = [];
   let loadError = null;
 
-  const { data: pool, error: poolError } = await supabaseClient.rpc(
+  let { data: pool, error: poolError } = await supabaseClient.rpc(
     "get_courier_delivery_pool"
   );
+  let poolSource = "get_courier_delivery_pool";
+
+  if (poolError && isMissingRpcError(poolError)) {
+    const availableRpc = await supabaseClient.rpc(
+      "get_available_courier_deliveries"
+    );
+    if (!availableRpc.error) {
+      available = Array.isArray(availableRpc.data)
+        ? availableRpc.data
+        : (availableRpc.data && availableRpc.data.available) || [];
+      poolError = null;
+      poolSource = "get_available_courier_deliveries";
+    } else {
+      poolError = availableRpc.error;
+      poolSource = "get_available_courier_deliveries";
+    }
+  }
+
+  if (poolError && isMissingRpcError(poolError)) {
+    const deliveriesRpc = await supabaseClient.rpc(
+      "get_courier_deliveries"
+    );
+    if (!deliveriesRpc.error) {
+      const rows = Array.isArray(deliveriesRpc.data)
+        ? deliveriesRpc.data
+        : [];
+      assigned = rows.filter((delivery) =>
+        safeText(delivery.courier_id) === safeText(courier.id)
+      );
+      poolError = null;
+      poolSource = "get_courier_deliveries";
+    } else {
+      poolError = deliveriesRpc.error;
+      poolSource = "get_courier_deliveries";
+    }
+  }
 
   if (poolError) {
     loadError = poolError;
+    if (isCourierAccountRequiredError(poolError)) {
+      showToast(COURIER_ACCOUNT_REQUIRED_MESSAGE);
+    } else if (isMissingRpcError(poolError)) {
+      console.warn("[courier load] delivery RPC missing", {
+        source: poolSource,
+        message: safeText(poolError.message),
+        code: poolError.code,
+      });
+    } else {
     const poolMsg = safeText(poolError.message).toLowerCase();
     console.log("[courier load] RPC error", {
       message: safeText(poolError.message),
@@ -14312,6 +14482,7 @@ async function loadCourierAvailableDeliveries() {
         poolError,
         "Teslimatlar yüklenemedi. Supabase'de sql/courier_pool_hotfix.sql çalıştırın."
       );
+    }
     }
   } else if (pool) {
     available = Array.isArray(pool.available) ? pool.available : [];
@@ -15281,10 +15452,18 @@ function formatCourierShiftDuration(minutes) {
 async function loadMyCourierOpsSummary() {
   const { data, error } = await supabaseClient.rpc("get_my_courier_ops_summary");
   if (error) {
+    if (isMissingRpcError(error)) {
+      console.warn("[courier ops] summary RPC missing; fallback summary used");
+      return getEmptyCourierOpsSummary();
+    }
+    if (isCourierAccountRequiredError(error)) {
+      showToast(COURIER_ACCOUNT_REQUIRED_MESSAGE);
+      return getEmptyCourierOpsSummary();
+    }
     console.log("[courier ops] summary", error);
-    return null;
+    return getEmptyCourierOpsSummary();
   }
-  return data || null;
+  return data || getEmptyCourierOpsSummary();
 }
 
 async function startCourierShift() {
@@ -15315,6 +15494,16 @@ async function loadCourierHistoryByPeriod(period) {
   );
 
   if (error) {
+    if (isMissingRpcError(error)) {
+      const fallback = await supabaseClient.rpc("get_courier_deliveries");
+      if (!fallback.error && Array.isArray(fallback.data)) {
+        return enrichDeliveriesWithCustomerProfiles(fallback.data);
+      }
+      if (fallback.error && !isMissingRpcError(fallback.error)) {
+        console.log("[courier history fallback]", fallback.error);
+      }
+      return [];
+    }
     console.log("[courier history period]", error);
     return [];
   }
@@ -15326,6 +15515,9 @@ async function loadCourierHistoryByPeriod(period) {
 async function loadAdminCourierOpsBoard() {
   const { data, error } = await supabaseClient.rpc("get_admin_courier_ops_board");
   if (error) {
+    if (isAdminAccessRequiredError(error) || isMissingRpcError(error)) {
+      return { couriers: [], active_shifts: [], performance_ranking: [] };
+    }
     console.log("[admin courier ops]", error);
     return { couriers: [], active_shifts: [], performance_ranking: [] };
   }
@@ -16461,7 +16653,11 @@ function updateCourierRefreshMeta() {
 function showCourierAccessDenied() {
   const denied = document.getElementById("courierAccessDenied");
   const panel = document.getElementById("courierPanelContent");
-  if (denied) denied.hidden = false;
+  if (denied) {
+    const message = denied.querySelector(".page-message");
+    if (message) message.textContent = COURIER_ACCOUNT_REQUIRED_MESSAGE;
+    denied.hidden = false;
+  }
   if (panel) panel.hidden = true;
 }
 
@@ -16715,6 +16911,17 @@ async function loadAdminDeliveryDispatchBoard() {
   );
 
   if (error) {
+    if (isAdminAccessRequiredError(error)) {
+      showToast("Admin yetkisi gerekli.");
+      return { pool: [], active: [], completed: [] };
+    }
+    if (isMissingRpcError(error)) {
+      console.warn("[admin deliveries] board RPC missing", {
+        message: safeText(error.message),
+        code: error.code,
+      });
+      return { pool: [], active: [], completed: [] };
+    }
     console.log("[admin deliveries] board error", error);
     showSafeError(error, "Teslimat listesi yüklenemedi.");
     return { pool: [], active: [], completed: [] };
@@ -17102,6 +17309,7 @@ const FOOD_DEFAULT_DELIVERY_TIME = "30-45 dk";
 
 const foodPageState = {
   catalog: [],
+  cuisineOptions: [],
   filters: {
     search: "",
     orderType: "all",
@@ -17109,6 +17317,91 @@ const foodPageState = {
     status: "all",
   },
 };
+
+function normalizeFoodFilterText(value) {
+  return safeText(value)
+    .trim()
+    .toLowerCase()
+    .replace(/ã¶|Ã¶/g, "o")
+    .replace(/ã¼|Ã¼/g, "u")
+    .replace(/ä±|Ä±/g, "i")
+    .replace(/ã§|Ã§/g, "c")
+    .replace(/äÿ|ÄŸ|äğ|Äğ/g, "g")
+    .replace(/åÿ|ÅŸ|åğ|Åğ/g, "s")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function findFoodCuisineValue(rawValue, rawLabel, options) {
+  const value = normalizeFoodFilterText(rawValue);
+  const label = normalizeFoodFilterText(rawLabel);
+
+  if (!value || value === "all") return "all";
+
+  const match = (options || []).find(([optionValue, optionLabel]) => {
+    const optionValueText = normalizeFoodFilterText(optionValue);
+    const optionLabelText = normalizeFoodFilterText(optionLabel);
+    return (
+      optionValueText === value ||
+      optionValueText === label ||
+      optionLabelText === value ||
+      optionLabelText === label ||
+      optionValueText.includes(value) ||
+      optionLabelText.includes(label) ||
+      value.includes(optionValueText) ||
+      label.includes(optionLabelText)
+    );
+  });
+
+  return match ? match[0] : value;
+}
+
+function syncFoodCategoryButtons() {
+  const active = normalizeFoodFilterText(foodPageState.filters.cuisine);
+  document.querySelectorAll(".food-cat").forEach((button) => {
+    const label = button.querySelector(".food-cat__lbl");
+    const buttonValue = findFoodCuisineValue(
+      button.dataset.cat || "",
+      label ? label.textContent : "",
+      foodPageState.cuisineOptions
+    );
+    button.classList.toggle(
+      "is-active",
+      normalizeFoodFilterText(buttonValue) === active
+    );
+  });
+}
+
+function setFoodCuisineFilter(value) {
+  foodPageState.filters.cuisine = value || "all";
+  syncFoodCategoryButtons();
+  document.querySelectorAll("#foodCuisineFilters .food-chip").forEach((chip) => {
+    chip.classList.toggle(
+      "is-active",
+      normalizeFoodFilterText(chip.dataset.value) ===
+        normalizeFoodFilterText(foodPageState.filters.cuisine)
+    );
+  });
+  refreshFoodPageSections();
+}
+
+function bindFoodCategoryButtons() {
+  const wrap = document.querySelector(".food-cats");
+  if (!wrap || wrap.dataset.bound === "true") return;
+  wrap.dataset.bound = "true";
+  wrap.addEventListener("click", (event) => {
+    const button = event.target.closest(".food-cat");
+    if (!button) return;
+
+    const label = button.querySelector(".food-cat__lbl");
+    const value = findFoodCuisineValue(
+      button.dataset.cat || "",
+      label ? label.textContent : "",
+      foodPageState.cuisineOptions
+    );
+    setFoodCuisineFilter(value);
+  });
+}
 
 function openFoodVenue(venueId) {
   window.location.href = `./food-venue.html?venue=${encodeURIComponent(venueId)}`;
@@ -17400,12 +17693,24 @@ function getFilteredFoodCatalog() {
     if (orderType === "pickup" && !entry.supportsPickup) return false;
 
     if (cuisine !== "all") {
-      const cat = cuisine.toLowerCase();
-      const venueCat = getVenueCategoryValue(entry.venue);
-      const matchCuisine = (entry.cuisines || []).some(
-        (c) => safeText(c).toLowerCase() === cat
+      const cat = normalizeFoodFilterText(cuisine);
+      const venueCat = normalizeFoodFilterText(
+        getVenueCategoryValue(entry.venue)
       );
-      if (venueCat !== cat && !matchCuisine && entry.cuisineLabel.toLowerCase() !== cat) {
+      const matchCuisine = (entry.cuisines || []).some(
+        (c) => {
+          const value = normalizeFoodFilterText(c);
+          return value === cat || value.includes(cat) || cat.includes(value);
+        }
+      );
+      const label = normalizeFoodFilterText(entry.cuisineLabel);
+      if (
+        venueCat !== cat &&
+        !matchCuisine &&
+        label !== cat &&
+        !label.includes(cat) &&
+        !cat.includes(label)
+      ) {
         return false;
       }
     }
@@ -17424,8 +17729,15 @@ function renderFoodChipGroup(container, options, activeValue, onSelect) {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = `food-chip${activeValue === value ? " is-active" : ""}`;
+    btn.dataset.value = value;
     btn.textContent = label;
-    btn.addEventListener("click", () => onSelect(value));
+    btn.addEventListener("click", () => {
+      container.querySelectorAll(".food-chip").forEach((chip) => {
+        chip.classList.remove("is-active");
+      });
+      btn.classList.add("is-active");
+      onSelect(value);
+    });
     container.appendChild(btn);
   });
 }
@@ -17488,6 +17800,7 @@ async function initFoodPage() {
 
   foodPageState.catalog = await loadFoodRestaurantCatalog();
   const cuisineOptions = buildFoodCuisineFilterOptions(foodPageState.catalog);
+  foodPageState.cuisineOptions = cuisineOptions;
 
   renderFoodChipGroup(
     document.getElementById("foodOrderTypeFilters"),
@@ -17503,10 +17816,7 @@ async function initFoodPage() {
     document.getElementById("foodCuisineFilters"),
     cuisineOptions,
     foodPageState.filters.cuisine,
-    (value) => {
-      foodPageState.filters.cuisine = value;
-      refreshFoodPageSections();
-    }
+    setFoodCuisineFilter
   );
 
   renderFoodChipGroup(
@@ -17528,6 +17838,8 @@ async function initFoodPage() {
     });
   }
 
+  bindFoodCategoryButtons();
+  syncFoodCategoryButtons();
   refreshFoodPageSections();
 }
 
@@ -17551,12 +17863,21 @@ function renderFoodVenueMenuGrouped(items) {
   });
 
   const categories = [...groups.keys()];
-  let activeCategory = categories[0];
+  let activeCategory = "all";
 
   function renderItems() {
     list.innerHTML = "";
-    const groupItems = groups.get(activeCategory) || [];
+    const groupItems =
+      activeCategory === "all"
+        ? items
+        : groups.get(activeCategory) || [];
     const fragment = document.createDocumentFragment();
+
+    if (!groupItems.length) {
+      renderEmptyState(list, "Urun bulunamadi", "Bu kategoride urun yok.");
+      updateRestaurantOrderCartUi();
+      return;
+    }
 
     groupItems.forEach((item) => {
       const card = document.createElement("article");
@@ -17607,15 +17928,16 @@ function renderFoodVenueMenuGrouped(items) {
 
   if (tabs) {
     tabs.innerHTML = "";
-    categories.forEach((cat) => {
+    [["all", "Tumu"], ...categories.map((cat) => [cat, cat])].forEach(([value, label]) => {
       const tab = document.createElement("button");
       tab.type = "button";
-      tab.className = `food-menu-tab${cat === activeCategory ? " is-active" : ""}`;
-      tab.textContent = cat;
+      tab.className = `food-menu-tab${value === activeCategory ? " is-active" : ""}`;
+      tab.dataset.category = value;
+      tab.textContent = label;
       tab.addEventListener("click", () => {
-        activeCategory = cat;
+        activeCategory = value;
         tabs.querySelectorAll(".food-menu-tab").forEach((el) => {
-          el.classList.toggle("is-active", el.textContent === cat);
+          el.classList.toggle("is-active", el.dataset.category === value);
         });
         renderItems();
       });
