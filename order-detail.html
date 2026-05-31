@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="tr">
 
 <head>
@@ -10,41 +10,88 @@
   <link rel="stylesheet" href="./css/style.css" />
   <link rel="stylesheet" href="./css/courier-dispatch.css" />
   <link rel="stylesheet" href="./css/courier-operations.css" />
-<link rel="stylesheet" href="./css/bottom-nav.css" />
+  <link rel="stylesheet" href="./css/orders-premium.css" />
+  <link rel="stylesheet" href="./css/order-detail-premium.css" />
+  <link rel="stylesheet" href="./css/bottom-nav.css" />
 </head>
 
-<body>
-  <nav class="navbar">
-    <h1>TANIDIK</h1>
-    <button class="nav-toggle" type="button" aria-label="Menü" aria-expanded="false">Menü</button>
-    <div class="nav-links">
-      <a href="./orders.html">Siparişlerim</a>
-      <a href="./profile.html" id="authLink">Profil</a>
-    </div>
-  </nav>
+<body class="od-body">
 
-  <main id="orderDetailPage" class="profile-dashboard order-page">
-    <header class="dashboard-header">
-      <span class="dashboard-kicker">Sipariş</span>
-      <h1 id="orderDetailTitle">Sipariş Detayı</h1>
-      <a href="./orders.html" class="secondary-btn profile-back-link">← Siparişlerim</a>
-    </header>
+  <main id="orderDetailPage" class="od-page order-page profile-dashboard">
 
-    <section class="dashboard-section">
-      <div id="orderDetailContent" class="order-detail-card" aria-live="polite"></div>
-      <div id="orderCourierTracking" class="order-courier-tracking dashboard-section" hidden>
-        <h2 id="orderTrackingTitle">Sipariş Durumu</h2>
-        <span id="orderTrackingLiveBadge" class="fulfillment-live-badge" hidden>Bağlanıyor…</span>
-        <ol id="orderCourierTrackingSteps" class="order-courier-tracking__steps"></ol>
-        <p id="orderCourierTrackingNote" class="page-message" hidden></p>
+    <!-- ── Topbar ─────────────────────────────────── -->
+    <div class="od-topbar">
+      <a href="./orders.html" class="od-back-btn profile-back-link" aria-label="Siparişlerime dön">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 12H5M12 5l-7 7 7 7"/>
+        </svg>
+      </a>
+      <h1 id="orderDetailTitle" class="od-topbar-title">Sipariş Detayı</h1>
+      <div class="od-topbar-icon" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+          <polyline points="10 9 9 9 8 9"/>
+        </svg>
       </div>
-      <div id="orderStatusHistory" class="order-history-list"></div>
-    </section>
+    </div>
+
+    <div class="od-body-wrap">
+
+      <!-- ── Order card + address/note (JS renders here) ── -->
+      <div id="orderDetailContent" class="order-detail-card od-detail-content" aria-live="polite"></div>
+
+      <!-- ── Delivery tracking (shown for delivery orders) ── -->
+      <div id="orderCourierTracking" class="order-courier-tracking od-tracking dashboard-section" hidden>
+        <div class="od-tracking-header">
+          <h2 id="orderTrackingTitle" class="od-tracking-title">Sipariş Durumu</h2>
+          <span id="orderTrackingLiveBadge" class="fulfillment-live-badge od-live-badge" hidden>Bağlanıyor…</span>
+        </div>
+        <ol id="orderCourierTrackingSteps" class="order-courier-tracking__steps od-steps"></ol>
+        <p id="orderCourierTrackingNote" class="page-message od-tracking-note" hidden></p>
+      </div>
+
+      <!-- ── Status history (JS renders here) ── -->
+      <div id="orderStatusHistory" class="order-history-list od-history"></div>
+
+    </div>
+
   </main>
+
+  <!-- Alt menü -->
+  <nav class="bnav mobile-bottom-nav" aria-label="Ana navigasyon">
+    <a href="./index.html" class="bnav-item" data-nav-page="index.html">
+      <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1z"/><path d="M9 21V12h6v9"/></svg></span>
+      <span class="bnav-label">Ana Sayfa</span>
+    </a>
+    <a href="./discover.html" class="bnav-item" data-nav-page="discover.html">
+      <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+      <span class="bnav-label">Keşfet</span>
+    </a>
+    <a href="./store.html" class="bnav-item" data-nav-page="store.html">
+      <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></span>
+      <span class="bnav-label">Mağaza</span>
+    </a>
+    <a href="./food.html" class="bnav-item" data-nav-page="food.html">
+      <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></span>
+      <span class="bnav-label">Yemek</span>
+    </a>
+    <a href="./messages.html" class="bnav-item" data-nav-page="messages.html">
+      <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></span>
+      <span class="bnav-label">Mesajlar</span>
+    </a>
+    <a href="./profile.html" class="bnav-item" data-nav-page="profile.html">
+      <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+      <span class="bnav-label">Profil</span>
+    </a>
+  </nav>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script src="./js/app.js"></script>
   <div id="toast" class="toast"></div>
+
 </body>
 
 </html>

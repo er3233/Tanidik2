@@ -1,103 +1,446 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="tr">
 
 <head>
   <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  />
-  <title>My Reservations | TANIDIK</title>
-  <meta
-    name="description"
-    content="View your TANIDIK reservation history and booking statuses."
-  />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rezervasyonlarım | TANIDIK</title>
+  <meta name="description" content="TANIDIK rezervasyon geçmişi ve durumları." />
   <meta name="theme-color" content="#050505" />
   <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
   <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="./assets/icon-192.png" />
   <link rel="stylesheet" href="./css/style.css" />
-<link rel="stylesheet" href="./css/bottom-nav.css" />
+  <link rel="stylesheet" href="./css/reservations-premium.css" />
+  <link rel="stylesheet" href="./css/bottom-nav.css" />
 </head>
 
-<body>
-  <nav class="navbar">
-    <h1>TANIDIK</h1>
-    <button
-      class="nav-toggle"
-      type="button"
-      aria-label="Toggle navigation"
-      aria-expanded="false"
-    >
-      Menu
-    </button>
-    <div class="nav-links">
-      <a href="./index.html">Home</a>
-      <a href="./discover.html">Discover</a>
-      <a href="./food.html" data-nav-page="food.html">Yemek</a>
-      <a href="./events.html">Events</a>
-      <a href="./favorites.html">Favorites</a>
-      <a href="./profile.html" id="authLink">Profile</a>
-    </div>
-  </nav>
+<body class="rv-body">
 
-  <main
-    id="myReservationsPage"
-    class="profile-dashboard profile-library-page"
-  >
-    <header class="dashboard-header">
-      <span class="dashboard-kicker">Profile</span>
-      <h1>My Reservations</h1>
-      <p class="page-message">
-        Review booking statuses and cancel pending requests when plans change.
-      </p>
-      <a
-        href="./profile.html"
-        class="secondary-btn profile-back-link"
-      >
-        Back to Profile
+  <main id="myReservationsPage" class="rv-page profile-dashboard profile-library-page">
+
+    <!-- ── Topbar ─────────────────────────────── -->
+    <div class="rv-topbar">
+      <a href="./profile.html" class="rv-back-btn profile-back-link" aria-label="Profile dön">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 12H5M12 5l-7 7 7 7"/>
+        </svg>
       </a>
-    </header>
-
-    <section class="profile-reservations-section dashboard-section dashboard-section--reservations">
-      <div
-        id="profileReservationsList"
-        class="reservation-list"
-      >
+      <h1 class="rv-topbar-title">Rezervasyonlarım</h1>
+      <div class="rv-topbar-icon" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/>
+          <line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
       </div>
-    </section>
+    </div>
+
+    <!-- ── Takvim ──────────────────────────────── -->
+    <div class="rv-cal-section">
+      <div class="rv-cal-nav">
+        <button id="rvCalPrev" class="rv-cal-nav-btn" type="button" aria-label="Önceki ay">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <span id="rvCalMonthLabel" class="rv-cal-month-label"></span>
+        <button id="rvCalNext" class="rv-cal-nav-btn" type="button" aria-label="Sonraki ay">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      </div>
+      <div id="rvCalendar" class="rv-calendar" aria-label="Rezervasyon takvimi" style="max-width:100%;overflow:hidden;"></div>
+      <div class="rv-cal-legend">
+        <span class="rv-legend rv-legend--approved">
+          <span class="rv-legend-dot"></span>Onaylandı
+        </span>
+        <span class="rv-legend rv-legend--pending">
+          <span class="rv-legend-dot"></span>Beklemede
+        </span>
+        <span class="rv-legend rv-legend--rejected">
+          <span class="rv-legend-dot"></span>Reddedildi/İptal
+        </span>
+      </div>
+    </div>
+
+    <!-- ── Filtre tabları ─────────────────────── -->
+    <div class="rv-tabs-wrap">
+      <div class="rv-tabs">
+        <button class="rv-tab is-active" type="button" data-rv-filter="all">Tümü</button>
+        <button class="rv-tab" type="button" data-rv-filter="approved">
+          <span class="rv-tab-dot rv-tab-dot--approved"></span>Onaylananlar
+        </button>
+        <button class="rv-tab" type="button" data-rv-filter="pending">
+          <span class="rv-tab-dot rv-tab-dot--pending"></span>Bekleyenler
+        </button>
+        <button class="rv-tab" type="button" data-rv-filter="rejected">
+          <span class="rv-tab-dot rv-tab-dot--rejected"></span>İptal/Red
+        </button>
+      </div>
+    </div>
+
+    <!-- Seçili gün başlığı -->
+    <div id="rvSelectedDate" class="rv-selected-date" hidden>
+      <span id="rvSelectedDateText"></span>
+      <button id="rvClearDate" class="rv-clear-date" type="button">✕ Temizle</button>
+    </div>
+
+    <!-- ── Rezervasyon listesi (JS renders here) ── -->
+    <div class="rv-list-wrap">
+      <div id="profileReservationsList" class="reservation-list rv-list" aria-live="polite"></div>
+    </div>
+
   </main>
 
+  <!-- Alt menü -->
   <nav class="bnav mobile-bottom-nav" aria-label="Ana navigasyon">
-  <a href="./index.html" class="bnav-item" data-nav-page="index.html">
-    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1z"/><path d="M9 21V12h6v9"/></svg></span>
-    <span class="bnav-label">Ana Sayfa</span>
-  </a>
-  <a href="./discover.html" class="bnav-item" data-nav-page="discover.html">
-    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-    <span class="bnav-label">Keşfet</span>
-  </a>
-  <a href="./store.html" class="bnav-item" data-nav-page="store.html">
-    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></span>
-    <span class="bnav-label">Mağaza</span>
-  </a>
-  <a href="./food.html" class="bnav-item" data-nav-page="food.html">
-    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></span>
-    <span class="bnav-label">Yemek</span>
-  </a>
-  <a href="./messages.html" class="bnav-item" data-nav-page="messages.html">
-    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></span>
-    <span class="bnav-label">Mesajlar</span>
-  </a>
-  <a href="./profile.html" class="bnav-item" data-nav-page="profile.html">
-    <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
-    <span class="bnav-label">Profil</span>
-  </a>
-</nav>
+    <a href="./index.html" class="bnav-item" data-nav-page="index.html">
+      <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1z"/><path d="M9 21V12h6v9"/></svg></span>
+      <span class="bnav-label">Ana Sayfa</span>
+    </a>
+    <a href="./discover.html" class="bnav-item" data-nav-page="discover.html">
+      <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+      <span class="bnav-label">Keşfet</span>
+    </a>
+    <a href="./store.html" class="bnav-item" data-nav-page="store.html">
+      <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></span>
+      <span class="bnav-label">Mağaza</span>
+    </a>
+    <a href="./food.html" class="bnav-item" data-nav-page="food.html">
+      <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></span>
+      <span class="bnav-label">Yemek</span>
+    </a>
+    <a href="./messages.html" class="bnav-item" data-nav-page="messages.html">
+      <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></span>
+      <span class="bnav-label">Mesajlar</span>
+    </a>
+    <a href="./profile.html" class="bnav-item" data-nav-page="profile.html">
+      <span class="bnav-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+      <span class="bnav-label">Profil</span>
+    </a>
+  </nav>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script src="./js/app.js"></script>
+
+  <!-- Takvim + filtre JS -->
+  <script>
+  (function () {
+    /* ── State ── */
+    var calYear  = new Date().getFullYear();
+    var calMonth = new Date().getMonth(); // 0-indexed
+    var activeFilter  = 'all';
+    var activeDateKey = null; // 'YYYY-MM-DD' or null
+
+    var TR_MONTHS = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran',
+                     'Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+    var TR_DAYS   = ['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'];
+
+    /* ── Helpers ── */
+    function parseDate(str) {
+      if (!str || str === 'Belirtilmedi') return null;
+      var m;
+      // YYYY-MM-DD
+      m = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (m) return new Date(+m[1], +m[2]-1, +m[3]);
+      // DD.MM.YYYY or DD/MM/YYYY
+      m = str.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})$/);
+      if (m) return new Date(+m[3], +m[2]-1, +m[1]);
+      // Try native parse
+      var d = new Date(str);
+      return isNaN(d) ? null : d;
+    }
+
+    function toKey(d) {
+      return d.getFullYear() + '-' +
+        String(d.getMonth()+1).padStart(2,'0') + '-' +
+        String(d.getDate()).padStart(2,'0');
+    }
+
+    /* ── Extract reservations from rendered DOM cards ── */
+    function extractReservations() {
+      var map = {}; // dateKey -> [status,...]
+      var list = document.getElementById('profileReservationsList');
+      if (!list) return map;
+      var cards = list.querySelectorAll('.reservation-card');
+      cards.forEach(function(card) {
+        // get status
+        var statusCls = Array.from(card.classList)
+          .find(function(c){ return c.startsWith('status-'); });
+        var status = statusCls ? statusCls.replace('status-','') : 'pending';
+
+        // get date from meta — label "Date" span + value strong
+        var metaItems = card.querySelectorAll('.reservation-meta-item');
+        var dateVal = null;
+        metaItems.forEach(function(item) {
+          var lbl = item.querySelector('span');
+          var val = item.querySelector('strong');
+          if (lbl && val && lbl.textContent.trim() === 'Date') {
+            dateVal = val.textContent.trim();
+          }
+        });
+
+        if (dateVal) {
+          var d = parseDate(dateVal);
+          if (d) {
+            var key = toKey(d);
+            if (!map[key]) map[key] = [];
+            map[key].push(status);
+          }
+        }
+      });
+      return map;
+    }
+
+    /* ── Navigate to month that has most reservations ── */
+    function autoNavigate(dateMap) {
+      var keys = Object.keys(dateMap);
+      if (!keys.length) return;
+      // Find most recent upcoming or latest past month
+      var now = new Date();
+      var best = null;
+      keys.forEach(function(k) {
+        var d = parseDate(k);
+        if (!d) return;
+        if (!best) { best = d; return; }
+        // Prefer future dates, then most recent past
+        var bDiff = best - now;
+        var dDiff = d - now;
+        if (dDiff >= 0 && bDiff < 0) { best = d; return; }
+        if (dDiff >= 0 && bDiff >= 0 && dDiff < bDiff) { best = d; return; }
+        if (dDiff < 0 && bDiff < 0 && dDiff > bDiff) { best = d; return; }
+      });
+      if (best) {
+        calYear  = best.getFullYear();
+        calMonth = best.getMonth();
+      }
+    }
+
+    /* ── Build calendar ── */
+    function buildCalendar() {
+      var cal   = document.getElementById('rvCalendar');
+      var label = document.getElementById('rvCalMonthLabel');
+      if (!cal || !label) return;
+
+      label.textContent = TR_MONTHS[calMonth] + ' ' + calYear;
+
+      var dateMap = extractReservations();
+      var today   = new Date();
+      var todayKey = toKey(today);
+
+      var html = '<div class="rv-cal-grid">';
+
+      // Day headers
+      TR_DAYS.forEach(function(d) {
+        html += '<div class="rv-cal-dow">' + d + '</div>';
+      });
+
+      // First day of month (0=Sun, adjust to Mon=0)
+      var firstDay = new Date(calYear, calMonth, 1).getDay();
+      firstDay = (firstDay + 6) % 7; // Mon=0
+
+      // Empty cells
+      for (var i = 0; i < firstDay; i++) {
+        html += '<div class="rv-cal-empty"></div>';
+      }
+
+      // Days
+      var daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+      for (var day = 1; day <= daysInMonth; day++) {
+        var key = calYear + '-' +
+          String(calMonth+1).padStart(2,'0') + '-' +
+          String(day).padStart(2,'0');
+        var statuses = dateMap[key] || [];
+        var isToday  = key === todayKey;
+        var isActive = key === activeDateKey;
+        var hasRsv   = statuses.length > 0;
+
+        var cls = 'rv-cal-day';
+        if (isToday)  cls += ' rv-cal-day--today';
+        if (isActive) cls += ' rv-cal-day--active';
+        if (hasRsv)   cls += ' rv-cal-day--has-rsv';
+
+        html += '<button class="' + cls + '" type="button" data-date="' + key + '">';
+        html += '<span class="rv-cal-day-num">' + day + '</span>';
+
+        if (statuses.length) {
+          // max 3 dots
+          var shown = statuses.slice(0, 3);
+          html += '<div class="rv-cal-dots">';
+          shown.forEach(function(s) {
+            html += '<span class="rv-cal-dot rv-cal-dot--' + s + '"></span>';
+          });
+          html += '</div>';
+        }
+
+        html += '</button>';
+      }
+
+      html += '</div>';
+      cal.innerHTML = html;
+
+      // Click handlers on day cells
+      cal.querySelectorAll('.rv-cal-day').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var date = btn.dataset.date;
+          var statuses = dateMap[date] || [];
+          if (!statuses.length) return;
+          if (activeDateKey === date) {
+            activeDateKey = null;
+            document.getElementById('rvSelectedDate').hidden = true;
+          } else {
+            activeDateKey = date;
+            showSelectedDate(date);
+          }
+          buildCalendar();
+          applyFilters();
+        });
+      });
+    }
+
+    function showSelectedDate(key) {
+      var d = parseDate(key);
+      if (!d) return;
+      var dateStr = d.getDate() + ' ' + TR_MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+      var el = document.getElementById('rvSelectedDate');
+      var txt = document.getElementById('rvSelectedDateText');
+      if (txt) txt.textContent = '📅 ' + dateStr + ' rezervasyonları';
+      if (el) el.hidden = false;
+    }
+
+    /* ── Month navigation ── */
+    var prevBtn = document.getElementById('rvCalPrev');
+    var nextBtn = document.getElementById('rvCalNext');
+
+    if (prevBtn) {
+      prevBtn.addEventListener('click', function() {
+        calMonth--;
+        if (calMonth < 0) { calMonth = 11; calYear--; }
+        activeDateKey = null;
+        document.getElementById('rvSelectedDate').hidden = true;
+        buildCalendar();
+        applyFilters();
+      });
+    }
+
+    if (nextBtn) {
+      nextBtn.addEventListener('click', function() {
+        calMonth++;
+        if (calMonth > 11) { calMonth = 0; calYear++; }
+        activeDateKey = null;
+        document.getElementById('rvSelectedDate').hidden = true;
+        buildCalendar();
+        applyFilters();
+      });
+    }
+
+    /* ── Clear date filter ── */
+    var clearBtn = document.getElementById('rvClearDate');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', function() {
+        activeDateKey = null;
+        document.getElementById('rvSelectedDate').hidden = true;
+        buildCalendar();
+        applyFilters();
+      });
+    }
+
+    /* ── Status tabs ── */
+    document.querySelectorAll('[data-rv-filter]').forEach(function(tab) {
+      tab.addEventListener('click', function() {
+        document.querySelectorAll('[data-rv-filter]')
+          .forEach(function(t){ t.classList.remove('is-active'); });
+        tab.classList.add('is-active');
+        activeFilter = tab.dataset.rvFilter;
+        applyFilters();
+      });
+    });
+
+    /* ── Apply both filters (status + date) ── */
+    function applyFilters() {
+      var list = document.getElementById('profileReservationsList');
+      if (!list) return;
+
+      var CANCELLED = ['rejected', 'cancelled'];
+      var cards = list.querySelectorAll('.reservation-card');
+      var visible = 0;
+
+      cards.forEach(function(card) {
+        var statusCls = Array.from(card.classList)
+          .find(function(c){ return c.startsWith('status-'); });
+        var status = statusCls ? statusCls.replace('status-','') : 'pending';
+
+        // Status filter
+        var statusOk;
+        if (activeFilter === 'all')      statusOk = true;
+        else if (activeFilter === 'approved')  statusOk = status === 'approved';
+        else if (activeFilter === 'pending')   statusOk = status === 'pending';
+        else if (activeFilter === 'rejected')  statusOk = CANCELLED.indexOf(status) !== -1;
+        else statusOk = true;
+
+        // Date filter
+        var dateOk = true;
+        if (activeDateKey) {
+          var metaItems = card.querySelectorAll('.reservation-meta-item');
+          var dateVal = null;
+          metaItems.forEach(function(item) {
+            var lbl = item.querySelector('span');
+            var val = item.querySelector('strong');
+            if (lbl && val && lbl.textContent.trim() === 'Date') {
+              dateVal = val.textContent.trim();
+            }
+          });
+          if (dateVal) {
+            var d = parseDate(dateVal);
+            dateOk = d && toKey(d) === activeDateKey;
+          } else {
+            dateOk = false;
+          }
+        }
+
+        var show = statusOk && dateOk;
+        card.style.display = show ? '' : 'none';
+        if (show) visible++;
+      });
+
+      // Empty state
+      var existing = list.querySelector('.rv-filter-empty');
+      if (visible === 0 && cards.length > 0) {
+        if (!existing) {
+          var d = document.createElement('div');
+          d.className = 'rv-filter-empty';
+          d.innerHTML = '<span>Bu kriterlere uygun rezervasyon yok</span>';
+          list.appendChild(d);
+        }
+      } else if (existing) {
+        existing.remove();
+      }
+    }
+
+    /* ── MutationObserver: rebuild when JS renders cards ── */
+    var list = document.getElementById('profileReservationsList');
+    if (list) {
+      var timer;
+      new MutationObserver(function() {
+        clearTimeout(timer);
+        timer = setTimeout(function() {
+          var cards = list.querySelectorAll('.reservation-card');
+          if (cards.length > 0) {
+            var dateMap = extractReservations();
+            // Auto-navigate to first reservation month
+            autoNavigate(dateMap);
+          }
+          buildCalendar();
+          applyFilters();
+        }, 150);
+      }).observe(list, { childList: true, subtree: true });
+    }
+
+    // Initial calendar render
+    buildCalendar();
+  })();
+  </script>
+
   <div id="toast" class="toast"></div>
+
 </body>
 
 </html>

@@ -1,0 +1,572 @@
+/* ════════════════════════════════════════════
+   TANIDIK Rezervasyonlarım Premium
+   Takvim + filtre + kompakt kartlar
+   ════════════════════════════════════════════ */
+
+/* ── Page base ─────────────────────────────── */
+.rv-body { background: #050505; }
+
+.rv-page {
+  min-height: 100dvh;
+  padding: 0 0 110px !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+}
+
+/* ── Topbar ────────────────────────────────── */
+.rv-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(0.9rem + env(safe-area-inset-top, 0px)) 1rem 0.7rem;
+  background: rgba(5, 5, 8, 0.96);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.rv-topbar::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1.5px;
+  background: linear-gradient(90deg,
+    transparent, rgba(201,162,39,0.55) 30%,
+    rgba(245,208,96,0.9) 50%,
+    rgba(201,162,39,0.55) 70%, transparent
+  );
+}
+
+.rv-back-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.rv-back-btn:hover { background: rgba(255,255,255,0.1); }
+
+.rv-topbar-title {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #fff;
+  margin: 0;
+}
+
+.rv-topbar-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(201, 162, 39, 0.07);
+  border: 1px solid rgba(201, 162, 39, 0.18);
+  color: #c9a227;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── Calendar section ──────────────────────── */
+.rv-cal-section {
+  padding: 0.75rem;
+  background: #0a0a0e;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Month nav */
+.rv-cal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.rv-cal-nav-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.rv-cal-nav-btn:hover {
+  background: rgba(201, 162, 39, 0.1);
+  border-color: rgba(201, 162, 39, 0.25);
+  color: #c9a227;
+}
+
+.rv-cal-month-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.88);
+  letter-spacing: 0.04em;
+}
+
+/* Calendar grid */
+.rv-calendar { width: 100%; }
+
+.rv-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+/* Day-of-week headers */
+.rv-cal-dow {
+  text-align: center;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.3);
+  text-transform: uppercase;
+  padding: 4px 0;
+}
+
+/* Empty cells */
+.rv-cal-empty {
+  aspect-ratio: 1;
+}
+
+/* Day cells */
+.rv-cal-day {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  cursor: pointer;
+  padding: 2px;
+  transition: background 0.12s, border-color 0.12s;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.rv-cal-day:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.rv-cal-day--has-rsv {
+  cursor: pointer;
+}
+
+.rv-cal-day--today .rv-cal-day-num {
+  background: rgba(201, 162, 39, 0.15);
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f5d060;
+  font-weight: 800;
+}
+
+.rv-cal-day--active {
+  background: rgba(201, 162, 39, 0.12) !important;
+  border-color: rgba(201, 162, 39, 0.4) !important;
+}
+
+.rv-cal-day--active .rv-cal-day-num {
+  color: #f5d060;
+  font-weight: 800;
+}
+
+.rv-cal-day-num {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1;
+}
+
+/* Reservation dots */
+.rv-cal-dots {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  justify-content: center;
+  height: 6px;
+}
+
+.rv-cal-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.rv-cal-dot--approved  { background: #4ade80; box-shadow: 0 0 4px rgba(74,222,128,0.6); }
+.rv-cal-dot--pending   { background: #fbbf24; box-shadow: 0 0 4px rgba(251,191,36,0.6); }
+.rv-cal-dot--rejected,
+.rv-cal-dot--cancelled { background: #f87171; box-shadow: 0 0 4px rgba(248,113,113,0.5); }
+
+/* ── Legend ────────────────────────────────── */
+.rv-cal-legend {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+  align-items: center;
+  margin-top: 0.55rem;
+  padding: 0.45rem 0 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  flex-wrap: wrap;
+}
+
+.rv-legend {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.rv-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.rv-legend--approved .rv-legend-dot {
+  background: rgba(34, 197, 94, 0.8);
+  box-shadow: 0 0 6px rgba(74,222,128,0.5);
+}
+.rv-legend--pending .rv-legend-dot {
+  background: rgba(251, 191, 36, 0.8);
+  box-shadow: 0 0 6px rgba(251,191,36,0.5);
+}
+.rv-legend--rejected .rv-legend-dot {
+  background: rgba(248, 113, 113, 0.7);
+  box-shadow: 0 0 6px rgba(248,113,113,0.4);
+}
+
+/* ── Filter tabs ───────────────────────────── */
+.rv-tabs-wrap {
+  padding: 0.6rem 0.75rem 0.45rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(5, 5, 8, 0.7);
+}
+
+.rv-tabs {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.rv-tabs::-webkit-scrollbar { display: none; }
+
+.rv-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.52);
+  border-radius: 999px;
+  padding: 0.32rem 0.8rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: "Syne", sans-serif;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.rv-tab.is-active {
+  border-color: #c9a227;
+  background: rgba(201, 162, 39, 0.12);
+  color: #f5e6b8;
+}
+
+.rv-tab-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.rv-tab-dot--approved { background: #4ade80; box-shadow: 0 0 4px rgba(74,222,128,0.7); }
+.rv-tab-dot--pending  { background: #fbbf24; box-shadow: 0 0 4px rgba(251,191,36,0.7); }
+.rv-tab-dot--rejected { background: #f87171; box-shadow: 0 0 4px rgba(248,113,113,0.6); }
+
+/* ── Selected date bar ─────────────────────── */
+.rv-selected-date {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0.5rem 0.75rem;
+  background: rgba(201, 162, 39, 0.07);
+  border-bottom: 1px solid rgba(201, 162, 39, 0.15);
+}
+
+#rvSelectedDateText {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #f5d060;
+}
+
+.rv-clear-date {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.4);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+  transition: color 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.rv-clear-date:hover { color: rgba(255,255,255,0.7); }
+
+/* ── List wrapper ──────────────────────────── */
+.rv-list-wrap { padding: 0.65rem 0.75rem; }
+
+.rv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* ── Reservation card (kompakt) ────────────── */
+.reservation-card {
+  background: #0d0d11 !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  overflow: hidden !important;
+  transition: border-color 0.18s, box-shadow 0.18s !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.reservation-card:hover {
+  border-color: rgba(201, 162, 39, 0.2) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Color left stripe based on status */
+.reservation-card.status-approved   { border-left: 3px solid rgba(74, 222, 128, 0.6) !important; }
+.reservation-card.status-pending    { border-left: 3px solid rgba(251, 191, 36, 0.6) !important; }
+.reservation-card.status-rejected,
+.reservation-card.status-cancelled  { border-left: 3px solid rgba(248, 113, 113, 0.5) !important; }
+
+/* Card header */
+.reservation-card-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  padding: 11px 14px 8px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.reservation-card-header h3 {
+  font-size: 0.88rem !important;
+  font-weight: 700 !important;
+  color: rgba(255, 255, 255, 0.92) !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+/* ── Status badges ─────────────────────────── */
+.status-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  font-size: 0.65rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em !important;
+  padding: 0.2rem 0.55rem !important;
+  border-radius: 999px !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+.status-badge.status-approved {
+  background: rgba(34, 197, 94, 0.12) !important;
+  border: 1px solid rgba(34, 197, 94, 0.3) !important;
+  color: #4ade80 !important;
+}
+.status-badge.status-approved::before { content: "✓ "; }
+
+.status-badge.status-pending {
+  background: rgba(251, 191, 36, 0.1) !important;
+  border: 1px solid rgba(251, 191, 36, 0.32) !important;
+  color: #fbbf24 !important;
+}
+.status-badge.status-pending::before { content: "⏳ "; }
+
+.status-badge.status-rejected {
+  background: rgba(239, 68, 68, 0.1) !important;
+  border: 1px solid rgba(239, 68, 68, 0.28) !important;
+  color: #f87171 !important;
+}
+.status-badge.status-rejected::before { content: "✕ "; }
+
+.status-badge.status-cancelled {
+  background: rgba(107, 114, 128, 0.1) !important;
+  border: 1px solid rgba(107, 114, 128, 0.25) !important;
+  color: rgba(255, 255, 255, 0.38) !important;
+}
+.status-badge.status-cancelled::before { content: "✕ "; }
+
+/* Meta grid — 3 columns (Date / Time / Guests) */
+.reservation-meta-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 0 !important;
+  padding: 8px 14px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
+}
+
+.reservation-meta-item {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+  padding: 3px 0 !important;
+}
+
+.reservation-meta-item:not(:last-child) {
+  border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+  padding-right: 8px !important;
+}
+
+.reservation-meta-item:not(:first-child) {
+  padding-left: 8px !important;
+}
+
+.reservation-meta-item > span {
+  font-size: 0.58rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: rgba(255, 255, 255, 0.3) !important;
+  line-height: 1.2 !important;
+}
+
+.reservation-meta-item > strong {
+  font-size: 0.78rem !important;
+  font-weight: 600 !important;
+  color: rgba(255, 255, 255, 0.78) !important;
+  line-height: 1.3 !important;
+}
+
+/* Note */
+.reservation-note {
+  padding: 7px 14px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
+}
+
+.reservation-note > span {
+  font-size: 0.58rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+  color: rgba(255, 255, 255, 0.28) !important;
+  font-weight: 700 !important;
+  display: block !important;
+  margin-bottom: 2px !important;
+}
+
+.reservation-note > p {
+  font-size: 0.78rem !important;
+  color: rgba(255, 255, 255, 0.55) !important;
+  margin: 0 !important;
+  line-height: 1.45 !important;
+}
+
+/* Actions (cancel button) */
+.reservation-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 8px 14px !important;
+}
+
+.reservation-cancel-btn {
+  height: 30px !important;
+  padding: 0 12px !important;
+  border-radius: 7px !important;
+  background: rgba(239, 68, 68, 0.07) !important;
+  border: 1px solid rgba(239, 68, 68, 0.2) !important;
+  color: rgba(248, 113, 113, 0.8) !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  font-family: "Syne", sans-serif !important;
+  transition: background 0.15s, border-color 0.15s !important;
+}
+
+.reservation-cancel-btn:hover {
+  background: rgba(239, 68, 68, 0.14) !important;
+  border-color: rgba(239, 68, 68, 0.38) !important;
+}
+
+/* Empty filter message */
+.rv-filter-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.rv-filter-empty span {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.28);
+}
+
+/* ── Empty state (JS renderEmptyState) ─────── */
+.rv-list > div:not(.reservation-card):not(.rv-filter-empty) {
+  padding: 2.5rem 1rem;
+  text-align: center;
+}
+
+.rv-list > div:not(.reservation-card):not(.rv-filter-empty) h2,
+.rv-list > div:not(.reservation-card):not(.rv-filter-empty) p {
+  color: rgba(255, 255, 255, 0.3) !important;
+  font-size: 0.82rem !important;
+}
+
+/* ── Conflict resets ───────────────────────── */
+.rv-page .dashboard-section,
+.rv-page .dashboard-header {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+}
+
+.rv-page .profile-reservations-section {
+  all: unset !important;
+}

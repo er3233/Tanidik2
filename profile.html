@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
@@ -539,9 +539,7 @@
     badge.dataset.level = tier;
     if (icon) icon.textContent = emoji;
   }
-  /* Run after app.js fills counts */
   window.addEventListener("load", function () { setTimeout(setLevel, 1200); });
-  /* Also watch for DOM changes */
   var el = document.getElementById("profileReviewsCount");
   if (el) {
     new MutationObserver(function () { setLevel(); })

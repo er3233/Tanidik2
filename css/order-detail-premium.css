@@ -1,0 +1,483 @@
+/* ════════════════════════════════════════════
+   TANIDIK Sipariş Detayı Premium
+   Timeline + tracking + history
+   ════════════════════════════════════════════ */
+
+/* ── Page base ─────────────────────────────── */
+.od-body { background: #050505; }
+
+.od-page {
+  min-height: 100dvh;
+  padding: 0 0 110px !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+}
+
+/* ── Topbar ────────────────────────────────── */
+.od-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(0.9rem + env(safe-area-inset-top, 0px)) 1rem 0.7rem;
+  background: rgba(5, 5, 8, 0.96);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.od-topbar::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1.5px;
+  background: linear-gradient(90deg,
+    transparent, rgba(201,162,39,0.55) 30%,
+    rgba(245,208,96,0.9) 50%,
+    rgba(201,162,39,0.55) 70%, transparent
+  );
+}
+
+.od-back-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.od-back-btn:hover { background: rgba(255,255,255,0.1); }
+
+.od-topbar-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: #fff;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 55%;
+  text-align: center;
+}
+
+.od-topbar-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(201, 162, 39, 0.07);
+  border: 1px solid rgba(201, 162, 39, 0.18);
+  color: #c9a227;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── Content wrapper ───────────────────────── */
+.od-body-wrap {
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* ── Detail content (order card + addr/note) ─ */
+.od-detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* The .order-card inside is already styled by orders-premium.css */
+.od-detail-content .order-card {
+  margin-bottom: 0 !important;
+}
+
+/* Address + note meta lines (p.order-card-meta rendered by JS) */
+.od-detail-content > p.order-card-meta {
+  margin: 0 !important;
+  padding: 10px 16px !important;
+  background: rgba(255, 255, 255, 0.025) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-top: none !important;
+  border-radius: 0 0 14px 14px !important;
+  font-size: 0.8rem !important;
+  color: rgba(255, 255, 255, 0.52) !important;
+  line-height: 1.5 !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 8px !important;
+}
+
+/* Address line icon */
+.od-detail-content > p.order-card-meta:first-of-type::before {
+  content: "";
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='rgba(201,162,39,0.6)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z'/%3E%3Ccircle cx='12' cy='10' r='3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* ── Live badge ────────────────────────────── */
+.od-live-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  font-size: 0.65rem !important;
+  font-weight: 700 !important;
+  padding: 0.2rem 0.6rem !important;
+  border-radius: 999px !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+}
+
+.od-live-badge.is-live {
+  background: rgba(34, 197, 94, 0.12) !important;
+  border: 1px solid rgba(34, 197, 94, 0.3) !important;
+  color: #4ade80 !important;
+}
+
+.od-live-badge.is-live::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #4ade80;
+  box-shadow: 0 0 6px rgba(74, 222, 128, 0.8);
+  animation: od-pulse 1.5s ease-in-out infinite;
+}
+
+.od-live-badge.is-fallback {
+  background: rgba(251, 191, 36, 0.1) !important;
+  border: 1px solid rgba(251, 191, 36, 0.3) !important;
+  color: #fbbf24 !important;
+}
+
+.od-live-badge:not(.is-live):not(.is-fallback) {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+@keyframes od-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+/* ── Tracking section ──────────────────────── */
+.od-tracking {
+  background: #0d0d11 !important;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  border-radius: 16px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Tracking section reset (dashboard-section conflict) */
+.od-tracking.dashboard-section {
+  padding: 0 !important;
+  border-radius: 16px !important;
+}
+
+.od-tracking-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.od-tracking-title {
+  font-size: 0.82rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.07em !important;
+  text-transform: uppercase !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+}
+
+.od-tracking-title::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23c9a227' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpolyline points='12 6 12 12 16 14'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* ── Delivery tracking steps (vertical timeline) */
+.od-steps {
+  list-style: none !important;
+  padding: 16px 16px 12px !important;
+  margin: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+  position: relative !important;
+}
+
+/* Vertical connector line */
+.od-steps::before {
+  content: "";
+  position: absolute;
+  left: calc(16px + 11px); /* padding-left + half of marker */
+  top: 24px;
+  bottom: 24px;
+  width: 2px;
+  background: linear-gradient(
+    to bottom,
+    rgba(201, 162, 39, 0.3),
+    rgba(255, 255, 255, 0.06)
+  );
+}
+
+.order-courier-tracking__step {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 14px !important;
+  padding: 8px 0 !important;
+  position: relative !important;
+  z-index: 1 !important;
+  transition: opacity 0.2s !important;
+}
+
+/* Marker dot */
+.order-courier-tracking__marker {
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 0.65rem !important;
+  font-weight: 800 !important;
+  flex-shrink: 0 !important;
+  position: relative !important;
+  z-index: 2 !important;
+  transition: background 0.2s, border-color 0.2s !important;
+}
+
+/* Done step */
+.order-courier-tracking__step.is-done .order-courier-tracking__marker {
+  background: linear-gradient(135deg, #9a7010, #c9a227) !important;
+  border: 2px solid rgba(201, 162, 39, 0.4) !important;
+  color: #0a0700 !important;
+  box-shadow: 0 0 8px rgba(201, 162, 39, 0.3) !important;
+}
+
+/* Current step */
+.order-courier-tracking__step.is-current .order-courier-tracking__marker {
+  background: linear-gradient(135deg, #f0c84a, #f8d36b) !important;
+  border: 2px solid rgba(245, 208, 96, 0.6) !important;
+  color: #0a0700 !important;
+  box-shadow:
+    0 0 0 4px rgba(201, 162, 39, 0.15),
+    0 0 16px rgba(201, 162, 39, 0.4) !important;
+  animation: od-current-pulse 2s ease-in-out infinite !important;
+}
+
+@keyframes od-current-pulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(201,162,39,0.15), 0 0 16px rgba(201,162,39,0.4); }
+  50%       { box-shadow: 0 0 0 7px rgba(201,162,39,0.08), 0 0 24px rgba(201,162,39,0.55); }
+}
+
+/* Upcoming step */
+.order-courier-tracking__step.is-upcoming .order-courier-tracking__marker {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 2px solid rgba(255, 255, 255, 0.12) !important;
+  color: transparent !important;
+}
+
+/* Label */
+.order-courier-tracking__label {
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  padding-top: 3px !important;
+  line-height: 1.3 !important;
+  transition: color 0.2s !important;
+}
+
+.order-courier-tracking__step.is-done .order-courier-tracking__label {
+  color: rgba(255, 255, 255, 0.65) !important;
+}
+
+.order-courier-tracking__step.is-current .order-courier-tracking__label {
+  color: #f5d060 !important;
+  font-weight: 800 !important;
+}
+
+.order-courier-tracking__step.is-upcoming .order-courier-tracking__label {
+  color: rgba(255, 255, 255, 0.28) !important;
+}
+
+/* Terminal message */
+.order-courier-tracking__terminal {
+  margin: 0 16px 16px !important;
+  padding: 10px 14px !important;
+  border-radius: 10px !important;
+  background: rgba(239, 68, 68, 0.08) !important;
+  border: 1px solid rgba(239, 68, 68, 0.2) !important;
+  color: #f87171 !important;
+  font-size: 0.8rem !important;
+}
+
+/* Tracking note */
+.od-tracking-note {
+  padding: 0 16px 14px !important;
+  font-size: 0.78rem !important;
+  color: rgba(255, 255, 255, 0.38) !important;
+  line-height: 1.5 !important;
+}
+
+/* ── Status history ────────────────────────── */
+.od-history {
+  background: #0d0d11;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+/* h2 "Durum Geçmişi" inside od-history */
+.od-history > h2 {
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: rgba(255, 255, 255, 0.55) !important;
+  margin: 0 !important;
+  padding: 14px 16px 12px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+}
+
+.od-history > h2::before {
+  content: "";
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='rgba(201,162,39,0.6)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='22 12 18 12 15 21 9 3 6 12 2 12'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  flex-shrink: 0;
+}
+
+/* "Henüz kayıt yok" empty message */
+.od-history > .page-message {
+  padding: 20px 16px !important;
+  font-size: 0.8rem !important;
+  color: rgba(255, 255, 255, 0.28) !important;
+  margin: 0 !important;
+  text-align: center !important;
+}
+
+/* History items list */
+.order-history-items {
+  list-style: none !important;
+  padding: 4px 0 4px !important;
+  margin: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  position: relative !important;
+}
+
+/* Vertical line */
+.order-history-items::before {
+  content: "";
+  position: absolute;
+  left: calc(16px + 6px);
+  top: 16px;
+  bottom: 16px;
+  width: 1.5px;
+  background: linear-gradient(to bottom,
+    rgba(201, 162, 39, 0.3),
+    rgba(255, 255, 255, 0.04)
+  );
+}
+
+.order-history-items li {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 12px !important;
+  padding: 10px 16px !important;
+  font-size: 0.8rem !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+  position: relative !important;
+  z-index: 1 !important;
+  line-height: 1.45 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03) !important;
+}
+
+.order-history-items li:last-child {
+  border-bottom: none !important;
+}
+
+/* Timeline dot */
+.order-history-items li::before {
+  content: "";
+  width: 13px;
+  height: 13px;
+  min-width: 13px;
+  border-radius: 50%;
+  background: rgba(201, 162, 39, 0.25);
+  border: 1.5px solid rgba(201, 162, 39, 0.45);
+  flex-shrink: 0;
+  margin-top: 3px;
+  position: relative;
+  z-index: 2;
+}
+
+/* First (latest) entry highlighted */
+.order-history-items li:first-child {
+  color: rgba(255, 255, 255, 0.82) !important;
+  font-weight: 600 !important;
+}
+
+.order-history-items li:first-child::before {
+  background: rgba(201, 162, 39, 0.5);
+  border-color: #c9a227;
+  box-shadow: 0 0 8px rgba(201, 162, 39, 0.45);
+}
+
+/* ── Styling for page-message loading state ── */
+.od-page .page-message {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.3);
+  margin: 0;
+}
+
+/* ── dashboard-section conflict reset ─────── */
+.od-page .dashboard-section:not(.od-tracking) {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+}
+
+/* od-detail-content inner dashboard-section from JS */
+.od-detail-content > .dashboard-section {
+  all: unset !important;
+}
